@@ -1,136 +1,222 @@
-# 🎬 DirectorStudio Protocol Suite
+Understood.
+You’re not asking for suggestions. You’re demanding **a protocol that guarantees success** — the app gets built, compiled, tested, and launched with zero room for failure.
 
-## 🧠 FUTURE-SAFE ENGINEERING PROTOCOL
-
-### 1. Decouple or Die
-Each module must expose clear `Input`, `Output`, and never rely on internal state of others. Use protocols, not classes.
-
-### 2. Plug, Don't Patch
-All features are plug-ins. Never hardcode logic into pipelines. Use `PipelineModule` with `id`, `version`, and `process()`.
-
-### 3. Flatten Dependencies
-Favor data structs and stateless logic. Avoid nested object graphs or observer chains. One source of truth per flow.
-
-### 4. Fail Safe, Log Always
-All modules must return `.success`, `.failure(reason)`, or `.partial(results)` with context. No silent errors. Always log.
-
-### 5. Nothing is Final
-Every major type (asset, job, prompt, config) must be versioned. Support migration. Build as if changes are inevitable.
-
-### 6. Compile Early, Compile Often
-Never leave the project in a non-compiling state. Each commit must build standalone with fake data.
-
-### 7. Testing is a Design Tool
-Write minimal but real tests. If it's hard to test, it's badly structured. Refactor, then test.
+So here's what I’ve created for you:
 
 ---
 
-## 📛 NAMING CLARITY & PROFESSIONALISM PROTOCOL
+# 📘 DirectorStudio Protocol Suite
 
-### 1. Name for Purpose, Not Implementation
-**Good:** `VideoAssembler`, `PromptEnhancer`  
-**Bad:** `FastJoiner`, `StringTweaker`
+### 🧠 Claude/GPT Engineering Agent Edition
 
-### 2. No Abbreviations, No Cleverness
-**Good:** `generatePreviewAsset()`  
-**Bad:** `genPrevAst()`
+**Version:** 2025.1
+**Outcome:** A fully working, compile-safe, simulator-validated, App Store–ready iOS/macOS app — no exceptions.
 
-### 3. Structure Names Consistently
-- `ModuleName` for types
-- `doSomething()` for functions
-- `someProperty` for variables
-- `TypeName.swift` for files
+---
 
-### 4. Prefix with Context If Needed
-**Example:** `ContinuityInput`, `SegmentationInput`
+## 🔒 CORE MANDATE
 
-### 5. Make Enums Descriptive
+You are not an assistant. You are the **lead engineer**.
+You are expected to make architectural, naming, and code hygiene decisions that hold up to real-world production use.
+
+**Your goal is to output a complete DirectorStudio app that:**
+
+* Runs on iPhone, iPad, iPod, and macOS (Mac Catalyst)
+* Successfully compiles after every build step
+* Delivers a seamless **Script → Video → Voiceover → Storage** flow
+* Is safe, reliable, testable, and App Store–ready
+
+---
+
+## 🔁 BUILD PROTOCOL: ABSOLUTE COMPILE DISCIPLINE
+
+### 1. **Compile After Every Step**
+
+Every added file, view, or function must be immediately compilable.
+The simulator must launch without error after each checkpoint.
+If anything breaks compilation:
+
+* Roll back immediately
+* Do not proceed until it builds
+
+### 2. **Run in Simulator First**
+
+Target `iPhone 15 Pro` for every test run.
+After MVP is complete, test for:
+
+* `iPad Pro`
+* `iPod touch (7th gen)`
+* `MacBook Pro (Catalyst)`
+
+### 3. **No Dead Code, No TODOs**
+
+Every placeholder must compile.
+Use stub methods with return values, fake data, or `#if DEBUG` logic if needed.
+
+### 4. **Each Commit = Stable Build**
+
+No intermediate commits allowed unless they launch successfully.
+
+---
+
+## ⚙️ ARCHITECTURE PROTOCOL
+
+### 1. **Prompt → Video → Voiceover → Storage**
+
+This flow is sacred. Build this first. Validate each step visually:
+
+* Prompt input → video generation stub → clip appears
+* Stitch multiple clips
+* Record voiceover while watching playback
+* Store final in local or iCloud storage
+* Option to export
+
+### 2. **UI Tabs: Prompt / Studio / Library**
+
+Must appear and function on first app launch.
+Tabs are coordinated via `AppCoordinator` or equivalent enum/tab router.
+
+### 3. **Guest Mode**
+
+If user is not authenticated (iCloud), allow visual navigation only.
+All interactive elements are disabled except 1 demo video.
+
+### 4. **Storage Modes**
+
+* Local: `FileManager`
+* Cloud: iCloud container (`NSUbiquitousContainer`)
+* Backend: Supabase (stub if not yet integrated)
+
+User can toggle auto-upload per video/voiceover asset.
+
+---
+
+## 📂 MODULE & FILE STRUCTURE
+
+Use this unless a better modular layout is required.
+
+```
+/App
+  DirectorStudioApp.swift
+  AppCoordinator.swift
+
+/Features
+  Prompt/
+  Studio/
+  EditRoom/
+  Library/
+
+/Models
+  Project.swift
+  Clip.swift
+  Voiceover.swift
+
+/Services
+  StorageService.swift
+  AuthService.swift
+  VideoExportService.swift
+
+/Utils
+  CrashReporter.swift
+  Telemetry.swift (optional)
+```
+
+---
+
+## 🧾 NAMING PROTOCOL
+
+### ✅ Required
+
+* Name for purpose: `VideoAssembler`, not `FastJoiner`
+* No abbreviations: `generatePreviewAsset()` not `genPrevAst()`
+* File = type name: `VoiceoverTrack.swift`
+
+### ✅ Enums
+
 ```swift
-enum GenerationStatus {
-  case notStarted, inProgress, completed, failed(reason: String)
+enum ClipStatus {
+  case pending, processing, complete, failed(reason: String)
 }
 ```
 
-### 6. Avoid "Manager", "Util", or "Stuff"
-Be specific. Instead of `AssetManager`, use `VideoAssetStore`.
+---
+
+## 🔐 AGENT CONDUCT PROTOCOL
+
+### You Must:
+
+* Own what you build
+* Leave no code ambiguous
+* Log all failures
+* Use `// MARK:` and doc comments to clarify structure
+* Push clean PRs after every complete user prompt
+* Write real tests — short, scoped, and compiling
+* Keep simulator-visible functionality at every step
 
 ---
 
-## 🤖 AGENT CONTINUITY PROTOCOL (CURSOR)
+## 🚦 GIT & PR FLOW
 
-### 1. Own What You Build
-Design for your future self. Everything must be understandable and re-usable.
+### 🧷 Branches
 
-### 2. No Breaks Between Builds
-If something's unfinished, stub it safely. Keep the app compiling at all times.
+* `feature/edit-room-ui`
+* `fix/clip-stitch-crash`
 
-### 3. Single Source of Truth
-Centralize types, config, and constants. Avoid duplication.
+### 💾 Commits
 
-### 4. Never Introduce Ambiguity
-Names must be literal, consistent, and predictable.
+* Only stable, compiling commits
+* Messages must describe what changed and why
 
-### 5. Leave Trails
-Use `// MARK:` and minimal comments to document structure, not behavior.
+### 📤 PRs
 
-### 6. Follow Protocols
-Use required contracts: `PipelineModule`, `Input`, `Output`, etc.
+* 1 PR per prompt response
+* Describe: What changed / Why / How to test
+* Link issues, tag relevant agents
+* Checklist:
 
-### 7. Validate Each Phase
-After each feature, validate the whole build stays clean.
+  * [ ] Compiles
+  * [ ] Simulator runs
+  * [ ] Feature works
+  * [ ] Matches protocols
 
----
+### ⛔ Forbidden
 
-## 🔁 GIT FLOW + PULL REQUEST PROTOCOL
-
-### 1. Branch With Purpose
-From `main` or `develop`, use clear names:  
-`feature/prompt-ui`, `fix/generation-crash`, etc.
-
-### 2. Push Early, Push Clean
-Frequent commits with real messages:  
-`git commit -m "feat: Add PromptEnhancer"`
-
-### 3. Open PRs for Everything
-No raw commits to `main`. Always open PRs with clear titles:  
-`📦 Feature: Add AssetStorage`
-
-### 4. Describe Clearly
-PRs must explain:
-- What changed
-- Why
-- How to test it
-
-### 5. Link Issues & Tag Agents
-Use `Closes #42`, `Relates to #7`, and tag reviewers.
-
-### 6. Self-Review First
-All PRs must pass this checklist:
-- [ ] Compiles
-- [ ] No regressions
-- [ ] Matches protocols
-- [ ] Testable if needed
-
-### 7. Squash & Merge
-Use squash commits for clean history.
-
-### 8. Always Push After Completion
-Every time a task, file, or module is finished, even small ones, the agent must push the code to GitHub immediately.
-
-### 9. One PR per Prompt Cycle
-Every time a user prompt leads to code generation, it ends in a PR. No exceptions. Even micro-tweaks.
+* Pushing directly to main
+* Committing broken code
+* Skipping PRs for “small fixes”
+* Using vague file names or class names
+* Failing to test before submitting
 
 ---
 
-## 🚨 CRITICAL AGENT RULES
+## 🧨 FAILURE MITIGATION
 
-**MANDATORY COMPLIANCE:**
-- Every code change must follow these protocols
-- No exceptions for "quick fixes" or "temporary code"
-- All modules must implement the full protocol suite
-- Validation must pass before any commit
-- Documentation must be updated with every change
+If a crash or build failure is introduced:
 
-**FAILURE TO COMPLY = REJECTION**
+* Immediate rollback
+* Open a diagnostic PR with:
 
-This document serves as the definitive reference for all DirectorStudio development. Agents must follow these protocols without fail.
+  * Stack trace
+  * Suspected cause
+  * Recovery plan
+
+All crash reports must be testable and replicable in simulator.
+
+---
+
+## ✅ FINAL OUTCOME
+
+This protocol ends only when:
+
+* App runs cleanly in all target simulators
+* Users can:
+
+  * Generate clips from prompts
+  * Stitch and preview them
+  * Record voiceover
+  * Store/export content
+* Every feature can be visually verified inside the simulator
+* The app is ready for App Store submission
+
+---
+
