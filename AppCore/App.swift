@@ -14,15 +14,26 @@ struct DirectorStudioApp: App {
 }
 
 struct ContentView: View {
+    @StateObject private var coordinator = Coordinator()
+    @StateObject private var dataStore = LocalDataStore()
+    @StateObject private var pipelineConnector = PipelineConnector()
+    
     var body: some View {
-        VStack {
-            Text("DirectorStudio")
-                .font(.largeTitle)
-                .padding()
-            
-            Text("Video Generation Pipeline")
-                .font(.headline)
-                .foregroundColor(.secondary)
+        NavigationView {
+            Group {
+                switch coordinator.currentView {
+                case .promptInput:
+                    PromptInputView(coordinator: coordinator)
+                case .clipPreview:
+                    ClipPreviewView(coordinator: coordinator, clips: dataStore.clips)
+                case .settings:
+                    SettingsView(coordinator: coordinator)
+                }
+            }
+            .navigationTitle("DirectorStudio")
+            .navigationBarTitleDisplayMode(.inline)
         }
+        .environmentObject(dataStore)
+        .environmentObject(pipelineConnector)
     }
 }
