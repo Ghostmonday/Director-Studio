@@ -5,6 +5,7 @@
 import SwiftUI
 import PhotosUI
 
+
 /// Main prompt input view
 struct PromptView: View {
     @EnvironmentObject var coordinator: AppCoordinator
@@ -149,10 +150,15 @@ struct PromptView: View {
                         HStack {
                             Toggle(stage.displayName, isOn: binding(for: stage))
                                 .disabled(coordinator.isGuestMode)
+                                .tint(.blue)
                             
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.blue)
-                                .help(stage.description)
+                            Button(action: {
+                                viewModel.showingStageHelp = stage
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
                         }
                         .padding(.horizontal)
                     }
@@ -160,25 +166,32 @@ struct PromptView: View {
                 
                 Spacer()
                 
-                // Generate button
+                // Generate button with loading state
                 Button(action: {
                     Task {
                         await viewModel.generateClip(coordinator: coordinator)
                     }
                 }) {
                     HStack {
-                        Image(systemName: "wand.and.stars")
-                        Text("Generate Clip")
+                        if viewModel.isGenerating {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "wand.and.stars")
+                        }
+                        Text(viewModel.isGenerating ? "Generating..." : "Generate Clip")
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(coordinator.isGuestMode ? Color.gray : Color.blue)
                     .foregroundColor(.white)
                     .cornerRadius(10)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
                 }
                 .padding()
                 .disabled(coordinator.isGuestMode || viewModel.isGenerating)
-                .opacity(viewModel.isGenerating ? 0.6 : 1.0)
+                .opacity(viewModel.isGenerating ? 0.8 : 1.0)
                 
                 if coordinator.isGuestMode {
                     Text("Sign in to iCloud to create content")
@@ -188,6 +201,16 @@ struct PromptView: View {
                 }
             }
             .navigationTitle("Prompt")
+            .sheet(item: $viewModel.showingStageHelp) { stage in
+                StageHelpView(stage: stage)
+            }
+            .alert("Generation Failed", isPresented: .constant(viewModel.generationError != nil)) {
+                Button("OK") {
+                    viewModel.generationError = nil
+                }
+            } message: {
+                Text(viewModel.generationError?.localizedDescription ?? "An error occurred")
+            }
         }
     }
     

@@ -43,6 +43,8 @@ class PromptViewModel: ObservableObject {
     @Published var selectedImage: UIImage? = nil
     @Published var useDefaultAdImage: Bool = false
     @Published var videoDuration: Double = 10.0 // Default 10 seconds, range 3-20
+    @Published var showingStageHelp: PipelineStage? = nil
+    @Published var generationError: Error? = nil
     
     private let pipelineService = PipelineService()
     
@@ -97,6 +99,10 @@ class PromptViewModel: ObservableObject {
             
         } catch {
             print("❌ Clip generation failed: \(error.localizedDescription)")
+            generationError = error
+            
+            // Haptic feedback for error
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
     }
     
