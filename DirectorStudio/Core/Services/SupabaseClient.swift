@@ -9,14 +9,21 @@ class SupabaseClient {
     
     private let url: String
     private let anonKey: String
+    private let serviceRoleKey: String
     
     private init() {
-        self.url = ""
-        self.anonKey = ""
+        // Load from configuration bundle
+        self.url = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String ?? ""
+        self.anonKey = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String ?? ""
+        self.serviceRoleKey = Bundle.main.object(forInfoDictionaryKey: "SERVICE_ROLE_KEY") as? String ?? ""
     }
     
     func initialize() {
-        print("Supabase client would be initialized with URL: \(url)")
+        guard !url.isEmpty, !anonKey.isEmpty else {
+            print("⚠️ Supabase configuration missing. Please update Secrets.xcconfig")
+            return
+        }
+        print("✅ Supabase client initialized with URL: \(url)")
     }
     
     // MARK: - Database Operations
