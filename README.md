@@ -207,3 +207,15 @@ Every build phase results in a working, compilable app.
 
 Proprietary - DirectorStudio 2025
 
+
+
+---
+
+## 🎯 Latest Update
+
+**Image Reference Feature** - Now live! Generate promotional videos from screenshots with cinematic camera movements and professional effects. Duration control (3-20s), Featured Demo section, and complete Pollo AI integration.
+
+See [IMAGE_REFERENCE_IMPLEMENTATION.md](IMAGE_REFERENCE_IMPLEMENTATION.md) for details.
+
+**Last Updated:** October 23, 2025
+
