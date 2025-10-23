@@ -1,0 +1,13 @@
+name: Build iOS
+
+on: push
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build iOS App
+      run: xcodebuild -scheme "DirectorStudio" -destination 'generic/platform=iOS' -configuration Release clean build
