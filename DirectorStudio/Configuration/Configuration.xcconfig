@@ -1,0 +1,16 @@
+// Configuration/Configuration.xcconfig
+// Main configuration file that includes secrets
+
+// Include local secrets if available, otherwise use defaults
+#include? "Secrets.local.xcconfig"
+#include "Secrets.xcconfig"
+
+// App Configuration
+APP_NAME = DirectorStudio
+APP_BUNDLE_ID = com.directorstudio.app
+
+// API Configuration in Info.plist
+API_CONFIG_POLLO_KEY = $(POLLO_API_KEY)
+API_CONFIG_POLLO_ENDPOINT = $(POLLO_API_ENDPOINT)
+API_CONFIG_DEEPSEEK_KEY = $(DEEPSEEK_API_KEY)
+API_CONFIG_DEEPSEEK_ENDPOINT = $(DEEPSEEK_API_ENDPOINT)

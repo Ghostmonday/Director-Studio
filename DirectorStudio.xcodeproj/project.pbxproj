@@ -34,6 +34,9 @@
 		C8AE2F9D8A994E7AB551F251 /* VideoModules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D62D79FE92C482C8B43F333 /* VideoModules.swift */; };
 		87952F106236458C9B261D03 /* InfrastructureModules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809D48D49B604F1EBC3CDAE2 /* InfrastructureModules.swift */; };
 		174E1BFFFF9E4676A8C3AB19 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E97C61DEB744F42B837BDA9 /* CrashReporter.swift */; };
+		52A1B2C3D4E5F6A7B8C9D0E1 /* PolloAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7A8B9C0D1E2F /* PolloAIService.swift */; };
+		98A7B6C5D4E3F2A1B0C9D8E7 /* DeepSeekAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8B9C0D1E2F3A4B5C6D7E8F /* DeepSeekAIService.swift */; };
+		34D5E6F7A8B9C0D1E2F3A4B5 /* AIServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D7E8F9A0B1C2D3E4F5A6B /* AIServiceFactory.swift */; };
 		0137CBFCE03A4DFB89DF4C39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 524F0ED49519474EBB529DF2 /* Assets.xcassets */; };
 		0A761C4BD1AC4B438F14DFB2 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 374971D6DB6947ADA5637CDB /* CloudKit.framework */; };
 		B51073DF6C254F43BEABCBDF /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3300D30FE48549B6B115BED5 /* AVFoundation.framework */; };
@@ -68,9 +71,15 @@
 		0D62D79FE92C482C8B43F333 /* VideoModules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoModules.swift; sourceTree = "<group>"; };
 		809D48D49B604F1EBC3CDAE2 /* InfrastructureModules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfrastructureModules.swift; sourceTree = "<group>"; };
 		9E97C61DEB744F42B837BDA9 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7A8B9C0D1E2F /* PolloAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolloAIService.swift; sourceTree = "<group>"; };
+		7A8B9C0D1E2F3A4B5C6D7E8F /* DeepSeekAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepSeekAIService.swift; sourceTree = "<group>"; };
+		5C6D7E8F9A0B1C2D3E4F5A6B /* AIServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceFactory.swift; sourceTree = "<group>"; };
 		D29588A54EBE4256856EE244 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8C28F9423015428DAAA04469 /* DirectorStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DirectorStudio.entitlements; sourceTree = "<group>"; };
 		524F0ED49519474EBB529DF2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Configuration.xcconfig; path = DirectorStudio/Configuration/Configuration.xcconfig; sourceTree = "<group>"; };
+		ABC123DEF456GHI789JKL0M2 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Secrets.xcconfig; path = DirectorStudio/Configuration/Secrets.xcconfig; sourceTree = "<group>"; };
+		ABC123DEF456GHI789JKL0M3 /* Secrets.local.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Secrets.local.xcconfig.template"; path = "DirectorStudio/Configuration/Secrets.local.xcconfig.template"; sourceTree = "<group>"; };
 		374971D6DB6947ADA5637CDB /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		3300D30FE48549B6B115BED5 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -118,6 +127,7 @@
 				9B7946715B7543A48C5D0BE5 /* Services */,
 				BC9B7E257CB84557B0280C11 /* Modules */,
 				615DCED3460F4D42A6CC4C6E /* Utils */,
+				XYZ987ABC654DEF321GHI0J1 /* Configuration */,
 			);
 			path = DirectorStudio;
 			sourceTree = "<group>";
@@ -177,6 +187,9 @@
 				0C38DC50E73C475792E55E7C /* ExportService.swift */,
 				854F34158A40405C8DE9D56C /* DirectorStudioCore.swift */,
 				2C142B9221CC40C7A1E67F7E /* PipelineServiceBridge.swift */,
+				1A2B3C4D5E6F7A8B9C0D1E2F /* PolloAIService.swift */,
+				7A8B9C0D1E2F3A4B5C6D7E8F /* DeepSeekAIService.swift */,
+				5C6D7E8F9A0B1C2D3E4F5A6B /* AIServiceFactory.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -201,6 +214,16 @@
 				9E97C61DEB744F42B837BDA9 /* CrashReporter.swift */,
 			);
 			path = Utils;
+			sourceTree = "<group>";
+		};
+		XYZ987ABC654DEF321GHI0J1 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */,
+				ABC123DEF456GHI789JKL0M2 /* Secrets.xcconfig */,
+				ABC123DEF456GHI789JKL0M3 /* Secrets.local.xcconfig.template */,
+			);
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 		011413F66D7443E1BDFA96AD /* Prompt */ = {
@@ -335,6 +358,9 @@
 				C8AE2F9D8A994E7AB551F251 /* VideoModules.swift in Sources */,
 				87952F106236458C9B261D03 /* InfrastructureModules.swift in Sources */,
 				174E1BFFFF9E4676A8C3AB19 /* CrashReporter.swift in Sources */,
+				52A1B2C3D4E5F6A7B8C9D0E1 /* PolloAIService.swift in Sources */,
+				98A7B6C5D4E3F2A1B0C9D8E7 /* DeepSeekAIService.swift in Sources */,
+				34D5E6F7A8B9C0D1E2F3A4B5 /* AIServiceFactory.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,6 +369,7 @@
 /* Begin XCBuildConfiguration section */
 		5464B60E35F74865A481CDB0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -406,6 +433,7 @@
 		};
 		A1064B7523DF494E8776AA48 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -462,6 +490,7 @@
 		};
 		C7E35CB6FF064534A9C6EEA6 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -498,6 +527,7 @@
 		};
 		FB5A4755180F42989B836559 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

@@ -60,16 +60,16 @@ public class DirectorStudioCore: ObservableObject {
     // MARK: - Initialization
     
     private init() {
-        // Initialize AI service
-        self.aiService = MockAIService()
+        // Initialize AI service from configuration (Pollo, DeepSeek, or Mock)
+        self.aiService = AIServiceFactory.createFromEnvironment()
         
-        // Initialize modules
+        // Initialize modules - many are designed for AI integration!
         self.segmentationModule = SegmentationModule()
         self.storyAnalysisModule = StoryAnalysisModule()
         self.taxonomyModule = CinematicTaxonomyModule()
         self.continuityEngine = ContinuityEngine()
         self.continuityInjector = ContinuityInjector()
-        self.videoGenerationModule = VideoGenerationModule(aiService: aiService)
+        self.videoGenerationModule = VideoGenerationModule(aiService: aiService)  // Uses AI!
         self.videoEffectsModule = VideoEffectsModule()
         self.videoAssemblyModule = VideoAssemblyModule()
         
@@ -81,11 +81,18 @@ public class DirectorStudioCore: ObservableObject {
             fatalError("Failed to initialize core services: \(error.localizedDescription)")
         }
         
+        // Log which AI service is active
+        let aiServiceName = String(describing: type(of: aiService))
+        print("🚀 DirectorStudioCore initialized with AI service: \(aiServiceName)")
+        
         // Telemetry
         Task {
             await Telemetry.shared.logEvent(
                 "CoreInitializationCompleted",
-                metadata: ["moduleCount": "8"]
+                metadata: [
+                    "moduleCount": "8",
+                    "aiService": aiServiceName
+                ]
             )
         }
     }

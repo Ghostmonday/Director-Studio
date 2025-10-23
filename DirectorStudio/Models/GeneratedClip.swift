@@ -22,6 +22,8 @@ struct GeneratedClip: Identifiable, Codable {
     var createdAt: Date
     var duration: TimeInterval
     var projectID: UUID?
+    var isGeneratedFromImage: Bool
+    var isFeaturedDemo: Bool
     
     init(
         id: UUID = UUID(),
@@ -31,7 +33,9 @@ struct GeneratedClip: Identifiable, Codable {
         syncStatus: SyncStatus = .notUploaded,
         createdAt: Date = Date(),
         duration: TimeInterval = 0,
-        projectID: UUID? = nil
+        projectID: UUID? = nil,
+        isGeneratedFromImage: Bool = false,
+        isFeaturedDemo: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -41,6 +45,8 @@ struct GeneratedClip: Identifiable, Codable {
         self.createdAt = createdAt
         self.duration = duration
         self.projectID = projectID
+        self.isGeneratedFromImage = isGeneratedFromImage
+        self.isFeaturedDemo = isFeaturedDemo
     }
 }
 

@@ -8,6 +8,7 @@ import SwiftUI
 struct ClipCell: View {
     let clip: GeneratedClip
     let isSelected: Bool
+    var isFeatured: Bool = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -31,6 +32,22 @@ struct ClipCell: View {
                             .padding(8)
                     }
                     Spacer()
+                }
+                
+                // Featured badge
+                if isFeatured {
+                    VStack {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                                .padding(6)
+                                .background(Color.black.opacity(0.7))
+                                .clipShape(Circle())
+                                .padding(8)
+                            Spacer()
+                        }
+                        Spacer()
+                    }
                 }
             }
             .cornerRadius(8)
