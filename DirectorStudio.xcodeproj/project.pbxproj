@@ -47,6 +47,8 @@
 		B5A6C7D8E9F0123456789ABC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A6C7D8E9F0123456789ABC /* SettingsView.swift */; };
 		B6A7C8D9E0F123456789ABCD /* StageHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A7C8D9E0F123456789ABCD /* StageHelpView.swift */; };
 		B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift */; };
+		C1A2B3D4E5F6789012345679 /* DemoContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3D4E5F6789012345679 /* DemoContent.swift */; };
+		C2A3B4D5E6F789012345678A /* OnboardingContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3B4D5E6F789012345678A /* OnboardingContent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -96,6 +98,8 @@
 		B5A6C7D8E9F0123456789ABC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B6A7C8D9E0F123456789ABCD /* StageHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageHelpView.swift; sourceTree = "<group>"; };
 		B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedStudioView.swift; sourceTree = "<group>"; };
+		C1A2B3D4E5F6789012345679 /* DemoContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoContent.swift; sourceTree = "<group>"; };
+		C2A3B4D5E6F789012345678A /* OnboardingContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContent.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +147,7 @@
 				615DCED3460F4D42A6CC4C6E /* Utils */,
 				XYZ987ABC654DEF321GHI0J1 /* Configuration */,
 				C1D2E3F4A5B6789012345678 /* Components */,
+				D3E4F5A6B7C8901234567890 /* Resources */,
 			);
 			path = DirectorStudio;
 			sourceTree = "<group>";
@@ -307,6 +312,15 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		D3E4F5A6B7C8901234567890 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C1A2B3D4E5F6789012345679 /* DemoContent.swift */,
+				C2A3B4D5E6F789012345678A /* OnboardingContent.swift */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -413,6 +427,8 @@
 				B5A6C7D8E9F0123456789ABC /* SettingsView.swift in Sources */,
 				B6A7C8D9E0F123456789ABCD /* StageHelpView.swift in Sources */,
 				B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift in Sources */,
+				C1A2B3D4E5F6789012345679 /* DemoContent.swift in Sources */,
+				C2A3B4D5E6F789012345678A /* OnboardingContent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
