@@ -62,6 +62,7 @@ class SyncService: ObservableObject {
     
     // MARK: - Sync Processing
     
+    @MainActor
     private func processSyncQueue() async throws {
         isSyncing = true
         defer { isSyncing = false }

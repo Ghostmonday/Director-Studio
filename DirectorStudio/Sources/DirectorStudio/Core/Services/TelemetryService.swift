@@ -116,11 +116,12 @@ class TelemetryService: ObservableObject {
         let batch = eventQueue
         eventQueue.removeAll()
         
-        Task { @MainActor [weak self] in
+        Task { [weak self] in
             await self?.batchWriteTelemetry(batch)
         }
     }
     
+    @MainActor
     private func batchWriteTelemetry(_ events: [TelemetryEvent]) async {
         // Batch write to continuity_telemetry table
         for event in events {
