@@ -18,6 +18,7 @@ class SyncService: ObservableObject {
     
     // MARK: - Sync Lifecycle
     
+    @MainActor
     func start() async {
         // Start realtime subscriptions
         // Drain local queue

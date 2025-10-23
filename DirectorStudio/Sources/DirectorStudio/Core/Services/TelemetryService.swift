@@ -121,23 +121,26 @@ class TelemetryService: ObservableObject {
         }
     }
     
-    @MainActor
     private func batchWriteTelemetry(_ events: [TelemetryEvent]) async {
         // Batch write to continuity_telemetry table
-        for event in events {
-            do {
-                try await syncService.enqueueRemoteUpsert(
-                    tableName: "continuity_telemetry",
-                    record: [
-                        "element": event.name,
-                        "attempts": 1,
-                        "successes": 1,
-                        "rate": 1.0,
-                        "timestamp": ISO8601DateFormatter().string(from: Date())
-                    ]
-                )
-            } catch {
-                print("⚠️ Failed to write telemetry: \(error)")
+        await MainActor.run {
+            for event in events {
+                Task {
+                    do {
+                        try await syncService.enqueueRemoteUpsert(
+                            tableName: "continuity_telemetry",
+                            record: [
+                                "element": event.name,
+                                "attempts": 1,
+                                "successes": 1,
+                                "rate": 1.0,
+                                "timestamp": ISO8601DateFormatter().string(from: Date())
+                            ]
+                        )
+                    } catch {
+                        print("⚠️ Failed to write telemetry: \(error)")
+                    }
+                }
             }
         }
     }
