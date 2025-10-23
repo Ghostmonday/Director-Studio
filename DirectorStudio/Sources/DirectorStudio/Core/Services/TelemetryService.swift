@@ -116,8 +116,8 @@ class TelemetryService: ObservableObject {
         let batch = eventQueue
         eventQueue.removeAll()
         
-        Task {
-            await batchWriteTelemetry(batch)
+        Task { @MainActor [weak self] in
+            await self?.batchWriteTelemetry(batch)
         }
     }
     

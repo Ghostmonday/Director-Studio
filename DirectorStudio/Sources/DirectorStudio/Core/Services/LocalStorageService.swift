@@ -6,7 +6,7 @@ import Foundation
 
 /// Local-first storage service that mirrors Supabase tables for offline resilience
 class LocalStorageService: ObservableObject {
-    static let shared = LocalStorageService()
+    nonisolated(unsafe) static let shared = LocalStorageService()
     
     @Published var projects: [ProjectOverview] = []
     @Published var sceneDrafts: [SceneDraft] = []

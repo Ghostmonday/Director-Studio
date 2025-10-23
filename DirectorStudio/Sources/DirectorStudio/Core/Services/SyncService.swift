@@ -30,6 +30,7 @@ class SyncService: ObservableObject {
     
     // MARK: - Remote Operations
     
+    @MainActor
     func enqueueRemoteUpsert(tableName: String, record: [String: Any]) async throws {
         let syncEntry = SyncEntry(
             id: UUID(),
@@ -45,6 +46,7 @@ class SyncService: ObservableObject {
         try await processSyncQueue()
     }
     
+    @MainActor
     func enqueueRemoteDelete(tableName: String, id: UUID) async throws {
         let syncEntry = SyncEntry(
             id: UUID(),

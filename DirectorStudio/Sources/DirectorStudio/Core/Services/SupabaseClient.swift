@@ -5,7 +5,7 @@
 import Foundation
 
 class SupabaseClient {
-    static let shared = SupabaseClient()
+    nonisolated(unsafe) static let shared = SupabaseClient()
     
     private let url: String
     private let anonKey: String
