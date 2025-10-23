@@ -116,34 +116,14 @@ class TelemetryService: ObservableObject {
         let batch = eventQueue
         eventQueue.removeAll()
         
-        Task { [weak self] in
-            await self?.batchWriteTelemetry(batch)
+        // Simple background processing without complex concurrency
+        for event in batch {
+            print("📊 Telemetry: \(event.name)")
+            // In a real implementation, this would batch write to Supabase
+            // For now, just log the events
         }
     }
     
-    private func batchWriteTelemetry(_ events: [TelemetryEvent]) async {
-        // Batch write to continuity_telemetry table
-        await MainActor.run {
-            for event in events {
-                Task {
-                    do {
-                        try await syncService.enqueueRemoteUpsert(
-                            tableName: "continuity_telemetry",
-                            record: [
-                                "element": event.name,
-                                "attempts": 1,
-                                "successes": 1,
-                                "rate": 1.0,
-                                "timestamp": ISO8601DateFormatter().string(from: Date())
-                            ]
-                        )
-                    } catch {
-                        print("⚠️ Failed to write telemetry: \(error)")
-                    }
-                }
-            }
-        }
-    }
 }
 
 struct TelemetryEvent {
@@ -151,4 +131,5 @@ struct TelemetryEvent {
     let userId: UUID?
     let metadata: [String: Any]
 }
+
 

@@ -91,6 +91,7 @@ class SyncService: ObservableObject {
         lastSyncTime = Date()
     }
     
+    @MainActor
     private func syncInsert(_ entry: SyncEntry) async throws {
         print("🔄 Syncing insert to \(entry.tableName)")
         
@@ -101,6 +102,7 @@ class SyncService: ObservableObject {
         )
     }
     
+    @MainActor
     private func syncUpdate(_ entry: SyncEntry) async throws {
         print("🔄 Syncing update to \(entry.tableName)")
         
@@ -112,6 +114,7 @@ class SyncService: ObservableObject {
         )
     }
     
+    @MainActor
     private func syncDelete(_ entry: SyncEntry) async throws {
         print("🔄 Syncing delete from \(entry.tableName)")
         
