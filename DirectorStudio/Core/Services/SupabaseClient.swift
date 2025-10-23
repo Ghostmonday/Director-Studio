@@ -28,8 +28,9 @@ class SupabaseClient {
     
     // MARK: - Database Operations
     
-    func insert<T: Codable>(_ object: T, into table: String) async throws {
-        print("Would insert \(type(of: object)) into \(table)")
+    func insert(_ payload: [String: Any], into table: String) async throws {
+        print("✅ Inserting into \(table): \(payload)")
+        // TODO: Implement actual Supabase insert when SDK is ready
     }
     
     func select<T: Codable>(from table: String, where condition: String? = nil) async throws -> [T] {
@@ -37,8 +38,9 @@ class SupabaseClient {
         return []
     }
     
-    func update<T: Codable>(_ object: T, in table: String, where condition: String) async throws {
-        print("Would update \(type(of: object)) in \(table) where \(condition)")
+    func update(_ payload: [String: Any], in table: String, where condition: String) async throws {
+        print("✅ Updating \(table) where \(condition): \(payload)")
+        // TODO: Implement actual Supabase update when SDK is ready
     }
     
     func delete(from table: String, where condition: String) async throws {

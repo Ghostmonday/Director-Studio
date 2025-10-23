@@ -89,17 +89,33 @@ class SyncService: ObservableObject {
     
     private func syncInsert(_ entry: SyncEntry) async throws {
         print("🔄 Syncing insert to \(entry.tableName)")
-        // Implement actual Supabase insert
+        
+        // Call Supabase client
+        try await supabaseClient.insert(
+            entry.payload,
+            into: entry.tableName
+        )
     }
     
     private func syncUpdate(_ entry: SyncEntry) async throws {
         print("🔄 Syncing update to \(entry.tableName)")
-        // Implement actual Supabase update
+        
+        // Call Supabase client
+        try await supabaseClient.update(
+            entry.payload,
+            in: entry.tableName,
+            where: "id = '\(entry.payload["id"] ?? "")'"
+        )
     }
     
     private func syncDelete(_ entry: SyncEntry) async throws {
         print("🔄 Syncing delete from \(entry.tableName)")
-        // Implement actual Supabase delete
+        
+        // Call Supabase client
+        try await supabaseClient.delete(
+            from: entry.tableName,
+            where: "id = '\(entry.payload["id"] ?? "")'"
+        )
     }
     
     // MARK: - Reconciliation
