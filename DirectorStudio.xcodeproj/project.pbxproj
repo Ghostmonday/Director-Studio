@@ -77,9 +77,9 @@
 		D29588A54EBE4256856EE244 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8C28F9423015428DAAA04469 /* DirectorStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DirectorStudio.entitlements; sourceTree = "<group>"; };
 		524F0ED49519474EBB529DF2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Configuration.xcconfig; path = DirectorStudio/Configuration/Configuration.xcconfig; sourceTree = "<group>"; };
-		ABC123DEF456GHI789JKL0M2 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Secrets.xcconfig; path = DirectorStudio/Configuration/Secrets.xcconfig; sourceTree = "<group>"; };
-		ABC123DEF456GHI789JKL0M3 /* Secrets.local.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Secrets.local.xcconfig.template"; path = "DirectorStudio/Configuration/Secrets.local.xcconfig.template"; sourceTree = "<group>"; };
+		ABC123DEF456GHI789JKL0M1 /* Configuration.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Configuration.xcconfig; path = Configuration/Configuration.xcconfig; sourceTree = "<group>"; };
+		ABC123DEF456GHI789JKL0M2 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Secrets.xcconfig; path = Configuration/Secrets.xcconfig; sourceTree = "<group>"; };
+		ABC123DEF456GHI789JKL0M3 /* Secrets.local.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Secrets.local.xcconfig.template"; path = "Configuration/Secrets.local.xcconfig.template"; sourceTree = "<group>"; };
 		374971D6DB6947ADA5637CDB /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		3300D30FE48549B6B115BED5 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
