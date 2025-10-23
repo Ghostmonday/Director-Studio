@@ -22,32 +22,8 @@ struct ContentView: View {
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-                NavigationView {
-                    Group {
-                        switch coordinator.currentView {
-                        case .promptInput:
-                            PromptInputView(coordinator: coordinator)
-                        case .clipPreview:
-                            ClipPreviewView(coordinator: coordinator, clips: dataStore.clips)
-                        case .settings:
-                            SettingsView(coordinator: coordinator)
-                        }
-                    }
-                    .navigationTitle("DirectorStudio")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Sign Out") {
-                                Task {
-                                    try? await authManager.signOut()
-                                }
-                            }
-                        }
-                    }
-                }
-                .environmentObject(dataStore)
-                .environmentObject(pipelineConnector)
-                .environmentObject(authManager)
+                // Show storage launch screen first
+                StorageLaunchView()
             } else {
                 AuthView()
             }
