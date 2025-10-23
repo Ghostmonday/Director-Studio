@@ -1,6 +1,9 @@
-name: Build iOS
+name: Build iOS (Full - Disabled)
 
-on: push
+# Temporarily disabled - uncomment 'on:' section to enable
+# on: push
+on:
+  workflow_dispatch:  # Only run manually for now
 
 jobs:
   build:
