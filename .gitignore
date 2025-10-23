@@ -120,3 +120,7 @@ DerivedData/
 *.xcuserstate
 launch_app.sh
 buried treasure
+
+# API Keys and Secrets
+DirectorStudio/Configuration/Secrets.local.xcconfig
+*.local.xcconfig
