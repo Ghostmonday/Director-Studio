@@ -6,15 +6,21 @@ import PackageDescription
 let package = Package(
     name: "DirectorStudio",
     platforms: [
-        .iOS(.v15)
+        .iOS(.v17),
+        .macOS(.v12)
     ],
     products: [
         .library(name: "DirectorStudio", targets: ["DirectorStudio"])
     ],
     dependencies: [
-        .package(url: "https://github.com/supabase-community/supabase-swift.git", from: "0.0.1")
+        .package(url: "https://github.com/supabase-community/supabase-swift.git", from: "2.0.0")
     ],
     targets: [
-        .target(name: "DirectorStudio", dependencies: ["Supabase"])
+        .target(
+            name: "DirectorStudio",
+            dependencies: [
+                .product(name: "Supabase", package: "supabase-swift")
+            ]
+        )
     ]
 )
