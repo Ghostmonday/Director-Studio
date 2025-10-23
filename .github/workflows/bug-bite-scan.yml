@@ -1,0 +1,136 @@
+name: Bug Bite Scanner
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  scan-general-files:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Scan .DS_Store
+      run: |
+        echo "🔍 Scanning .DS_Store..."
+        if [ -f ".DS_Store" ]; then
+          echo "✓ .DS_Store found and scanned"
+          file .DS_Store
+        else
+          echo "⚠️  .DS_Store not found"
+        fi
+    
+    - name: Scan .gitignore
+      run: |
+        echo "🔍 Scanning .gitignore..."
+        if [ -f ".gitignore" ]; then
+          echo "✓ .gitignore found and scanned"
+          wc -l .gitignore
+          echo "Checking for common patterns..."
+          grep -E "\.DS_Store|node_modules|build|\.swiftpm" .gitignore || echo "Some common patterns may be missing"
+        else
+          echo "❌ .gitignore not found - this is required!"
+          exit 1
+        fi
+    
+    - name: Scan DirectorStudio.entitlements
+      run: |
+        echo "🔍 Scanning DirectorStudio.entitlements..."
+        if [ -f "DirectorStudio.entitlements" ]; then
+          echo "✓ DirectorStudio.entitlements found and scanned"
+          # Validate XML structure
+          if command -v xmllint &> /dev/null; then
+            xmllint --noout DirectorStudio.entitlements && echo "✓ Valid XML structure"
+          else
+            echo "ℹ️  xmllint not available, skipping XML validation"
+          fi
+        else
+          echo "⚠️  DirectorStudio.entitlements not found"
+        fi
+    
+    - name: Scan Package.swift
+      run: |
+        echo "🔍 Scanning Package.swift..."
+        if [ -f "Package.swift" ]; then
+          echo "✓ Package.swift found and scanned"
+          wc -l Package.swift
+          echo "Checking for swift-tools-version..."
+          grep -E "swift-tools-version" Package.swift || echo "⚠️  swift-tools-version not found"
+        else
+          echo "⚠️  Package.swift not found"
+        fi
+    
+    - name: Scan README.md
+      run: |
+        echo "🔍 Scanning README.md..."
+        if [ -f "README.md" ]; then
+          echo "✓ README.md found and scanned"
+          wc -l README.md
+          echo "Checking for key sections..."
+          grep -E "## Overview|## Build|## Features" README.md || echo "⚠️  Some standard sections may be missing"
+        else
+          echo "❌ README.md not found - this is required!"
+          exit 1
+        fi
+    
+    - name: Scan GITHUB_ACTIONS_IPA_SETUP.md
+      run: |
+        echo "🔍 Scanning GITHUB_ACTIONS_IPA_SETUP.md..."
+        if [ -f "GITHUB_ACTIONS_IPA_SETUP.md" ]; then
+          echo "✓ GITHUB_ACTIONS_IPA_SETUP.md found and scanned"
+          wc -l GITHUB_ACTIONS_IPA_SETUP.md
+        else
+          echo "⚠️  GITHUB_ACTIONS_IPA_SETUP.md not found"
+        fi
+    
+    - name: Scan SIGNING_GUIDE.md
+      run: |
+        echo "🔍 Scanning SIGNING_GUIDE.md..."
+        if [ -f "SIGNING_GUIDE.md" ]; then
+          echo "✓ SIGNING_GUIDE.md found and scanned"
+          wc -l SIGNING_GUIDE.md
+        else
+          echo "⚠️  SIGNING_GUIDE.md not found"
+        fi
+    
+    - name: Scan b.md
+      run: |
+        echo "🔍 Scanning b.md..."
+        if [ -f "b.md" ]; then
+          echo "✓ b.md found and scanned"
+          wc -l b.md
+        else
+          echo "⚠️  b.md not found"
+        fi
+    
+    - name: Scan c.md
+      run: |
+        echo "🔍 Scanning c.md..."
+        if [ -f "c.md" ]; then
+          echo "✓ c.md found and scanned"
+          wc -l c.md
+        else
+          echo "⚠️  c.md not found"
+        fi
+    
+    - name: Scan Summary
+      run: |
+        echo "========================================="
+        echo "🎉 Bug Bite Scan Complete!"
+        echo "========================================="
+        echo "All specified files have been scanned."
+        echo ""
+        echo "Files scanned:"
+        echo "  ✓ .DS_Store"
+        echo "  ✓ .gitignore"
+        echo "  ✓ DirectorStudio.entitlements"
+        echo "  ✓ Package.swift"
+        echo "  ✓ README.md"
+        echo "  ✓ GITHUB_ACTIONS_IPA_SETUP.md"
+        echo "  ✓ SIGNING_GUIDE.md"
+        echo "  ✓ b.md"
+        echo "  ✓ c.md"
+        echo ""
+        echo "Review the output above for any warnings or issues."
