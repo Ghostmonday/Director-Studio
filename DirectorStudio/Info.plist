@@ -79,6 +79,14 @@
             <string>com.directorstudio.app</string>
         </dict>
     </array>
+    <key>POLLO_API_KEY</key>
+    <string>$(API_CONFIG_POLLO_KEY)</string>
+    <key>POLLO_API_ENDPOINT</key>
+    <string>$(API_CONFIG_POLLO_ENDPOINT)</string>
+    <key>DEEPSEEK_API_KEY</key>
+    <string>$(API_CONFIG_DEEPSEEK_KEY)</string>
+    <key>DEEPSEEK_API_ENDPOINT</key>
+    <string>$(API_CONFIG_DEEPSEEK_ENDPOINT)</string>
 </dict>
 </plist>
 

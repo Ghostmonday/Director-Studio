@@ -9,6 +9,14 @@ struct StudioView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @State private var selectedClipID: UUID?
     
+    var featuredClips: [GeneratedClip] {
+        coordinator.generatedClips.filter { $0.isFeaturedDemo }
+    }
+    
+    var regularClips: [GeneratedClip] {
+        coordinator.generatedClips.filter { !$0.isFeaturedDemo }
+    }
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -28,34 +36,101 @@ struct StudioView: View {
                 } else {
                     // Clip grid
                     ScrollView {
-                        LazyVGrid(columns: [
-                            GridItem(.adaptive(minimum: 150), spacing: 16)
-                        ], spacing: 16) {
-                            ForEach(coordinator.generatedClips) { clip in
-                                ClipCell(clip: clip, isSelected: selectedClipID == clip.id)
-                                    .onTapGesture {
-                                        selectedClipID = clip.id
+                        VStack(alignment: .leading, spacing: 20) {
+                            // Featured Demo Section
+                            if !featuredClips.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Image(systemName: "star.circle.fill")
+                                            .font(.title2)
+                                            .foregroundColor(.yellow)
+                                        Text("Featured Demo")
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                        Spacer()
                                     }
+                                    .padding(.horizontal)
+                                    
+                                    Text("DirectorStudio promotional video")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .padding(.horizontal)
+                                    
+                                    LazyVGrid(columns: [
+                                        GridItem(.adaptive(minimum: 150), spacing: 16)
+                                    ], spacing: 16) {
+                                        ForEach(featuredClips) { clip in
+                                            ClipCell(clip: clip, isSelected: selectedClipID == clip.id, isFeatured: true)
+                                                .onTapGesture {
+                                                    selectedClipID = clip.id
+                                                }
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
+                                .padding(.vertical)
+                                
+                                Divider()
                             }
                             
-                            // Add new clip button
-                            Button(action: {
-                                coordinator.navigateTo(.prompt)
-                            }) {
-                                VStack {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundColor(.blue)
-                                    Text("Add Clip")
-                                        .font(.caption)
+                            // Regular Clips Section
+                            if !regularClips.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("My Clips")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .padding(.horizontal)
+                                    
+                                    LazyVGrid(columns: [
+                                        GridItem(.adaptive(minimum: 150), spacing: 16)
+                                    ], spacing: 16) {
+                                        ForEach(regularClips) { clip in
+                                            ClipCell(clip: clip, isSelected: selectedClipID == clip.id)
+                                                .onTapGesture {
+                                                    selectedClipID = clip.id
+                                                }
+                                        }
+                                        
+                                        // Add new clip button
+                                        Button(action: {
+                                            coordinator.navigateTo(.prompt)
+                                        }) {
+                                            VStack {
+                                                Image(systemName: "plus.circle.fill")
+                                                    .font(.system(size: 50))
+                                                    .foregroundColor(.blue)
+                                                Text("Add Clip")
+                                                    .font(.caption)
+                                            }
+                                            .frame(height: 120)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.gray.opacity(0.1))
+                                            .cornerRadius(10)
+                                        }
+                                    }
+                                    .padding(.horizontal)
                                 }
-                                .frame(height: 120)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(10)
+                            } else if featuredClips.isEmpty {
+                                // Add new clip button (when no clips at all)
+                                Button(action: {
+                                    coordinator.navigateTo(.prompt)
+                                }) {
+                                    VStack {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 50))
+                                            .foregroundColor(.blue)
+                                        Text("Add Clip")
+                                            .font(.caption)
+                                    }
+                                    .frame(height: 120)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(10)
+                                }
+                                .padding()
                             }
                         }
-                        .padding()
+                        .padding(.vertical)
                     }
                     
                     // Action buttons

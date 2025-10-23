@@ -1,0 +1,42 @@
+========================================
+COPY THIS PROMPT INTO THE APP
+========================================
+
+SHORT VERSION (Recommended - easier for AI to process):
+------------------------------------------------------
+
+Cinematic camera movement across mobile app interface. Smooth push-in on text entry field, gentle pan revealing pipeline toggles. Professional lighting with subtle lens flares. Modern tech commercial style. Keep ALL UI text sharp and readable. Warm inviting atmosphere. Film grain texture. This is where stories become cinema.
+
+
+MEDIUM VERSION (More detailed):
+--------------------------------
+
+Dynamic showcase of DirectorStudio mobile app interface. Camera slowly zooms in and pans across the screen showing where users can paste their movie ideas, screenplays, or favorite books. The interface transforms with elegant animations as we see the pipeline stages: Enhancement, Continuity, Cinematography. Cinematic lighting with professional film grain. Modern, sleek, and inspiring atmosphere that conveys creative possibilities. Keep ALL text readable and sharp. Warm golden lighting. Subtle lens flares. Professional tech commercial quality.
+
+
+LONG VERSION (Maximum detail - use if above versions don't work well):
+-----------------------------------------------------------------------
+
+Animate this mobile app screenshot with cinematic camera movements while preserving ALL UI elements and text clarity. Start with a gentle push-in centered on the text input field, hold for 2 seconds, then slowly pan down revealing the pipeline stage toggles. Add subtle zoom emphasizing the creative power. Professional gimbal-quality smooth movement. Warm inviting lighting (3200K-4500K), soft key light from top-left, subtle lens flares, 15% film grain for cinematic texture. Slight vignette to focus attention. Modern tech commercial color grade - slightly desaturated with lifted blacks. UI elements have subtle parallax depth. Gentle screen glow suggesting live interface. Very subtle floating particles (5% opacity) suggesting creativity. ALL text must remain 100% sharp and readable - no motion blur on UI elements. Maintain crisp edges on buttons and toggles. Style: Apple WWDC app reveal meets modern SaaS demo (Linear/Notion style). Professional, clean, inspiring. Tech commercial meets film production quality. Preserve UI contrast for accessibility. Mood: inspiring without cheesy, professional without cold, creative possibility, accessible power. This is where stories become cinema.
+
+
+VOICEOVER STYLE (If you want it to feel like there's a narrator):
+------------------------------------------------------------------
+
+A cinematic reveal of DirectorStudio's main interface. Warm, inviting lighting highlights the text entry field where dreams become films. Smooth camera movement showcases the app's elegant design. An invisible narrator's words echo: "Just paste in your movie idea, screenplay, or favorite book, and watch as your story is transformed into prompts engineered to maintain continuity and add cinematography - so your generated videos can be combined to make your very own film, straight from Hollywood." Professional film production quality with subtle lens flares and depth of field. Modern tech commercial meets inspiring brand story.
+
+
+========================================
+MY RECOMMENDATION: Use the SHORT VERSION
+========================================
+
+It's clear, concise, and gives Pollo AI everything it needs without overwhelming it.
+
+Remember:
+1. Select "Use Default Demo Image" (ad.png)
+2. Set duration to 15-20 seconds
+3. Turn ON: Enhancement, Camera Direction, Lighting, Continuity
+4. Click Generate!
+
+Good luck! 🎬✨
+

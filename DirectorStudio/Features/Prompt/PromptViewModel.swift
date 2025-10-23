@@ -1,5 +1,5 @@
 // MODULE: PromptViewModel
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // PURPOSE: Business logic for prompt input and clip generation
 
 import Foundation
@@ -40,6 +40,9 @@ class PromptViewModel: ObservableObject {
     @Published var projectName: String = ""
     @Published var enabledStages: Set<PipelineStage> = Set(PipelineStage.allCases)
     @Published var isGenerating: Bool = false
+    @Published var selectedImage: UIImage? = nil
+    @Published var useDefaultAdImage: Bool = false
+    @Published var videoDuration: Double = 10.0 // Default 10 seconds, range 3-20
     
     private let pipelineService = PipelineService()
     
@@ -60,11 +63,22 @@ class PromptViewModel: ObservableObject {
         // Generate clip using pipeline
         let clipName = project.nextClipName()
         
+        // Convert image to data if present
+        let imageData = selectedImage?.jpegData(compressionQuality: 0.8)
+        
+        // Log analytics if image is used
+        if imageData != nil {
+            logImageUsageEvent(isDefaultAd: useDefaultAdImage)
+        }
+        
         do {
             let clip = try await pipelineService.generateClip(
                 prompt: promptText,
                 clipName: clipName,
-                enabledStages: enabledStages
+                enabledStages: enabledStages,
+                referenceImageData: imageData,
+                isFeaturedDemo: useDefaultAdImage,
+                duration: videoDuration
             )
             
             // Add to coordinator
@@ -76,12 +90,21 @@ class PromptViewModel: ObservableObject {
             // Navigate to Studio
             coordinator.navigateTo(.studio)
             
-            // Clear prompt for next input
+            // Clear prompt and image for next input
             promptText = ""
+            selectedImage = nil
+            useDefaultAdImage = false
             
         } catch {
             print("❌ Clip generation failed: \(error.localizedDescription)")
         }
+    }
+    
+    /// Log analytics event for image usage
+    private func logImageUsageEvent(isDefaultAd: Bool) {
+        let eventType = isDefaultAd ? "image_generation_default_ad" : "image_generation_custom"
+        print("📊 Analytics: \(eventType)")
+        // TODO: Integrate with proper analytics service (Telemetry.shared.logEvent)
     }
 }
 
