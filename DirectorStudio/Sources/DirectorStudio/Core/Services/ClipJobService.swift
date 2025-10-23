@@ -5,7 +5,7 @@
 import Foundation
 
 class ClipJobService: ObservableObject {
-    static let shared = ClipJobService()
+    nonisolated(unsafe) static let shared = ClipJobService()
     
     @Published var jobs: [ClipJob] = []
     

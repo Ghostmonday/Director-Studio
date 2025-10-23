@@ -5,7 +5,7 @@
 import Foundation
 
 class CreditsService: ObservableObject {
-    static let shared = CreditsService()
+    nonisolated(unsafe) static let shared = CreditsService()
     
     @Published var credits: Int = 0
     @Published var firstClipGranted: Bool = false
@@ -51,14 +51,14 @@ class CreditsService: ObservableObject {
             throw CreditsError.insufficientCredits
         }
         
-        try await adjustCredits(userKey: userKey, delta: -amount)
+        _ = try await adjustCredits(userKey: userKey, delta: -amount)
         return true
     }
     
     func grantFirstClip(userKey: String) async throws {
         guard !firstClipGranted else { return }
         
-        try await adjustCredits(userKey: userKey, delta: 100)
+        _ = try await adjustCredits(userKey: userKey, delta: 100)
         firstClipGranted = true
         
         // Update first_clip_granted flag
