@@ -1,3 +1,7 @@
+# Full iOS build workflow with code signing (currently disabled)
+# This workflow is set to manual dispatch only to avoid unnecessary builds
+# Uncomment the 'on: push' section to enable automatic builds
+
 name: Build iOS (Full - Disabled)
 
 # Temporarily disabled - uncomment 'on:' section to enable

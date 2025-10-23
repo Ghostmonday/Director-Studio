@@ -1,3 +1,7 @@
+# Simple iOS build workflow without code signing
+# This workflow runs on pushes and pull requests to main branch
+# It creates an unsigned IPA for testing purposes only
+
 name: Build iOS (Simple - No Signing)
 
 on:
