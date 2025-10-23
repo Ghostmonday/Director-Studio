@@ -86,7 +86,7 @@ class LocalStorageService: ObservableObject {
         // For now, just initialize empty
     }
     
-    private func saveLocalData() {
+    func saveLocalData() {
         // Persist to UserDefaults or CoreData
     }
 }

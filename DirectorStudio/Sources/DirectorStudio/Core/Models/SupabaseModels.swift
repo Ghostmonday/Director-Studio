@@ -78,7 +78,7 @@ struct SceneDraft: Codable, Identifiable {
     let id: UUID
     let userId: UUID
     let projectId: String
-    let orderIndex: Int
+    var orderIndex: Int
     let promptText: String
     let duration: Double
     let sceneType: String?

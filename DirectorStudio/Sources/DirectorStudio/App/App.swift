@@ -32,7 +32,7 @@ struct ContentView: View {
             .font(.system(size: 18))
             .foregroundColor(.primary)
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.gray.opacity(0.1))
             .cornerRadius(16)
             
             Button(action: {
