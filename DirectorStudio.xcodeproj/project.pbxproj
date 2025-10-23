@@ -40,6 +40,13 @@
 		0137CBFCE03A4DFB89DF4C39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 524F0ED49519474EBB529DF2 /* Assets.xcassets */; };
 		0A761C4BD1AC4B438F14DFB2 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 374971D6DB6947ADA5637CDB /* CloudKit.framework */; };
 		B51073DF6C254F43BEABCBDF /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3300D30FE48549B6B115BED5 /* AVFoundation.framework */; };
+		B1A2C3D4E5F6789012345678 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A2C3D4E5F6789012345678 /* LoadingView.swift */; };
+		B2A3C4D5E6F7890123456789 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A3C4D5E6F7890123456789 /* ErrorView.swift */; };
+		B3A4C5D6E7F890123456789A /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A4C5D6E7F890123456789A /* TooltipView.swift */; };
+		B4A5C6D7E8F90123456789AB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A5C6D7E8F90123456789AB /* OnboardingView.swift */; };
+		B5A6C7D8E9F0123456789ABC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A6C7D8E9F0123456789ABC /* SettingsView.swift */; };
+		B6A7C8D9E0F123456789ABCD /* StageHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A7C8D9E0F123456789ABCD /* StageHelpView.swift */; };
+		B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +89,13 @@
 		ABC123DEF456GHI789JKL0M3 /* Secrets.local.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "DirectorStudio/Configuration/Secrets.local.xcconfig.template"; sourceTree = "<group>"; };
 		374971D6DB6947ADA5637CDB /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		3300D30FE48549B6B115BED5 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		B1A2C3D4E5F6789012345678 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		B2A3C4D5E6F7890123456789 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
+		B3A4C5D6E7F890123456789A /* TooltipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipView.swift; sourceTree = "<group>"; };
+		B4A5C6D7E8F90123456789AB /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		B5A6C7D8E9F0123456789ABC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B6A7C8D9E0F123456789ABCD /* StageHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageHelpView.swift; sourceTree = "<group>"; };
+		B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedStudioView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +142,7 @@
 				BC9B7E257CB84557B0280C11 /* Modules */,
 				615DCED3460F4D42A6CC4C6E /* Utils */,
 				XYZ987ABC654DEF321GHI0J1 /* Configuration */,
+				C1D2E3F4A5B6789012345678 /* Components */,
 			);
 			path = DirectorStudio;
 			sourceTree = "<group>";
@@ -165,6 +180,8 @@
 				0B11FD34797C40848A0A3777 /* Studio */,
 				BB0B31563F964ED6A6D667C3 /* EditRoom */,
 				E6A4F6A3C2DD40DE9002C491 /* Library */,
+				D1E2F3A4B5C678901234567A /* Onboarding */,
+				D2E3F4A5B6C789012345678B /* Settings */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -216,6 +233,16 @@
 			path = Utils;
 			sourceTree = "<group>";
 		};
+		C1D2E3F4A5B6789012345678 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				B1A2C3D4E5F6789012345678 /* LoadingView.swift */,
+				B2A3C4D5E6F7890123456789 /* ErrorView.swift */,
+				B3A4C5D6E7F890123456789A /* TooltipView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 		XYZ987ABC654DEF321GHI0J1 /* Configuration */ = {
 			isa = PBXGroup;
 			children = (
@@ -231,6 +258,7 @@
 			children = (
 				C590004F726A4B9CACD9F5D3 /* PromptView.swift */,
 				E00D8596EE6D454E92D4091A /* PromptViewModel.swift */,
+				B6A7C8D9E0F123456789ABCD /* StageHelpView.swift */,
 			);
 			path = Prompt;
 			sourceTree = "<group>";
@@ -240,6 +268,7 @@
 			children = (
 				0CD9B43E7FC744D69F1DA54E /* StudioView.swift */,
 				87E6BE89707241F4B34B969D /* ClipCell.swift */,
+				B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift */,
 			);
 			path = Studio;
 			sourceTree = "<group>";
@@ -260,6 +289,22 @@
 				F11A4D8DF3564D65B3759E1B /* LibraryViewModel.swift */,
 			);
 			path = Library;
+			sourceTree = "<group>";
+		};
+		D1E2F3A4B5C678901234567A /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				B4A5C6D7E8F90123456789AB /* OnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		D2E3F4A5B6C789012345678B /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				B5A6C7D8E9F0123456789ABC /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -361,6 +406,13 @@
 				52A1B2C3D4E5F6A7B8C9D0E1 /* PolloAIService.swift in Sources */,
 				98A7B6C5D4E3F2A1B0C9D8E7 /* DeepSeekAIService.swift in Sources */,
 				34D5E6F7A8B9C0D1E2F3A4B5 /* AIServiceFactory.swift in Sources */,
+				B1A2C3D4E5F6789012345678 /* LoadingView.swift in Sources */,
+				B2A3C4D5E6F7890123456789 /* ErrorView.swift in Sources */,
+				B3A4C5D6E7F890123456789A /* TooltipView.swift in Sources */,
+				B4A5C6D7E8F90123456789AB /* OnboardingView.swift in Sources */,
+				B5A6C7D8E9F0123456789ABC /* SettingsView.swift in Sources */,
+				B6A7C8D9E0F123456789ABCD /* StageHelpView.swift in Sources */,
+				B7A8C9D0E1F23456789ABCDE /* EnhancedStudioView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
