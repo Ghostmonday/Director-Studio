@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/user944529/Desktop/last-try/.build/arm64-apple-macosx/debug/DirectorStudio.build/master.swiftdeps"
+  },
+  "/Users/user944529/Desktop/last-try/DirectorStudioApp.swift": {
+    "dependencies": "/Users/user944529/Desktop/last-try/.build/arm64-apple-macosx/debug/DirectorStudio.build/DirectorStudioApp.d",
+    "object": "/Users/user944529/Desktop/last-try/.build/arm64-apple-macosx/debug/DirectorStudio.build/DirectorStudioApp.swift.o",
+    "swiftmodule": "/Users/user944529/Desktop/last-try/.build/arm64-apple-macosx/debug/DirectorStudio.build/DirectorStudioApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/user944529/Desktop/last-try/.build/arm64-apple-macosx/debug/DirectorStudio.build/DirectorStudioApp.swiftdeps",
+    "diagnostics": "/Users/user944529/Desktop/last-try/.build/arm64-apple-macosx/debug/DirectorStudio.build/DirectorStudioApp.dia"
+  }
+}
