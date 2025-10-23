@@ -12,7 +12,23 @@ class LocalDataStore: ObservableObject {
     private let clipsKey = "saved_clips"
     
     init() {
-        loadData()
+        loadMockData()
+    }
+    
+    private func loadMockData() {
+        // Add mock jobs
+        jobs = [
+            PromptJob(prompt: "A beautiful sunset over mountains"),
+            PromptJob(prompt: "A cat playing with a ball of yarn"),
+            PromptJob(prompt: "Ocean waves crashing on rocks")
+        ]
+        
+        // Add mock clips
+        clips = [
+            ClipAsset(title: "Sunset Mountain", prompt: "A beautiful sunset over mountains", status: .completed),
+            ClipAsset(title: "Playful Cat", prompt: "A cat playing with a ball of yarn", status: .processing),
+            ClipAsset(title: "Ocean Waves", prompt: "Ocean waves crashing on rocks", status: .completed)
+        ]
     }
     
     func saveJob(_ job: PromptJob) {
