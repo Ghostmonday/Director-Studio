@@ -6,7 +6,7 @@ import Foundation
 
 /// Sync service for handling remote operations with Supabase
 class SyncService: ObservableObject {
-    static let shared = SyncService()
+    nonisolated(unsafe) static let shared = SyncService()
     
     @Published var isSyncing = false
     @Published var lastSyncTime: Date?
@@ -18,10 +18,10 @@ class SyncService: ObservableObject {
     
     // MARK: - Sync Lifecycle
     
-    func start() {
+    func start() async {
         // Start realtime subscriptions
         // Drain local queue
-        processSyncQueue()
+        try? await processSyncQueue()
     }
     
     func stop() {

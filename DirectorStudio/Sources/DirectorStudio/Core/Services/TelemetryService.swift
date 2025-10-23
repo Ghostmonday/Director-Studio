@@ -5,7 +5,7 @@
 import Foundation
 
 class TelemetryService: ObservableObject {
-    static let shared = TelemetryService()
+    nonisolated(unsafe) static let shared = TelemetryService()
     
     private var eventQueue: [TelemetryEvent] = []
     private let syncService = SyncService.shared

@@ -83,8 +83,10 @@ struct SceneDraft: Codable, Identifiable {
     let duration: Double
     let sceneType: String?
     let shotType: String?
+    var archived: Bool
+    var deletedAt: Date?
     let createdAt: Date
-    let updatedAt: Date
+    var updatedAt: Date
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -95,6 +97,8 @@ struct SceneDraft: Codable, Identifiable {
         case duration
         case sceneType = "scene_type"
         case shotType = "shot_type"
+        case archived
+        case deletedAt = "deleted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
