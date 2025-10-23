@@ -5,6 +5,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 class SceneEditorViewModel: ObservableObject {
     @Published var scenes: [SceneDraft] = []
     @Published var isLoading = false
@@ -23,8 +24,8 @@ class SceneEditorViewModel: ObservableObject {
         isLoading = false
         
         // Sync with remote
-        Task {
-            await syncScenes(projectId: projectId)
+        Task { @MainActor [weak self] in
+            await self?.syncScenes(projectId: projectId)
         }
     }
     
@@ -56,8 +57,8 @@ class SceneEditorViewModel: ObservableObject {
         scenes.append(scene)
         
         // Enqueue remote sync
-        Task {
-            await enqueueSceneSync(scene)
+        Task { @MainActor [weak self] in
+            await self?.enqueueSceneSync(scene)
         }
         
         return tempId

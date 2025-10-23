@@ -25,6 +25,7 @@ class AuthManager: ObservableObject {
         userCredits = 100
     }
     
+    @MainActor
     func signIn(email: String, password: String) async throws {
         isAuthenticated = true
         currentUser = User(
@@ -35,6 +36,7 @@ class AuthManager: ObservableObject {
         userCredits = try await supabaseSync.fetchUserCredits()
     }
     
+    @MainActor
     func signUp(email: String, password: String) async throws {
         isAuthenticated = true
         currentUser = User(

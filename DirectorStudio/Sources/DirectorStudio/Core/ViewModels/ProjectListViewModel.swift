@@ -5,6 +5,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 class ProjectListViewModel: ObservableObject {
     @Published var items: [ProjectOverview] = []
     @Published var status: LoadStatus = .idle
@@ -33,23 +34,18 @@ class ProjectListViewModel: ObservableObject {
         print("✅ Local render in \(Int(renderTime))ms")
         
         // Then sync with remote
-        Task {
-            await syncWithRemote(userId: userId)
+        Task { @MainActor [weak self] in
+            await self?.syncWithRemote(userId: userId)
         }
     }
     
     private func syncWithRemote(userId: UUID) async {
         status = .loading
         
-        do {
-            // Fetch from Supabase
-            // For now, just mark as loaded
-            status = .loaded
-            lastLoadedAt = Date()
-        } catch {
-            status = .error
-            self.error = error.localizedDescription
-        }
+        // Fetch from Supabase
+        // For now, just mark as loaded
+        status = .loaded
+        lastLoadedAt = Date()
     }
     
     // MARK: - Optimistic Create
@@ -70,8 +66,8 @@ class ProjectListViewModel: ObservableObject {
         items.append(project)
         
         // Enqueue remote sync
-        Task {
-            await enqueueProjectSync(project)
+        Task { @MainActor [weak self] in
+            await self?.enqueueProjectSync(project)
         }
         
         return tempProjectId
