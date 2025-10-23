@@ -1,5 +1,7 @@
 Perfect. Here's the complete, final spec — tailored for a high-level coder or Claude — **with all of your directives integrated**.
 
+**Document Status:** Under Review | **Last Updated:** 2025-10-23
+
 ---
 
 # 📦 **DirectorStudio: StorageSync Edition — Full Build Specification (v1.0)**
