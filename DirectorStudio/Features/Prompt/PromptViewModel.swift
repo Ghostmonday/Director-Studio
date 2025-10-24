@@ -7,7 +7,7 @@ import SwiftUI
 import Combine
 
 /// Pipeline stages that can be toggled
-enum PipelineStage: String, CaseIterable {
+public enum PipelineStage: String, CaseIterable {
     case segmentation = "Segmentation"
     case continuityAnalysis = "Continuity Analysis"
     case continuityInjection = "Continuity Injection"
@@ -15,11 +15,11 @@ enum PipelineStage: String, CaseIterable {
     case cameraDirection = "Camera Direction"
     case lighting = "Lighting"
     
-    var displayName: String {
+    public var displayName: String {
         return self.rawValue
     }
     
-    var description: String {
+    public var description: String {
         switch self {
         case .segmentation:
             return "Break script into logical segments"
@@ -52,6 +52,7 @@ class PromptViewModel: ObservableObject {
     @Published var showingDemoAlert = false
     @Published var showingCreditsAlert = false
     @Published var showingCostBreakdown = false
+    @Published var showingPromptHelp = false
     
     private let pipelineService = PipelineServiceBridge()
     private var cancellables = Set<AnyCancellable>()
@@ -86,18 +87,14 @@ class PromptViewModel: ObservableObject {
     
     /// Load demo content for quick testing
     func loadDemoContent() {
-        projectName = "My Cinematic Journey"
+        projectName = "Detective Mystery"
         promptText = """
-        A lone detective enters a dimly lit warehouse at dusk. 
-        Rain drums against broken windows. His red jacket catches 
-        the last rays of sunlight as he searches for clues.
-        The atmosphere is tense, mysterious, with long shadows 
-        stretching across the dusty concrete floor.
+        A detective in a red leather jacket walks through an abandoned warehouse at sunset. Golden light streams through broken windows, creating dramatic shadows on the dusty floor. Rain begins to fall outside. He stops at a desk, picks up an old photograph, studies it carefully. Camera slowly pushes in on his concerned expression. Moody, film noir atmosphere.
         """
         selectedImage = UIImage(named: "ad")
         useDefaultAdImage = true
         videoDuration = 10.0
-        enabledStages = [.continuityAnalysis, .continuityInjection, .enhancement, .lighting]
+        enabledStages = [.enhancement, .cameraDirection, .lighting]
         
         // Show success feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)

@@ -60,46 +60,109 @@ struct PromptView: View {
                 }
                 .padding(.horizontal)
                 
+                // How it works section
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "sparkles.rectangle.stack")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("AI Video Generation")
+                                .font(.headline)
+                            Text("Transform text descriptions into cinematic videos")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                
                 // Project name input
-                TextField("Project Name (e.g., Dante's Inferno)", text: $viewModel.projectName)
+                TextField("Project Name", text: $viewModel.projectName)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal)
                     .disabled(coordinator.isGuestMode)
                 
-                // Prompt text input
-                TextEditor(text: $viewModel.promptText)
-                    .frame(minHeight: 150)
-                    .padding(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                    .padding(.horizontal)
-                    .disabled(coordinator.isGuestMode)
-                
-                if viewModel.promptText.isEmpty {
-                    Text("Enter your scene description...")
-                        .foregroundColor(.gray)
-                        .padding(.top, -160)
-                }
-                
-                // Image reference section
+                // Prompt text input with better guidance
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Reference Image (Optional)")
+                        Label("Scene Description", systemImage: "text.alignleft")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         Spacer()
+                        Button(action: {
+                            showTemplates = true
+                        }) {
+                            Text("Use Template")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    ZStack(alignment: .topLeading) {
+                        TextEditor(text: $viewModel.promptText)
+                            .frame(minHeight: 150)
+                            .padding(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5), lineWidth: 1)
+                            )
+                            .disabled(coordinator.isGuestMode)
+                        
+                        if viewModel.promptText.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Describe your video scene visually:")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.gray)
+                                
+                                Text("• Who/what is in the scene?\n• What are they doing?\n• Where does it take place?\n• What's the mood/atmosphere?")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
+                            .padding(12)
+                            .allowsHitTesting(false)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // Image reference section with explanation
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("Reference Image", systemImage: "photo")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Text("(Optional)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
                         if viewModel.selectedImage != nil {
                             Button(action: {
                                 viewModel.selectedImage = nil
+                                viewModel.useDefaultAdImage = false
                             }) {
-                                Image(systemName: "xmark.circle.fill")
+                                Label("Remove", systemImage: "xmark.circle.fill")
+                                    .font(.caption)
                                     .foregroundColor(.gray)
                             }
                         }
                     }
                     .padding(.horizontal)
+                    
+                    Text("Add an image to guide the visual style, composition, or mood of your video")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
                     
                     if let image = viewModel.selectedImage {
                         // Show thumbnail preview
@@ -185,27 +248,78 @@ struct PromptView: View {
                 }
                 .padding(.vertical, 8)
                 
-                // Pipeline stage toggles
+                // Pipeline stage toggles with better organization
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Pipeline Stages")
-                        .font(.headline)
+                    HStack {
+                        Label("AI Enhancement Options", systemImage: "cpu")
+                            .font(.headline)
+                        Spacer()
+                        Button(action: {
+                            viewModel.applyOptimalSettings()
+                        }) {
+                            Text("Optimal")
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(Color.green.opacity(0.2))
+                                .foregroundColor(.green)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    Text("Enable AI features to enhance your video quality")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                         .padding(.horizontal)
                     
                     ForEach(PipelineStage.allCases, id: \.self) { stage in
                         HStack {
-                            Toggle(stage.displayName, isOn: binding(for: stage))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Toggle(isOn: binding(for: stage)) {
+                                    HStack {
+                                        Text(stage.displayName)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                        
+                                        if stage == .enhancement {
+                                            Text("+2")
+                                                .font(.caption2)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.2))
+                                                .foregroundColor(.orange)
+                                                .cornerRadius(8)
+                                        } else if stage == .continuityAnalysis || stage == .continuityInjection || stage == .cameraDirection || stage == .lighting {
+                                            Text("+1")
+                                                .font(.caption2)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.blue.opacity(0.2))
+                                                .foregroundColor(.blue)
+                                                .cornerRadius(8)
+                                        }
+                                    }
+                                }
                                 .disabled(coordinator.isGuestMode)
                                 .tint(.blue)
+                                
+                                Text(stage.description)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                             
                             Button(action: {
                                 viewModel.showingStageHelp = stage
                             }) {
-                                Image(systemName: "questionmark.circle")
+                                Image(systemName: "info.circle")
                                     .font(.caption)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.blue.opacity(0.6))
                             }
                         }
                         .padding(.horizontal)
+                        .padding(.vertical, 4)
                     }
                 }
                 
@@ -314,6 +428,9 @@ struct PromptView: View {
             }
             .sheet(isPresented: $viewModel.showingCostBreakdown) {
                 CostBreakdownSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingPromptHelp) {
+                PromptHelpSheet()
             }
         }
     }
@@ -629,6 +746,161 @@ struct CostBreakdownSheet: View {
             }
             .padding()
             .navigationTitle("Cost Breakdown")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Prompt Help Sheet
+
+struct PromptHelpSheet: View {
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // How it works diagram
+                    VStack(spacing: 16) {
+                        Text("How DirectorStudio Works")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        VStack(spacing: 12) {
+                            // Step 1
+                            HStack(alignment: .top, spacing: 16) {
+                                Image(systemName: "1.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Describe Your Scene")
+                                        .font(.headline)
+                                    Text("Write what you want to see: characters, actions, setting, mood")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            
+                            Image(systemName: "arrow.down")
+                                .foregroundColor(.gray)
+                            
+                            // Step 2
+                            HStack(alignment: .top, spacing: 16) {
+                                Image(systemName: "2.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.purple)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("AI Enhancement")
+                                        .font(.headline)
+                                    Text("Your text is enhanced with cinematic details and visual elements")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            
+                            Image(systemName: "arrow.down")
+                                .foregroundColor(.gray)
+                            
+                            // Step 3
+                            HStack(alignment: .top, spacing: 16) {
+                                Image(systemName: "3.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.green)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Video Generation")
+                                        .font(.headline)
+                                    Text("AI creates a video matching your description")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    
+                    // Tips section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Writing Great Prompts")
+                            .font(.headline)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("Be Visual", systemImage: "eye")
+                                .font(.subheadline)
+                            Text("Focus on what can be seen: appearance, actions, environment")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 28)
+                            
+                            Label("Set the Mood", systemImage: "cloud.sun")
+                                .font(.subheadline)
+                            Text("Describe lighting, weather, time of day, atmosphere")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 28)
+                            
+                            Label("Add Movement", systemImage: "figure.walk")
+                                .font(.subheadline)
+                            Text("Include actions and camera movements for dynamic videos")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 28)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(.systemGray4), lineWidth: 1)
+                    )
+                    
+                    // Reference image explanation
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("About Reference Images", systemImage: "photo")
+                            .font(.headline)
+                        
+                        Text("Adding a reference image helps guide:")
+                            .font(.subheadline)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top) {
+                                Text("•")
+                                Text("Visual style and aesthetic")
+                            }
+                            HStack(alignment: .top) {
+                                Text("•")
+                                Text("Color palette and mood")
+                            }
+                            HStack(alignment: .top) {
+                                Text("•")
+                                Text("Composition and framing")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(12)
+                }
+                .padding()
+            }
+            .navigationTitle("How It Works")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
