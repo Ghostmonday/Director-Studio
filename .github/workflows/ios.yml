@@ -99,13 +99,13 @@ jobs:
           -exportOptionsPlist ExportOptions.plist
     
     - name: Upload IPA
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: DirectorStudio.ipa
         path: $RUNNER_TEMP/export/DirectorStudio.ipa
     
     - name: Upload dSYM
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: DirectorStudio.app.dSYM.zip
         path: $RUNNER_TEMP/export/DirectorStudio.app.dSYM.zip

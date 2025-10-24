@@ -90,7 +90,7 @@ struct SettingsView: View {
                     Text("Storage")
                 }
                 
-                // API Configuration
+                /* API Configuration - Disabled (managed via xcconfig files)
                 Section {
                     NavigationLink(destination: APISettingsView()) {
                         HStack {
@@ -109,6 +109,27 @@ struct SettingsView: View {
                     Text("Configuration")
                 } footer: {
                     Text("Configure API keys for video generation services")
+                }
+                */
+                
+                // Credits & Monetization
+                Section {
+                    NavigationLink(destination: CreditsPurchaseView()) {
+                        HStack {
+                            Label("Credits", systemImage: "creditcard.fill")
+                            Spacer()
+                            Text("\(CreditsManager.shared.credits)")
+                                .font(.headline)
+                                .foregroundColor(CreditsManager.shared.credits > 0 ? .primary : .red)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Account")
+                } footer: {
+                    Text(CreditsManager.shared.credits == 0 ? "You're in Demo Mode - Purchase credits for real AI generation" : "Each credit = 1 video generation")
                 }
                 
                 // Appearance
@@ -200,6 +221,7 @@ struct APISettingsView: View {
     
     var body: some View {
         Form {
+            /* API Keys Section - Disabled (managed via xcconfig files)
             Section {
                 SecureField("Pollo API Key", text: $polloAPIKey)
                     .textContentType(.password)
@@ -214,6 +236,7 @@ struct APISettingsView: View {
             } footer: {
                 Text("Your API keys are stored securely on your device")
             }
+            */
             
             Section {
                 Button(action: validateAndSave) {

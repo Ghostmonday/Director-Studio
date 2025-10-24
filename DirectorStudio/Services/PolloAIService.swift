@@ -19,8 +19,9 @@ public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
         self.apiKey = apiKey ?? Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String ?? ""
         self.endpoint = endpoint ?? Bundle.main.infoDictionary?["POLLO_API_ENDPOINT"] as? String ?? "https://api.pollo.ai/v1"
         
-        // Check if we're in demo mode
-        self.isDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
+        // Check if we're in demo mode (config or no credits)
+        let configDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
+        self.isDemoMode = configDemoMode || CreditsManager.shared.shouldUseDemoMode
         
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60

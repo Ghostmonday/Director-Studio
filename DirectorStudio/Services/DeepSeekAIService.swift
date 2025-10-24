@@ -19,8 +19,9 @@ public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
         self.apiKey = apiKey ?? Bundle.main.infoDictionary?["DEEPSEEK_API_KEY"] as? String ?? ""
         self.endpoint = endpoint ?? Bundle.main.infoDictionary?["DEEPSEEK_API_ENDPOINT"] as? String ?? "https://api.deepseek.com/v1"
         
-        // Check if we're in demo mode
-        self.isDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
+        // Check if we're in demo mode (config or no credits)
+        let configDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
+        self.isDemoMode = configDemoMode || CreditsManager.shared.shouldUseDemoMode
         
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30

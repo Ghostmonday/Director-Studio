@@ -60,7 +60,8 @@ class AppCoordinator: ObservableObject {
     @MainActor
     private func checkAuthentication() async {
         isAuthenticated = await authService.checkiCloudStatus()
-        isGuestMode = !isAuthenticated
+        // Always allow full access - no guest mode restrictions
+        isGuestMode = false
     }
     
     /// Test API services configuration

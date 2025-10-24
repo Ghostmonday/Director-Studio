@@ -211,6 +211,31 @@ struct PromptView: View {
                 
                 Spacer()
                 
+                // Credits Display
+                HStack {
+                    if CreditsManager.shared.credits == 0 {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Demo Mode - Purchase credits for real AI")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.blue)
+                        Text("\(CreditsManager.shared.credits) credits remaining")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    NavigationLink(destination: CreditsPurchaseView()) {
+                        Text("Get Credits")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                
                 // Generate button with loading state
                 Button(action: {
                     Task {

@@ -25,6 +25,16 @@ class PipelineServiceBridge {
         print("   Prompt: \(prompt)")
         print("   Image: \(referenceImageData != nil ? "Yes (\(referenceImageData!.count / 1024)KB)" : "No")")
         print("   Featured: \(isFeaturedDemo)")
+        
+        // Check credits for non-demo generation
+        let creditsManager = CreditsManager.shared
+        if !creditsManager.shouldUseDemoMode && !isFeaturedDemo {
+            guard creditsManager.useCredit() else {
+                print("❌ No credits available - switching to demo mode")
+                throw PipelineError.configurationError("No credits available. Purchase credits to generate videos.")
+            }
+        }
+        
         print("🔄 Progress: Initializing pipeline... (0%)")
         
         // Stage 1: Analyze continuity

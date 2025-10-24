@@ -50,6 +50,7 @@ class PromptViewModel: ObservableObject {
     @Published var showingStageHelp: PipelineStage? = nil
     @Published var generationError: Error? = nil
     @Published var showingDemoAlert = false
+    @Published var showingCreditsAlert = false
     
     private let pipelineService = PipelineServiceBridge()
     private var cancellables = Set<AnyCancellable>()
@@ -175,6 +176,14 @@ class PromptViewModel: ObservableObject {
         } catch {
             print("❌ Clip generation failed: \(error.localizedDescription)")
             generationError = error
+            
+            // Check if it's a credits error
+            if let pipelineError = error as? PipelineError,
+               case .configurationError(let message) = pipelineError,
+               message.contains("No credits") {
+                // Show credits purchase view
+                showingCreditsAlert = true
+            }
             
             // Haptic feedback for error
             UINotificationFeedbackGenerator().notificationOccurred(.error)
