@@ -61,7 +61,7 @@
 		9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeepSeekAIService.swift; path = DirectorStudio/Services/DeepSeekAIService.swift; sourceTree = SOURCE_ROOT; };
 		9B9311612EAAF81300A0660D /* AIServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceFactory.swift; sourceTree = "<group>"; };
 		9B9311632EAB125A00A0660D /* ContinuityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuityManager.swift; sourceTree = "<group>"; };
-		9B9311652EAB158200A0660D /* CoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTypes.swift; sourceTree = "<group>"; };
+		9B9311652EAB158200A0660D /* CoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTypes/CoreTypes.swift; sourceTree = "<group>"; };
 		9B9311672EAB2AD100A0660D /* CreditsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsManager.swift; sourceTree = "<group>"; };
 		9B9311692EAB2AD300A0660D /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		9B9311692EAB2B0100A0660D /* CreditsPurchaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsPurchaseView.swift; sourceTree = "<group>"; };

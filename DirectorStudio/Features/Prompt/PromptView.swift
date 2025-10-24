@@ -15,7 +15,8 @@ struct PromptView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            ScrollView {
+                VStack(spacing: 20) {
                 // Quick action buttons
                 HStack(spacing: 12) {
                     Button(action: {
@@ -63,13 +64,13 @@ struct PromptView: View {
                 // How it works section
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Image(systemName: "sparkles.rectangle.stack")
+                        Image(systemName: "film.circle.fill")
                             .font(.title2)
                             .foregroundColor(.blue)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("AI Video Generation")
+                            Text("Script to Screen")
                                 .font(.headline)
-                            Text("Transform text descriptions into cinematic videos")
+                            Text("Transform your written script into cinematic videos")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -91,7 +92,7 @@ struct PromptView: View {
                 // Prompt text input with better guidance
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Label("Scene Description", systemImage: "text.alignleft")
+                        Label("Script Your Scene", systemImage: "doc.text.magnifyingglass")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         Spacer()
@@ -109,6 +110,8 @@ struct PromptView: View {
                         TextEditor(text: $viewModel.promptText)
                             .frame(minHeight: 150)
                             .padding(8)
+                            .scrollContentBackground(.hidden)
+                            .background(Color(.systemBackground))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5), lineWidth: 1)
@@ -117,12 +120,12 @@ struct PromptView: View {
                         
                         if viewModel.promptText.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Describe your video scene visually:")
+                                Text("Write your scene like a movie script:")
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.gray)
                                 
-                                Text("• Who/what is in the scene?\n• What are they doing?\n• Where does it take place?\n• What's the mood/atmosphere?")
+                                Text("• Characters and their actions\n• Setting and environment\n• Dialogue or narration\n• Camera angles and mood")
                                     .font(.caption2)
                                     .foregroundColor(.gray.opacity(0.8))
                             }
@@ -439,7 +442,10 @@ struct PromptView: View {
                         .padding(.bottom)
                 }
             }
-            .navigationTitle("Prompt")
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .navigationTitle("Script")
+            .navigationBarTitleDisplayMode(.large)
             .sheet(item: $viewModel.showingStageHelp) { stage in
                 StageHelpView(stage: stage)
             }
@@ -488,14 +494,14 @@ struct ImagePicker: View {
             VStack(spacing: 20) {
                 // Default ad.png option
                 Button(action: {
-                    if let adImage = UIImage(named: "ad") {
+                    if let adImage = UIImage(named: "reference_demo") {
                         selectedImage = adImage
                         useDefaultAd = true
                         dismiss()
                     }
                 }) {
                     HStack {
-                        if let adImage = UIImage(named: "ad") {
+                        if let adImage = UIImage(named: "reference_demo") {
                             Image(uiImage: adImage)
                                 .resizable()
                                 .scaledToFill()

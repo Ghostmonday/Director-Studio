@@ -95,7 +95,7 @@ class PromptViewModel: ObservableObject {
         promptText = """
         A detective in a red leather jacket walks through an abandoned warehouse at sunset. Golden light streams through broken windows, creating dramatic shadows on the dusty floor. Rain begins to fall outside. He stops at a desk, picks up an old photograph, studies it carefully. Camera slowly pushes in on his concerned expression. Moody, film noir atmosphere.
         """
-        selectedImage = UIImage(named: "ad")
+        selectedImage = UIImage(named: "reference_demo")
         useDefaultAdImage = true
         videoDuration = 10.0
         enabledStages = [.enhancement, .cameraDirection, .lighting]
