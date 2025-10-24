@@ -248,6 +248,25 @@ struct PromptView: View {
                 }
                 .padding(.vertical, 8)
                 
+                        // Quality Tier Selection (Coming Soon)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Label("Video Quality", systemImage: "sparkles.tv")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Spacer()
+                                Text("Coming Soon")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal)
+                            
+                            Text("Multiple quality tiers will be available in the next update")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                        }
+                
                 // Pipeline stage toggles with better organization
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -350,25 +369,33 @@ struct PromptView: View {
                         }
                     }
                     
-                    // Cost estimation
-                    if !viewModel.promptText.isEmpty && CreditsManager.shared.credits > 0 {
-                        let cost = CreditsManager.shared.creditsNeeded(
-                            for: viewModel.videoDuration,
-                            enabledStages: viewModel.enabledStages
-                        )
+                    // Cost estimation with new billing
+                    if !viewModel.promptText.isEmpty {
+                        // Simplified cost calculation for launch
+                        let estimatedCredits = Int(ceil(viewModel.videoDuration / 5.0))
+                        let estimatedCost = Double(estimatedCredits) * 0.50 // $0.50 per credit estimate
                         
                         HStack {
                             Image(systemName: "info.circle")
                                 .font(.caption)
-                            Text("This will cost \(cost) credit\(cost == 1 ? "" : "s")")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
                             
-                            Button(action: { viewModel.showingCostBreakdown = true }) {
-                                Text("See breakdown")
-                                    .font(.caption2)
-                                    .underline()
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(estimatedCredits) credits • $\(String(format: "%.2f", estimatedCost))")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                
+                                if estimatedCredits == 1 {
+                                    Text("Minimum 1 credit")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                }
                             }
+                            
+                            // Button(action: { viewModel.showingCostBreakdown = true }) {
+                            //     Text("See breakdown")
+                            //         .font(.caption2)
+                            //         .underline()
+                            // }
                             
                             Spacer()
                         }
@@ -426,9 +453,9 @@ struct PromptView: View {
             .sheet(isPresented: $showTemplates) {
                 TemplatesSheet(viewModel: viewModel, isPresented: $showTemplates)
             }
-            .sheet(isPresented: $viewModel.showingCostBreakdown) {
-                CostBreakdownSheet(viewModel: viewModel)
-            }
+            // .sheet(isPresented: $viewModel.showingCostBreakdown) {
+            //     CostBreakdownSheet(viewModel: viewModel)
+            // }
             .sheet(isPresented: $viewModel.showingPromptHelp) {
                 PromptHelpSheet()
             }
@@ -671,6 +698,7 @@ struct TemplateCard: View {
 
 // MARK: - Cost Breakdown Sheet
 
+/*
 struct CostBreakdownSheet: View {
     @ObservedObject var viewModel: PromptViewModel
     @Environment(\.dismiss) var dismiss
@@ -678,10 +706,9 @@ struct CostBreakdownSheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                let breakdown = CreditsManager.shared.getCostBreakdown(
-                    duration: viewModel.videoDuration,
-                    enabledStages: viewModel.enabledStages
-                )
+                // Simplified cost calculation for launch
+                let estimatedCredits = Int(ceil(viewModel.videoDuration / 5.0))
+                let totalCost = Double(estimatedCredits) * 0.50 // $0.50 per credit
                 
                 // Total Cost Header
                 VStack(spacing: 8) {
@@ -690,12 +717,14 @@ struct CostBreakdownSheet: View {
                         .foregroundColor(.secondary)
                     
                     HStack(alignment: .bottom, spacing: 4) {
-                        Text("\(breakdown.totalCost)")
+                        Text("$\(String(format: "%.2f", totalCost))")
                             .font(.system(size: 48, weight: .bold))
-                        Text("credits")
-                            .font(.title3)
+                    }
+                    
+                    HStack(spacing: 12) {
+                        Label("\(estimatedCredits) credits", systemImage: "circle.fill")
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
-                            .padding(.bottom, 8)
                     }
                 }
                 .padding()
@@ -705,27 +734,45 @@ struct CostBreakdownSheet: View {
                 
                 // Breakdown Details
                 VStack(alignment: .leading, spacing: 16) {
-                    // Base video cost
-                    HStack {
-                        Label("Video (\(Int(breakdown.videoDuration))s)", systemImage: "film")
-                        Spacer()
-                        Text("\(breakdown.baseCost) credit\(breakdown.baseCost == 1 ? "" : "s")")
-                            .fontWeight(.medium)
-                    }
-                    
-                    if !breakdown.stagesCosts.isEmpty {
+                    // Pricing breakdown
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Pricing Details")
+                            .font(.headline)
+                        
+                        // Duration
+                        HStack {
+                            Label("Duration", systemImage: "timer")
+                            Spacer()
+                            Text("\(Int(viewModel.videoDuration)) seconds")
+                                .fontWeight(.medium)
+                        }
+                        
+                                // Quality (coming soon)
+                                HStack {
+                                    Label("Quality", systemImage: "sparkles.tv")
+                                    Spacer()
+                                    Text("Standard")
+                                        .fontWeight(.medium)
+                                }
+                        
+                        // Credit calculation
+                        HStack {
+                            Label("Credit Calculation", systemImage: "function")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(Int(viewModel.videoDuration))s ÷ 5 = \(estimatedCredits) credits")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        
                         Divider()
                         
-                        // Pipeline stages
-                        ForEach(breakdown.stagesCosts, id: \.0) { stage, cost in
-                            HStack {
-                                Label(stage, systemImage: "cpu")
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("+\(cost) credit\(cost == 1 ? "" : "s")")
-                                    .foregroundColor(.secondary)
-                            }
-                            .font(.subheadline)
+                        // Rate
+                        HStack {
+                            Label("Rate", systemImage: "dollarsign.circle")
+                            Spacer()
+                            Text("$0.50/credit")
+                                .fontWeight(.medium)
                         }
                     }
                 }
@@ -757,8 +804,53 @@ struct CostBreakdownSheet: View {
         }
     }
 }
+*/
 
 // MARK: - Prompt Help Sheet
+
+// MARK: - Quality Tier Button
+
+/*
+struct QualityTierButton: View {
+    let tier: VideoQualityTier
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text(tier.rawValue)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                
+                Text(tier.resolution)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 2) {
+                    Text("\(tier.tokenMultiplier, specifier: "%.1f")x")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(isSelected ? .white : .orange)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(isSelected ? Color.orange : Color.orange.opacity(0.2))
+                .cornerRadius(10)
+            }
+            .frame(minWidth: 80)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.blue : Color(.systemGray6))
+            )
+            .foregroundColor(isSelected ? .white : .primary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+*/
 
 struct PromptHelpSheet: View {
     @Environment(\.dismiss) var dismiss

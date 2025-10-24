@@ -23,6 +23,7 @@
 		9B9311642EAB125A00A0660D /* ContinuityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311632EAB125A00A0660D /* ContinuityManager.swift */; };
 		9B9311662EAB158200A0660D /* CoreTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311652EAB158200A0660D /* CoreTypes.swift */; };
 		9B9311682EAB2AD200A0660D /* CreditsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311672EAB2AD100A0660D /* CreditsManager.swift */; };
+		9B93116A2EAB2AD400A0660D /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311692EAB2AD300A0660D /* StoreKitManager.swift */; };
 		9B93116A2EAB2B0100A0660D /* CreditsPurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311692EAB2B0100A0660D /* CreditsPurchaseView.swift */; };
 		B01234561234567890123456 /* DirectorStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234561234567890123455 /* DirectorStudioApp.swift */; };
 		B01234571234567890123456 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234571234567890123455 /* AppCoordinator.swift */; };
@@ -62,6 +63,7 @@
 		9B9311632EAB125A00A0660D /* ContinuityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuityManager.swift; sourceTree = "<group>"; };
 		9B9311652EAB158200A0660D /* CoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTypes.swift; sourceTree = "<group>"; };
 		9B9311672EAB2AD100A0660D /* CreditsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsManager.swift; sourceTree = "<group>"; };
+		9B9311692EAB2AD300A0660D /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		9B9311692EAB2B0100A0660D /* CreditsPurchaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsPurchaseView.swift; sourceTree = "<group>"; };
 		B01234501234567890123456 /* DirectorStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DirectorStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B01234561234567890123455 /* DirectorStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectorStudioApp.swift; sourceTree = "<group>"; };
@@ -217,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				9B9311672EAB2AD100A0660D /* CreditsManager.swift */,
+				9B9311692EAB2AD300A0660D /* StoreKitManager.swift */,
 				9B9311632EAB125A00A0660D /* ContinuityManager.swift */,
 				B01234701234567890123455 /* AuthService.swift */,
 				B01234711234567890123455 /* StorageService.swift */,
@@ -352,6 +355,7 @@
 				B01234591234567890123456 /* PromptViewModel.swift in Sources */,
 				9B93114D2EAAF26B00A0660D /* DemoContent.swift in Sources */,
 				9B9311682EAB2AD200A0660D /* CreditsManager.swift in Sources */,
+				9B93116A2EAB2AD400A0660D /* StoreKitManager.swift in Sources */,
 				9B93114E2EAAF26B00A0660D /* OnboardingContent.swift in Sources */,
 				9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */,
 				9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */,

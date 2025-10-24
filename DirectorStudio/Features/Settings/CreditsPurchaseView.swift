@@ -6,12 +6,15 @@
 //
 
 import SwiftUI
+import StoreKit
 
 struct CreditsPurchaseView: View {
     @StateObject private var creditsManager = CreditsManager.shared
-    @State private var selectedOption: CreditsManager.PurchaseOption?
+    @StateObject private var storeManager = StoreKitManager.shared
+    @State private var selectedProduct: Product?
     @State private var showingPurchaseAlert = false
     @State private var showingSuccessAlert = false
+    @State private var isPurchasing = false
     
     var body: some View {
         ScrollView {
@@ -64,29 +67,40 @@ struct CreditsPurchaseView: View {
                 
                 // Purchase Options
                 VStack(spacing: 16) {
-                    ForEach(CreditsManager.PurchaseOption.allCases, id: \.self) { option in
-                        PurchaseOptionCard(
-                            option: option,
-                            isSelected: selectedOption == option,
-                            action: {
-                                selectedOption = option
-                            }
-                        )
+                    if storeManager.isLoading {
+                        ProgressView("Loading products...")
+                            .padding()
+                    } else if storeManager.products.isEmpty {
+                        Text("No products available")
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else {
+                        ForEach(storeManager.products, id: \.id) { product in
+                            StoreProductCard(
+                                product: product,
+                                isSelected: selectedProduct?.id == product.id,
+                                action: {
+                                    selectedProduct = product
+                                }
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal)
                 
                 // Purchase Button
                 Button(action: {
-                    if let option = selectedOption {
-                        showingPurchaseAlert = true
+                    if let product = selectedProduct {
+                        Task {
+                            await purchaseProduct(product)
+                        }
                     }
                 }) {
                     HStack {
                         Text("Purchase Credits")
                             .fontWeight(.semibold)
                         
-                        if creditsManager.isLoadingCredits {
+                        if isPurchasing {
                             ProgressView()
                                 .scaleEffect(0.8)
                                 .padding(.leading, 4)
@@ -94,11 +108,11 @@ struct CreditsPurchaseView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(selectedOption != nil ? Color.blue : Color.gray)
+                    .background(selectedProduct != nil && !isPurchasing ? Color.blue : Color.gray)
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
-                .disabled(selectedOption == nil || creditsManager.isLoadingCredits)
+                .disabled(selectedProduct == nil || isPurchasing)
                 .padding(.horizontal)
                 .padding(.top)
                 
@@ -113,52 +127,58 @@ struct CreditsPurchaseView: View {
         }
         .navigationTitle("Get Credits")
         .navigationBarTitleDisplayMode(.large)
-        .alert("Confirm Purchase", isPresented: $showingPurchaseAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Purchase") {
-                if let option = selectedOption {
-                    purchaseCredits(option)
-                }
-            }
-        } message: {
-            if let option = selectedOption {
-                Text("Purchase \(option.credits) credits for \(option.price)?")
-            }
-        }
-        .alert("Success!", isPresented: $showingSuccessAlert) {
+        .alert("Purchase Complete!", isPresented: $showingSuccessAlert) {
             Button("OK") { }
         } message: {
-            if let option = selectedOption {
-                Text("You've successfully purchased \(option.credits) credits!")
+            Text("Credits have been added to your account!")
+        }
+        .onAppear {
+            Task {
+                await storeManager.loadProducts()
             }
         }
     }
     
-    private func purchaseCredits(_ option: CreditsManager.PurchaseOption) {
-        creditsManager.simulatePurchase(option)
+    private func purchaseProduct(_ product: Product) async {
+        isPurchasing = true
         
-        // Show success after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        let success = await storeManager.purchase(product)
+        
+        isPurchasing = false
+        
+        if success {
             showingSuccessAlert = true
-            selectedOption = nil
+            selectedProduct = nil
         }
     }
 }
 
-struct PurchaseOptionCard: View {
-    let option: CreditsManager.PurchaseOption
+struct StoreProductCard: View {
+    let product: Product
     let isSelected: Bool
     let action: () -> Void
+    
+    // Extract credits from product ID
+    var creditCount: Int {
+        if product.id.contains("starter") { return 10 }
+        else if product.id.contains("popular") { return 30 }
+        else if product.id.contains("professional") { return 100 }
+        else { return 0 }
+    }
+    
+    var isBestValue: Bool {
+        product.id.contains("popular")
+    }
     
     var body: some View {
         Button(action: action) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text(option.name)
+                        Text(product.displayName)
                             .font(.headline)
                         
-                        if option.isBestValue {
+                        if isBestValue {
                             Text("BEST VALUE")
                                 .font(.caption)
                                 .fontWeight(.bold)
@@ -170,7 +190,7 @@ struct PurchaseOptionCard: View {
                         }
                     }
                     
-                    Text(option.description)
+                    Text("\(creditCount) video generations")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -178,13 +198,16 @@ struct PurchaseOptionCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(option.price)
+                    Text(product.displayPrice)
                         .font(.title3)
                         .fontWeight(.semibold)
                     
-                    Text("$\(String(format: "%.2f", Double(option.price.dropFirst())! / Double(option.credits))) per video")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if creditCount > 0 {
+                        let pricePerVideo = product.price / Decimal(creditCount)
+                        Text("~$\(pricePerVideo, format: .currency(code: product.priceFormatStyle.currencyCode)) per video")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             .padding()

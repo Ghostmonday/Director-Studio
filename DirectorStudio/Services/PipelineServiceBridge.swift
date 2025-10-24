@@ -26,20 +26,17 @@ class PipelineServiceBridge {
         print("   Image: \(referenceImageData != nil ? "Yes (\(referenceImageData!.count / 1024)KB)" : "No")")
         print("   Featured: \(isFeaturedDemo)")
         
-        // Check credits for non-demo generation
-        let creditsManager = CreditsManager.shared
-        if !creditsManager.shouldUseDemoMode && !isFeaturedDemo {
-            let creditsNeeded = creditsManager.creditsNeeded(for: duration, enabledStages: enabledStages)
-            
-            // Show cost breakdown
-            let breakdown = creditsManager.getCostBreakdown(duration: duration, enabledStages: enabledStages)
-            print("💰 \(breakdown.formattedBreakdown)")
-            
-            guard creditsManager.useCredits(amount: creditsNeeded) else {
-                print("❌ Not enough credits. Need \(creditsNeeded), have \(creditsManager.credits)")
-                throw PipelineError.configurationError("Not enough credits. Need \(creditsNeeded) credits, you have \(creditsManager.credits). Purchase more credits to continue.")
+        // Initialize generation ID
+        let generationId = UUID().uuidString
+        
+            // Check credits for non-demo generation
+            if !isFeaturedDemo {
+                let creditsNeeded = Int(ceil(duration / 5.0)) // 1 credit per 5 seconds
+                guard CreditsManager.shared.credits >= creditsNeeded else {
+                    print("❌ Not enough credits. Need \(creditsNeeded), have \(CreditsManager.shared.credits)")
+                    throw PipelineError.configurationError("Need \(creditsNeeded) credits, have \(CreditsManager.shared.credits)")
+                }
             }
-        }
         
         print("🔄 Progress: Initializing pipeline... (0%)")
         
@@ -137,6 +134,16 @@ class PipelineServiceBridge {
         print("✅ Generated clip: \(clipName)")
         print("   Local URL: \(localVideoURL.path)")
         print("   Enabled stages: \(enabledStages.map { $0.rawValue }.joined(separator: ", "))")
+        
+            // Deduct credits for successful generation
+            if !isFeaturedDemo {
+                let creditsUsed = Int(ceil(duration / 5.0))
+                let deducted = CreditsManager.shared.useCredits(amount: creditsUsed)
+                if deducted {
+                    print("💳 Deducted \(creditsUsed) credits. Remaining: \(CreditsManager.shared.credits)")
+                }
+            }
+        
         print("🔄 Progress: Complete! (100%)")
         print("🎉 Video generation successful!")
         

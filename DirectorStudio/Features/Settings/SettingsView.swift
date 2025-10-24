@@ -112,15 +112,30 @@ struct SettingsView: View {
                 }
                 */
                 
-                // Credits & Monetization
+                // Billing & Monetization
+                /*
                 Section {
-                    NavigationLink(destination: CreditsPurchaseView()) {
+                    NavigationLink(destination: BillingDashboardView()) {
                         HStack {
-                            Label("Credits", systemImage: "creditcard.fill")
+                            Label("Billing & Usage", systemImage: "creditcard.fill")
                             Spacer()
-                            Text("\(CreditsManager.shared.credits)")
-                                .font(.headline)
-                                .foregroundColor(CreditsManager.shared.credits > 0 ? .primary : .red)
+                            
+                            // Show balance or subscription
+                            if let sub = BillingManager.shared.activeSubscription {
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(sub.name)
+                                        .font(.caption)
+                                        .foregroundColor(.purple)
+                                    Text("\(Int(BillingManager.shared.userBalance.totalAvailable)) tokens")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Text("\(Int(BillingManager.shared.userBalance.totalAvailable)) tokens")
+                                    .font(.headline)
+                                    .foregroundColor(BillingManager.shared.userBalance.totalAvailable > 0 ? .primary : .red)
+                            }
+                            
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -129,8 +144,9 @@ struct SettingsView: View {
                 } header: {
                     Text("Account")
                 } footer: {
-                    Text(CreditsManager.shared.credits == 0 ? "You're in Demo Mode - Purchase credits for real AI generation" : "Each credit = 1 video generation")
+                    Text(BillingManager.shared.userBalance.totalAvailable == 0 ? "You're in Demo Mode - Purchase tokens for real AI generation" : "1 token = 1 second of video (base rate)")
                 }
+                */
                 
                 // Appearance
                 Section {

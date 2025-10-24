@@ -47,12 +47,16 @@ class PromptViewModel: ObservableObject {
     @Published var selectedImage: UIImage? = nil
     @Published var useDefaultAdImage: Bool = false
     @Published var videoDuration: Double = 10.0 // Default 10 seconds, range 3-20
+    @Published var useContinuityFromLastClip = false
+    @Published var lastClipContinuityImage: UIImage? = nil
     @Published var showingStageHelp: PipelineStage? = nil
     @Published var generationError: Error? = nil
     @Published var showingDemoAlert = false
     @Published var showingCreditsAlert = false
     @Published var showingCostBreakdown = false
     @Published var showingPromptHelp = false
+    // @Published var selectedQualityTier: VideoQualityTier = .standard
+    // @Published var selectedModelTier: PricingEngine.ModelTier = .standard
     
     private let pipelineService = PipelineServiceBridge()
     private var cancellables = Set<AnyCancellable>()

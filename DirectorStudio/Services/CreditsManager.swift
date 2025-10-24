@@ -55,11 +55,11 @@ public final class CreditsManager: ObservableObject {
     /// Check if this is first launch and give free credits
     private func checkFirstLaunch() {
         if !userDefaults.bool(forKey: firstLaunchKey) {
-            // First launch - give 3 free credits
-            credits = 3
+            // First launch - give 20 free credits for App Store launch!
+            credits = 20
             saveCredits()
             userDefaults.set(true, forKey: firstLaunchKey)
-            print("🎁 Welcome! You've received 3 free credits to get started!")
+            print("🎁 Welcome! You've received 20 free credits to get started!")
         }
     }
     

@@ -72,8 +72,8 @@ public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
             // Simulate processing delay
             try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
             
-            // Return a sample video URL (you can replace with actual sample video)
-            return URL(string: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4")!
+            // Return a 15-second cinematic video for App Store demo
+            return URL(string: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4")!
         }
         
         guard isAvailable else {
@@ -136,8 +136,8 @@ public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
             // Simulate processing delay
             try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
             
-            // Return a sample video URL
-            return URL(string: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4")!
+            // Return a 15-second cinematic video for App Store demo
+            return URL(string: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4")!
         }
         
         guard isAvailable else {
