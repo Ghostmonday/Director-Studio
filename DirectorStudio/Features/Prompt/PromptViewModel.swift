@@ -1,9 +1,10 @@
 // MODULE: PromptViewModel
-// VERSION: 1.1.0
-// PURPOSE: Business logic for prompt input and clip generation
+// VERSION: 1.2.0
+// PURPOSE: Business logic for prompt input and clip generation with demo mode & auto-save
 
 import Foundation
 import SwiftUI
+import Combine
 
 /// Pipeline stages that can be toggled
 enum PipelineStage: String, CaseIterable {
@@ -48,8 +49,79 @@ class PromptViewModel: ObservableObject {
     @Published var videoDuration: Double = 10.0 // Default 10 seconds, range 3-20
     @Published var showingStageHelp: PipelineStage? = nil
     @Published var generationError: Error? = nil
+    @Published var showingDemoAlert = false
     
     private let pipelineService = PipelineServiceBridge()
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        // Load saved drafts
+        self.promptText = UserDefaults.standard.string(forKey: "draftPrompt") ?? ""
+        self.projectName = UserDefaults.standard.string(forKey: "draftProject") ?? ""
+        
+        // Set up auto-save
+        setupAutoSave()
+    }
+    
+    /// Set up auto-save for drafts
+    private func setupAutoSave() {
+        // Auto-save prompt text
+        $promptText
+            .debounce(for: .seconds(1), scheduler: RunLoop.main)
+            .sink { text in
+                UserDefaults.standard.set(text, forKey: "draftPrompt")
+            }
+            .store(in: &cancellables)
+        
+        // Auto-save project name
+        $projectName
+            .debounce(for: .seconds(1), scheduler: RunLoop.main)
+            .sink { name in
+                UserDefaults.standard.set(name, forKey: "draftProject")
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Load demo content for quick testing
+    func loadDemoContent() {
+        projectName = "My Cinematic Journey"
+        promptText = """
+        A lone detective enters a dimly lit warehouse at dusk. 
+        Rain drums against broken windows. His red jacket catches 
+        the last rays of sunlight as he searches for clues.
+        The atmosphere is tense, mysterious, with long shadows 
+        stretching across the dusty concrete floor.
+        """
+        selectedImage = UIImage(named: "ad")
+        useDefaultAdImage = true
+        videoDuration = 10.0
+        enabledStages = [.continuityAnalysis, .continuityInjection, .enhancement, .lighting]
+        
+        // Show success feedback
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+    
+    /// Apply optimal settings for best results
+    func applyOptimalSettings() {
+        enabledStages = [.continuityAnalysis, .continuityInjection, .enhancement, .lighting]
+        videoDuration = 10.0
+        
+        // Haptic feedback
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+    
+    /// Clear all inputs
+    func clearAll() {
+        promptText = ""
+        projectName = ""
+        selectedImage = nil
+        useDefaultAdImage = false
+        videoDuration = 10.0
+        
+        // Clear saved drafts
+        UserDefaults.standard.removeObject(forKey: "draftPrompt")
+        UserDefaults.standard.removeObject(forKey: "draftProject")
+    }
     
     /// Generate a clip from the current prompt
     func generateClip(coordinator: AppCoordinator) async {
@@ -114,6 +186,66 @@ class PromptViewModel: ObservableObject {
         let eventType = isDefaultAd ? "image_generation_default_ad" : "image_generation_custom"
         print("📊 Analytics: \(eventType)")
         // TODO: Integrate with proper analytics service (Telemetry.shared.logEvent)
+    }
+}
+
+// MARK: - Prompt Templates
+
+struct PromptTemplate: Identifiable {
+    let id = UUID()
+    let category: String
+    let title: String
+    let prompt: String
+    let suggestedDuration: Double
+    let suggestedStages: Set<PipelineStage>
+}
+
+extension PromptViewModel {
+    static let promptTemplates = [
+        PromptTemplate(
+            category: "Action",
+            title: "Epic Chase Scene",
+            prompt: "An intense motorcycle chase through neon-lit Tokyo streets at night. The protagonist weaves between traffic as rain reflects the city lights. Sparks fly as metal scrapes asphalt.",
+            suggestedDuration: 15,
+            suggestedStages: [.enhancement, .cameraDirection, .lighting]
+        ),
+        PromptTemplate(
+            category: "Drama",
+            title: "Emotional Farewell",
+            prompt: "A tearful goodbye at a rain-soaked train station. Two silhouettes embrace on the platform as steam rises from the tracks. The departure bell echoes through the misty air.",
+            suggestedDuration: 10,
+            suggestedStages: [.continuityAnalysis, .continuityInjection, .enhancement, .lighting]
+        ),
+        PromptTemplate(
+            category: "Sci-Fi",
+            title: "Space Discovery",
+            prompt: "A massive alien spacecraft emerges from a swirling purple nebula. Its crystalline hull reflects distant stars as smaller ships scatter like fireflies.",
+            suggestedDuration: 12,
+            suggestedStages: [.enhancement, .cameraDirection]
+        ),
+        PromptTemplate(
+            category: "Horror",
+            title: "Abandoned Hospital",
+            prompt: "Flickering fluorescent lights illuminate a long hospital corridor. Shadows move between doorways as a wheelchair slowly rolls past, its wheels squeaking eerily.",
+            suggestedDuration: 8,
+            suggestedStages: [.enhancement, .lighting]
+        ),
+        PromptTemplate(
+            category: "Fantasy",
+            title: "Dragon's Awakening",
+            prompt: "An ancient dragon stirs in its mountain lair. Golden eyes open as treasure cascades from its scales. Smoke curls from its nostrils, illuminated by pools of molten gold.",
+            suggestedDuration: 10,
+            suggestedStages: [.enhancement, .cameraDirection, .lighting]
+        )
+    ]
+    
+    func applyTemplate(_ template: PromptTemplate) {
+        promptText = template.prompt
+        videoDuration = template.suggestedDuration
+        enabledStages = template.suggestedStages
+        
+        // Haptic feedback
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 }
 

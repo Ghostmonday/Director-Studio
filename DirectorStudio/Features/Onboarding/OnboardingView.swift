@@ -104,7 +104,7 @@ struct OnboardingPageView: View {
             Spacer()
             
             // Icon/Illustration
-            Image(systemName: page.icon)
+            Image(systemName: page.imageName)
                 .font(.system(size: 100))
                 .foregroundColor(.white)
                 .scaleEffect(animate ? 1.0 : 0.8)

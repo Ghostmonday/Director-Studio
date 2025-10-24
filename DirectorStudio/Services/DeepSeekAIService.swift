@@ -84,10 +84,13 @@ public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
         // Parse JSON response into StoryAnalysisOutput
         // This is simplified - you'd want proper JSON parsing
         return StoryAnalysisOutput(
-            characters: [],
             themes: [],
-            emotionalArc: [],
-            visualElements: []
+            characters: [],
+            settings: [],
+            emotions: [],
+            keyMoments: [],
+            tone: "neutral",
+            genre: nil
         )
     }
     

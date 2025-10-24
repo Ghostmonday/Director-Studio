@@ -25,12 +25,14 @@ class PipelineServiceBridge {
         print("   Prompt: \(prompt)")
         print("   Image: \(referenceImageData != nil ? "Yes (\(referenceImageData!.count / 1024)KB)" : "No")")
         print("   Featured: \(isFeaturedDemo)")
+        print("🔄 Progress: Initializing pipeline... (0%)")
         
         // Stage 1: Analyze continuity
         var continuityAnalysis: ContinuityAnalysis?
         var processedPrompt = prompt
         
         if enabledStages.contains(.continuityAnalysis) {
+            print("🔄 Progress: Analyzing continuity... (10%)")
             print("🎬 Analyzing continuity...")
             continuityAnalysis = ContinuityManager.shared.analyzeContinuity(
                 prompt: prompt,
@@ -40,10 +42,12 @@ class PipelineServiceBridge {
             print("✅ Continuity analysis complete")
             print("   Detected: \(continuityAnalysis?.detectedElements ?? "none")")
             print("   Score: \(continuityAnalysis?.continuityScore ?? 0)")
+            print("🔄 Progress: Continuity analyzed (20%)")
         }
         
         // Stage 2: Inject continuity elements
         if enabledStages.contains(.continuityInjection), let analysis = continuityAnalysis {
+            print("🔄 Progress: Injecting continuity elements... (30%)")
             print("🎬 Injecting continuity elements...")
             processedPrompt = ContinuityManager.shared.injectContinuity(
                 prompt: prompt,
@@ -51,17 +55,20 @@ class PipelineServiceBridge {
                 referenceImage: referenceImageData
             )
             print("✅ Continuity injection complete")
+            print("🔄 Progress: Continuity injected (40%)")
         }
         
         // Then enhance prompt if needed (using DeepSeek)
         var enhancedPrompt = processedPrompt
         if enabledStages.contains(.enhancement) {
+            print("🔄 Progress: Enhancing prompt with AI... (50%)")
             print("🔧 Enhancing prompt with DeepSeek...")
             do {
                 enhancedPrompt = try await deepSeekService.enhancePrompt(
                     prompt: processedPrompt
                 )
                 print("✅ Enhanced prompt: \(enhancedPrompt.prefix(100))...")
+                print("🔄 Progress: Prompt enhanced (60%)")
             } catch {
                 print("⚠️  Enhancement failed, using original prompt: \(error)")
             }
@@ -72,24 +79,30 @@ class PipelineServiceBridge {
         
         if let imageData = referenceImageData {
             // Image-to-video generation using Pollo
+            print("🔄 Progress: Generating video from image... (70%)")
             print("🖼️ Generating video from image...")
             videoURL = try await polloService.generateVideoFromImage(
                 imageData: imageData,
                 prompt: enhancedPrompt,
                 duration: duration
             )
+            print("🔄 Progress: Video generated (85%)")
         } else {
             // Text-to-video generation using Pollo
+            print("🔄 Progress: Generating video from text... (70%)")
             print("📝 Generating video from text...")
             videoURL = try await polloService.generateVideo(
                 prompt: enhancedPrompt,
                 duration: duration
             )
+            print("🔄 Progress: Video generated (85%)")
         }
         
         // Download video to local storage
+        print("🔄 Progress: Downloading video... (90%)")
         print("⬇️ Downloading video...")
         let localVideoURL = try await downloadVideo(from: videoURL, clipName: clipName)
+        print("🔄 Progress: Video downloaded (95%)")
         
         // Create clip
         let clip = GeneratedClip(
@@ -108,6 +121,8 @@ class PipelineServiceBridge {
         print("✅ Generated clip: \(clipName)")
         print("   Local URL: \(localVideoURL.path)")
         print("   Enabled stages: \(enabledStages.map { $0.rawValue }.joined(separator: ", "))")
+        print("🔄 Progress: Complete! (100%)")
+        print("🎉 Video generation successful!")
         
         return clip
     }

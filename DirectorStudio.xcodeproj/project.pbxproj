@@ -32,14 +32,12 @@
 		B01234631234567890123456 /* EditRoomViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234631234567890123455 /* EditRoomViewModel.swift */; };
 		B01234641234567890123456 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234641234567890123455 /* LibraryView.swift */; };
 		B01234651234567890123456 /* LibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234651234567890123455 /* LibraryViewModel.swift */; };
-		B01234661234567890123456 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234661234567890123455 /* Project.swift */; };
 		B01234671234567890123456 /* GeneratedClip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234671234567890123455 /* GeneratedClip.swift */; };
 		B01234681234567890123456 /* VoiceoverTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234681234567890123455 /* VoiceoverTrack.swift */; };
 		B01234691234567890123456 /* StorageLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234691234567890123455 /* StorageLocation.swift */; };
 		B01234701234567890123456 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234701234567890123455 /* AuthService.swift */; };
 		B01234711234567890123456 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234711234567890123455 /* StorageService.swift */; };
 		B01234731234567890123456 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234731234567890123455 /* ExportService.swift */; };
-		B01234741234567890123456 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234741234567890123455 /* Telemetry.swift */; };
 		B01234751234567890123456 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234751234567890123455 /* CrashReporter.swift */; };
 		B01234761234567890123456 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B01234761234567890123455 /* CloudKit.framework */; };
 		B01234771234567890123456 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B01234771234567890123455 /* AVFoundation.framework */; };
@@ -72,14 +70,12 @@
 		B01234631234567890123455 /* EditRoomViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRoomViewModel.swift; sourceTree = "<group>"; };
 		B01234641234567890123455 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		B01234651234567890123455 /* LibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryViewModel.swift; sourceTree = "<group>"; };
-		B01234661234567890123455 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		B01234671234567890123455 /* GeneratedClip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedClip.swift; sourceTree = "<group>"; };
 		B01234681234567890123455 /* VoiceoverTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceoverTrack.swift; sourceTree = "<group>"; };
 		B01234691234567890123455 /* StorageLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageLocation.swift; sourceTree = "<group>"; };
 		B01234701234567890123455 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		B01234711234567890123455 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
 		B01234731234567890123455 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
-		B01234741234567890123455 /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
 		B01234751234567890123455 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		B01234761234567890123455 /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		B01234771234567890123455 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
@@ -205,7 +201,6 @@
 		B01234871234567890123456 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				B01234661234567890123455 /* Project.swift */,
 				B01234671234567890123455 /* GeneratedClip.swift */,
 				B01234681234567890123455 /* VoiceoverTrack.swift */,
 				B01234691234567890123455 /* StorageLocation.swift */,
@@ -231,7 +226,6 @@
 		B01234891234567890123456 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
-				B01234741234567890123455 /* Telemetry.swift */,
 				B01234751234567890123455 /* CrashReporter.swift */,
 			);
 			path = Utils;
@@ -366,7 +360,6 @@
 				B01234641234567890123456 /* LibraryView.swift in Sources */,
 				9B9311602EAAF7ED00A0660D /* DeepSeekAIService.swift in Sources */,
 				B01234651234567890123456 /* LibraryViewModel.swift in Sources */,
-				B01234661234567890123456 /* Project.swift in Sources */,
 				B01234671234567890123456 /* GeneratedClip.swift in Sources */,
 				B01234681234567890123456 /* VoiceoverTrack.swift in Sources */,
 				9B9311662EAB158200A0660D /* CoreTypes.swift in Sources */,
@@ -375,7 +368,6 @@
 				9B9311542EAAF37900A0660D /* SettingsView.swift in Sources */,
 				B01234711234567890123456 /* StorageService.swift in Sources */,
 				B01234731234567890123456 /* ExportService.swift in Sources */,
-				B01234741234567890123456 /* Telemetry.swift in Sources */,
 				B01234751234567890123456 /* CrashReporter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

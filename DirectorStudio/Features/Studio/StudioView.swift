@@ -1,13 +1,17 @@
 // MODULE: StudioView
-// VERSION: 1.0.0
-// PURPOSE: Main studio interface for clip management and preview
+// VERSION: 1.1.0
+// PURPOSE: Main studio interface for clip management and preview with auto-play
 
 import SwiftUI
+import AVKit
 
 /// Studio view with clip grid and preview
 struct StudioView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @State private var selectedClipID: UUID?
+    @State private var hasAutoPlayed = false
+    @State private var showVideoPlayer = false
+    @AppStorage("isFirstLaunch") private var isFirstLaunch = true
     
     var featuredClips: [GeneratedClip] {
         coordinator.generatedClips.filter { $0.isFeaturedDemo }
@@ -15,6 +19,10 @@ struct StudioView: View {
     
     var regularClips: [GeneratedClip] {
         coordinator.generatedClips.filter { !$0.isFeaturedDemo }
+    }
+    
+    var selectedClip: GeneratedClip? {
+        coordinator.generatedClips.first { $0.id == selectedClipID }
     }
     
     var body: some View {
@@ -160,6 +168,104 @@ struct StudioView: View {
                 }
             }
             .navigationTitle("Studio")
+            .onAppear {
+                autoPlayFeaturedDemo()
+            }
+            .sheet(isPresented: $showVideoPlayer) {
+                if let clip = selectedClip {
+                    VideoPlayerSheet(clip: clip, isPresented: $showVideoPlayer)
+                }
+            }
+        }
+    }
+    
+    private func autoPlayFeaturedDemo() {
+        // Auto-play featured demo on first launch ONLY if video already exists
+        // NEVER auto-generate videos (that would use API credits!)
+        if isFirstLaunch && !hasAutoPlayed && !featuredClips.isEmpty {
+            hasAutoPlayed = true
+            
+            // Only play if the video file actually exists
+            if let firstFeatured = featuredClips.first,
+               let localURL = firstFeatured.localURL,
+               FileManager.default.fileExists(atPath: localURL.path) {
+                
+                // Small delay for better UX
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    selectedClipID = firstFeatured.id
+                    showVideoPlayer = true
+                    
+                    // Mark first launch as complete
+                    isFirstLaunch = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Video Player Sheet
+
+struct VideoPlayerSheet: View {
+    let clip: GeneratedClip
+    @Binding var isPresented: Bool
+    @State private var player: AVPlayer?
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                if let player = player {
+                    VideoPlayer(player: player)
+                        .onAppear {
+                            player.play()
+                        }
+                        .onDisappear {
+                            player.pause()
+                        }
+                } else {
+                    ProgressView("Loading video...")
+                        .padding()
+                }
+                
+                // Video info
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(clip.name)
+                        .font(.headline)
+                    
+                    HStack {
+                        Label("\(Int(clip.duration))s", systemImage: "timer")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        if clip.isFeaturedDemo {
+                            Label("Featured Demo", systemImage: "star.fill")
+                                .font(.caption)
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+            }
+            .navigationTitle("Video Preview")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                }
+            }
+        }
+        .onAppear {
+            loadVideo()
+        }
+    }
+    
+    private func loadVideo() {
+        if let localURL = clip.localURL {
+            player = AVPlayer(url: localURL)
         }
     }
 }
