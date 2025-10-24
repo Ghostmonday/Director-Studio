@@ -51,6 +51,7 @@ class PromptViewModel: ObservableObject {
     @Published var generationError: Error? = nil
     @Published var showingDemoAlert = false
     @Published var showingCreditsAlert = false
+    @Published var showingCostBreakdown = false
     
     private let pipelineService = PipelineServiceBridge()
     private var cancellables = Set<AnyCancellable>()

@@ -211,26 +211,54 @@ struct PromptView: View {
                 
                 Spacer()
                 
-                // Credits Display
-                HStack {
-                    if CreditsManager.shared.credits == 0 {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("Demo Mode - Purchase credits for real AI")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(.blue)
-                        Text("\(CreditsManager.shared.credits) credits remaining")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                // Credits and Cost Display
+                VStack(spacing: 8) {
+                    // Current credits
+                    HStack {
+                        if CreditsManager.shared.credits == 0 {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text("Demo Mode - Purchase credits for real AI")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.blue)
+                            Text("\(CreditsManager.shared.credits) credits remaining")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        NavigationLink(destination: CreditsPurchaseView()) {
+                            Text("Get Credits")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
                     }
-                    Spacer()
-                    NavigationLink(destination: CreditsPurchaseView()) {
-                        Text("Get Credits")
-                            .font(.caption)
-                            .fontWeight(.semibold)
+                    
+                    // Cost estimation
+                    if !viewModel.promptText.isEmpty && CreditsManager.shared.credits > 0 {
+                        let cost = CreditsManager.shared.creditsNeeded(
+                            for: viewModel.videoDuration,
+                            enabledStages: viewModel.enabledStages
+                        )
+                        
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                            Text("This will cost \(cost) credit\(cost == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: { viewModel.showingCostBreakdown = true }) {
+                                Text("See breakdown")
+                                    .font(.caption2)
+                                    .underline()
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 4)
                     }
                 }
                 .padding(.horizontal)
@@ -283,6 +311,9 @@ struct PromptView: View {
             }
             .sheet(isPresented: $showTemplates) {
                 TemplatesSheet(viewModel: viewModel, isPresented: $showTemplates)
+            }
+            .sheet(isPresented: $viewModel.showingCostBreakdown) {
+                CostBreakdownSheet(viewModel: viewModel)
             }
         }
     }
@@ -518,6 +549,95 @@ struct TemplateCard: View {
             .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Cost Breakdown Sheet
+
+struct CostBreakdownSheet: View {
+    @ObservedObject var viewModel: PromptViewModel
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                let breakdown = CreditsManager.shared.getCostBreakdown(
+                    duration: viewModel.videoDuration,
+                    enabledStages: viewModel.enabledStages
+                )
+                
+                // Total Cost Header
+                VStack(spacing: 8) {
+                    Text("Total Cost")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(alignment: .bottom, spacing: 4) {
+                        Text("\(breakdown.totalCost)")
+                            .font(.system(size: 48, weight: .bold))
+                        Text("credits")
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 8)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.systemGray6))
+                .cornerRadius(16)
+                
+                // Breakdown Details
+                VStack(alignment: .leading, spacing: 16) {
+                    // Base video cost
+                    HStack {
+                        Label("Video (\(Int(breakdown.videoDuration))s)", systemImage: "film")
+                        Spacer()
+                        Text("\(breakdown.baseCost) credit\(breakdown.baseCost == 1 ? "" : "s")")
+                            .fontWeight(.medium)
+                    }
+                    
+                    if !breakdown.stagesCosts.isEmpty {
+                        Divider()
+                        
+                        // Pipeline stages
+                        ForEach(breakdown.stagesCosts, id: \.0) { stage, cost in
+                            HStack {
+                                Label(stage, systemImage: "cpu")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("+\(cost) credit\(cost == 1 ? "" : "s")")
+                                    .foregroundColor(.secondary)
+                            }
+                            .font(.subheadline)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color(.systemGray4), lineWidth: 1)
+                )
+                
+                // Info
+                Label("Credits are deducted when generation starts", systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Cost Breakdown")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -29,9 +29,15 @@ class PipelineServiceBridge {
         // Check credits for non-demo generation
         let creditsManager = CreditsManager.shared
         if !creditsManager.shouldUseDemoMode && !isFeaturedDemo {
-            guard creditsManager.useCredit() else {
-                print("❌ No credits available - switching to demo mode")
-                throw PipelineError.configurationError("No credits available. Purchase credits to generate videos.")
+            let creditsNeeded = creditsManager.creditsNeeded(for: duration, enabledStages: enabledStages)
+            
+            // Show cost breakdown
+            let breakdown = creditsManager.getCostBreakdown(duration: duration, enabledStages: enabledStages)
+            print("💰 \(breakdown.formattedBreakdown)")
+            
+            guard creditsManager.useCredits(amount: creditsNeeded) else {
+                print("❌ Not enough credits. Need \(creditsNeeded), have \(creditsManager.credits)")
+                throw PipelineError.configurationError("Not enough credits. Need \(creditsNeeded) credits, you have \(creditsManager.credits). Purchase more credits to continue.")
             }
         }
         

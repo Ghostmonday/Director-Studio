@@ -6,6 +6,26 @@
 //
 
 import Foundation
+import CoreTypes
+
+/// Cost breakdown for transparency
+public struct CostBreakdown {
+    let videoDuration: TimeInterval
+    let baseCost: Int
+    let stagesCosts: [(String, Int)]
+    let totalCost: Int
+    
+    var formattedBreakdown: String {
+        var result = "Cost Breakdown:\n"
+        result += "• Video (\(Int(videoDuration))s): \(baseCost) credits\n"
+        for (stage, cost) in stagesCosts {
+            result += "• \(stage): \(cost) credit\(cost > 1 ? "s" : "")\n"
+        }
+        result += "━━━━━━━━━━━━━━━\n"
+        result += "Total: \(totalCost) credits"
+        return result
+    }
+}
 
 /// Manages user credits and determines demo mode status
 public final class CreditsManager: ObservableObject {
@@ -49,17 +69,64 @@ public final class CreditsManager: ObservableObject {
         return credits <= 0
     }
     
-    /// Use a credit for video generation
-    public func useCredit() -> Bool {
-        guard credits > 0 else {
-            print("❌ No credits available")
+    /// Calculate credits needed for video duration
+    public func creditsNeeded(for duration: TimeInterval, enabledStages: Set<PipelineStage>) -> Int {
+        // Base cost: 1 credit per 5 seconds of video
+        let baseCost = Int(ceil(duration / 5.0))
+        
+        // Additional costs for pipeline stages
+        var pipelineCost = 0
+        if enabledStages.contains(.continuityAnalysis) { pipelineCost += 1 }
+        if enabledStages.contains(.continuityInjection) { pipelineCost += 1 }
+        if enabledStages.contains(.enhancement) { pipelineCost += 2 } // DeepSeek costs more
+        if enabledStages.contains(.cameraDirection) { pipelineCost += 1 }
+        if enabledStages.contains(.lighting) { pipelineCost += 1 }
+        
+        return baseCost + pipelineCost
+    }
+    
+    /// Use credits for video generation
+    public func useCredits(amount: Int) -> Bool {
+        guard credits >= amount else {
+            print("❌ Not enough credits. Need \(amount), have \(credits)")
             return false
         }
         
-        credits -= 1
+        credits -= amount
         saveCredits()
-        print("💳 Credit used. Remaining: \(credits)")
+        print("💳 Used \(amount) credits. Remaining: \(credits)")
         return true
+    }
+    
+    /// Get cost breakdown for transparency
+    public func getCostBreakdown(duration: TimeInterval, enabledStages: Set<PipelineStage>) -> CostBreakdown {
+        let baseCost = Int(ceil(duration / 5.0))
+        var stagesCost: [(String, Int)] = []
+        
+        if enabledStages.contains(.continuityAnalysis) {
+            stagesCost.append(("Continuity Analysis", 1))
+        }
+        if enabledStages.contains(.continuityInjection) {
+            stagesCost.append(("Continuity Injection", 1))
+        }
+        if enabledStages.contains(.enhancement) {
+            stagesCost.append(("AI Enhancement", 2))
+        }
+        if enabledStages.contains(.cameraDirection) {
+            stagesCost.append(("Camera Direction", 1))
+        }
+        if enabledStages.contains(.lighting) {
+            stagesCost.append(("Lighting", 1))
+        }
+        
+        let totalCost = baseCost + stagesCost.reduce(0) { $0 + $1.1 }
+        
+        return CostBreakdown(
+            videoDuration: duration,
+            baseCost: baseCost,
+            stagesCosts: stagesCost,
+            totalCost: totalCost
+        )
     }
     
     /// Add credits (for purchases)
