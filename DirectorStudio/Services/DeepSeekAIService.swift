@@ -12,11 +12,15 @@ public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
     private let apiKey: String
     private let endpoint: String
     private let session: URLSession
+    private let isDemoMode: Bool
     
     public init(apiKey: String? = nil, endpoint: String? = nil) {
         // Get from Info.plist or use provided values
         self.apiKey = apiKey ?? Bundle.main.infoDictionary?["DEEPSEEK_API_KEY"] as? String ?? ""
         self.endpoint = endpoint ?? Bundle.main.infoDictionary?["DEEPSEEK_API_ENDPOINT"] as? String ?? "https://api.deepseek.com/v1"
+        
+        // Check if we're in demo mode
+        self.isDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
         
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -95,6 +99,27 @@ public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
     }
     
     public func enhancePrompt(prompt: String, style: VideoStyle = .cinematic) async throws -> String {
+        // Demo mode - return enhanced prompt
+        if isDemoMode {
+            print("🎨 DEMO MODE: Simulating prompt enhancement...")
+            
+            // Simulate processing delay
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            // Return a cinematically enhanced version
+            return """
+            [CINEMATIC SHOT] \(prompt)
+            
+            Shot with professional cinematography:
+            - Dynamic camera movements with smooth tracking
+            - Dramatic lighting with deep shadows and highlights
+            - Depth of field focusing on key subjects
+            - Color grading: \(style == .cinematic ? "cinematic teal and orange palette" : "style-appropriate color scheme")
+            - Atmospheric effects: subtle haze and volumetric lighting
+            - Shot in 4K resolution with film grain
+            """
+        }
+        
         let systemPrompt = """
         You are a video prompt enhancement expert. Take the user's prompt and enhance it with:
         - Specific visual details

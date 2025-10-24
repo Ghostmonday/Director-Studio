@@ -12,11 +12,15 @@ public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
     private let apiKey: String
     private let endpoint: String
     private let session: URLSession
+    private let isDemoMode: Bool
     
     public init(apiKey: String? = nil, endpoint: String? = nil) {
         // Get from Info.plist or use provided values
         self.apiKey = apiKey ?? Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String ?? ""
         self.endpoint = endpoint ?? Bundle.main.infoDictionary?["POLLO_API_ENDPOINT"] as? String ?? "https://api.pollo.ai/v1"
+        
+        // Check if we're in demo mode
+        self.isDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
         
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
@@ -60,6 +64,17 @@ public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
     }
     
     public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
+        // Demo mode - return a sample video URL
+        if isDemoMode {
+            print("🎬 DEMO MODE: Simulating video generation...")
+            
+            // Simulate processing delay
+            try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            
+            // Return a sample video URL (you can replace with actual sample video)
+            return URL(string: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4")!
+        }
+        
         guard isAvailable else {
             throw PipelineError.configurationError("Pollo API key not configured")
         }
@@ -111,6 +126,19 @@ public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
     ///   - duration: Duration of the video in seconds
     /// - Returns: URL to the generated video
     public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
+        // Demo mode - return a sample video URL
+        if isDemoMode {
+            print("🎬 DEMO MODE: Simulating image-to-video generation...")
+            print("   Image size: \(imageData.count / 1024)KB")
+            print("   Prompt: \(prompt)")
+            
+            // Simulate processing delay
+            try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            
+            // Return a sample video URL
+            return URL(string: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4")!
+        }
+        
         guard isAvailable else {
             throw PipelineError.configurationError("Pollo API key not configured")
         }
