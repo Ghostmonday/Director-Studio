@@ -8,7 +8,7 @@
 import Foundation
 
 /// DeepSeek AI service implementation
-public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
+public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol, @unchecked Sendable {
     private let apiKey: String
     private let endpoint: String
     private let session: URLSession
@@ -99,7 +99,8 @@ public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
         )
     }
     
-    public func enhancePrompt(prompt: String, style: VideoStyle = .cinematic) async throws -> String {
+    public func enhancePrompt(prompt: String) async throws -> String {
+        let style = VideoStyle.cinematic // Default style
         // Demo mode - return enhanced prompt
         if isDemoMode {
             print("🎨 DEMO MODE: Simulating prompt enhancement...")

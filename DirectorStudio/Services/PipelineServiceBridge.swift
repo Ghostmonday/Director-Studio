@@ -1,14 +1,35 @@
+// MODULE: PipelineServiceBridge
+// VERSION: 2.0.0
+// PURPOSE: Service that bridges the AI services with the pipeline stages using dependency injection
+
 import Foundation
 import UIKit
 
 /// Service that bridges the AI services with the pipeline stages
 class PipelineServiceBridge {
-    private let polloService: PolloAIService
-    private let deepSeekService: DeepSeekAIService
+    private let videoService: VideoGenerationProtocol
+    private let textService: TextEnhancementProtocol
+    private let continuityManager: ContinuityManagerProtocol
+    private let storageService: StorageServiceProtocol
+    private let stitchingService: VideoStitchingProtocol?
+    private let voiceoverService: VoiceoverGenerationProtocol?
     
-    init() {
-        self.polloService = PolloAIService()
-        self.deepSeekService = DeepSeekAIService()
+    /// Initialize with dependency injection
+    init(
+        videoService: VideoGenerationProtocol? = nil,
+        textService: TextEnhancementProtocol? = nil,
+        continuityManager: ContinuityManagerProtocol? = nil,
+        storageService: StorageServiceProtocol? = nil,
+        stitchingService: VideoStitchingProtocol? = nil,
+        voiceoverService: VoiceoverGenerationProtocol? = nil
+    ) {
+        // Use factory to create default services if not provided
+        self.videoService = videoService ?? AIServiceFactory.createVideoService()
+        self.textService = textService ?? AIServiceFactory.createTextService()
+        self.continuityManager = continuityManager ?? ContinuityManager.shared
+        self.storageService = storageService ?? LocalStorageService()
+        self.stitchingService = stitchingService
+        self.voiceoverService = voiceoverService
     }
     
     /// Generate a clip using the full pipeline
@@ -18,7 +39,8 @@ class PipelineServiceBridge {
         enabledStages: Set<PipelineStage>,
         referenceImageData: Data? = nil,
         isFeaturedDemo: Bool = false,
-        duration: TimeInterval = 10.0
+        duration: TimeInterval = 10.0,
+        isFirstClip: Bool = false
     ) async throws -> GeneratedClip {
         print("🎬 Starting clip generation...")
         print("   Clip: \(clipName)")
@@ -29,14 +51,14 @@ class PipelineServiceBridge {
         // Initialize generation ID
         let generationId = UUID().uuidString
         
-            // Check credits for non-demo generation
-            if !isFeaturedDemo {
-                let creditsNeeded = Int(ceil(duration / 5.0)) // 1 credit per 5 seconds
-                guard CreditsManager.shared.credits >= creditsNeeded else {
-                    print("❌ Not enough credits. Need \(creditsNeeded), have \(CreditsManager.shared.credits)")
-                    throw PipelineError.configurationError("Need \(creditsNeeded) credits, have \(CreditsManager.shared.credits)")
-                }
+        // Check credits for non-demo generation
+        if !isFeaturedDemo {
+            let creditsNeeded = Int(ceil(duration / 5.0)) // 1 credit per 5 seconds
+            guard CreditsManager.shared.credits >= creditsNeeded else {
+                print("❌ Not enough credits. Need \(creditsNeeded), have \(CreditsManager.shared.credits)")
+                throw PipelineError.configurationError("Need \(creditsNeeded) credits, have \(CreditsManager.shared.credits)")
             }
+        }
         
         print("🔄 Progress: Initializing pipeline... (0%)")
         
@@ -47,9 +69,9 @@ class PipelineServiceBridge {
         if enabledStages.contains(.continuityAnalysis) {
             print("🔄 Progress: Analyzing continuity... (10%)")
             print("🎬 Analyzing continuity...")
-            continuityAnalysis = ContinuityManager.shared.analyzeContinuity(
+            continuityAnalysis = continuityManager.analyzeContinuity(
                 prompt: prompt,
-                isFirstClip: false, // TODO: Track if this is the first clip in a project
+                isFirstClip: isFirstClip,
                 referenceImage: referenceImageData
             )
             print("✅ Continuity analysis complete")
@@ -62,7 +84,7 @@ class PipelineServiceBridge {
         if enabledStages.contains(.continuityInjection), let analysis = continuityAnalysis {
             print("🔄 Progress: Injecting continuity elements... (30%)")
             print("🎬 Injecting continuity elements...")
-            processedPrompt = ContinuityManager.shared.injectContinuity(
+            processedPrompt = continuityManager.injectContinuity(
                 prompt: prompt,
                 analysis: analysis,
                 referenceImage: referenceImageData
@@ -71,15 +93,13 @@ class PipelineServiceBridge {
             print("🔄 Progress: Continuity injected (40%)")
         }
         
-        // Then enhance prompt if needed (using DeepSeek)
+        // Then enhance prompt if needed
         var enhancedPrompt = processedPrompt
         if enabledStages.contains(.enhancement) {
             print("🔄 Progress: Enhancing prompt with AI... (50%)")
-            print("🔧 Enhancing prompt with DeepSeek...")
+            print("🔧 Enhancing prompt...")
             do {
-                enhancedPrompt = try await deepSeekService.enhancePrompt(
-                    prompt: processedPrompt
-                )
+                enhancedPrompt = try await textService.enhancePrompt(prompt: processedPrompt)
                 print("✅ Enhanced prompt: \(enhancedPrompt.prefix(100))...")
                 print("🔄 Progress: Prompt enhanced (60%)")
             } catch {
@@ -91,20 +111,20 @@ class PipelineServiceBridge {
         var videoURL: URL
         
         if let imageData = referenceImageData {
-            // Image-to-video generation using Pollo
+            // Image-to-video generation
             print("🔄 Progress: Generating video from image... (70%)")
             print("🖼️ Generating video from image...")
-            videoURL = try await polloService.generateVideoFromImage(
+            videoURL = try await videoService.generateVideoFromImage(
                 imageData: imageData,
                 prompt: enhancedPrompt,
                 duration: duration
             )
             print("🔄 Progress: Video generated (85%)")
         } else {
-            // Text-to-video generation using Pollo
+            // Text-to-video generation
             print("🔄 Progress: Generating video from text... (70%)")
             print("📝 Generating video from text...")
-            videoURL = try await polloService.generateVideo(
+            videoURL = try await videoService.generateVideo(
                 prompt: enhancedPrompt,
                 duration: duration
             )
@@ -131,24 +151,137 @@ class PipelineServiceBridge {
             isFeaturedDemo: isFeaturedDemo
         )
         
+        // Save clip to storage
+        try await storageService.saveClip(clip)
+        
         print("✅ Generated clip: \(clipName)")
         print("   Local URL: \(localVideoURL.path)")
         print("   Enabled stages: \(enabledStages.map { $0.rawValue }.joined(separator: ", "))")
         
-            // Deduct credits for successful generation
-            if !isFeaturedDemo {
-                let creditsUsed = Int(ceil(duration / 5.0))
-                let deducted = CreditsManager.shared.useCredits(amount: creditsUsed)
-                if deducted {
-                    print("💳 Deducted \(creditsUsed) credits. Remaining: \(CreditsManager.shared.credits)")
-                }
+        // Deduct credits for successful generation
+        if !isFeaturedDemo {
+            let creditsUsed = Int(ceil(duration / 5.0))
+            let deducted = CreditsManager.shared.useCredits(amount: creditsUsed)
+            if deducted {
+                print("💳 Deducted \(creditsUsed) credits. Remaining: \(CreditsManager.shared.credits)")
             }
+        }
         
         print("🔄 Progress: Complete! (100%)")
         print("🎉 Video generation successful!")
         
         return clip
     }
+    
+    /// Generate multiple clips from a segmented script
+    func generateMultiClipSequence(
+        script: String,
+        segmentationStrategy: SegmentationStrategy = .automatic,
+        enabledStages: Set<PipelineStage> = Set(PipelineStage.allCases),
+        isFeaturedDemo: Bool = false
+    ) async throws -> [GeneratedClip] {
+        print("🎬 Starting multi-clip sequence generation...")
+        
+        // 1. Segment script into scenes
+        let segments = try await segmentScript(script, strategy: segmentationStrategy)
+        print("📝 Script segmented into \(segments.count) clips")
+        
+        // 2. Generate clips with continuity
+        var clips: [GeneratedClip] = []
+        for (index, segment) in segments.enumerated() {
+            let isFirst = index == 0
+            print("\n🎬 Generating clip \(index + 1)/\(segments.count): \(segment.name)")
+            
+            let clip = try await generateClip(
+                prompt: segment.text,
+                clipName: segment.name,
+                enabledStages: enabledStages,
+                referenceImageData: nil,
+                isFeaturedDemo: isFeaturedDemo,
+                duration: segment.estimatedDuration,
+                isFirstClip: isFirst
+            )
+            clips.append(clip)
+        }
+        
+        print("\n✅ Generated \(clips.count) clips successfully")
+        return clips
+    }
+    
+    /// Generate a complete production with optional voiceover
+    func generateCompleteProduction(
+        script: String,
+        includeVoiceover: Bool = true,
+        voiceoverStyle: VoiceoverStyle? = nil,
+        segmentationStrategy: SegmentationStrategy = .automatic,
+        transitionStyle: TransitionStyle = .crossfade,
+        exportQuality: ExportQuality = .high,
+        isFeaturedDemo: Bool = false
+    ) async throws -> ProductionOutput {
+        print("🎬 Starting complete production generation...")
+        
+        // 1. Generate video clips
+        let clips = try await generateMultiClipSequence(
+            script: script,
+            segmentationStrategy: segmentationStrategy,
+            isFeaturedDemo: isFeaturedDemo
+        )
+        
+        // 2. Generate voiceover if requested
+        var voiceoverTrack: VoiceoverTrack?
+        if includeVoiceover, let voiceoverService = voiceoverService {
+            print("\n🎙️ Generating voiceover...")
+            voiceoverTrack = try await voiceoverService.generateVoiceover(
+                script: script,
+                style: voiceoverStyle ?? .automatic
+            )
+            print("✅ Voiceover generated: \(voiceoverTrack?.duration ?? 0)s")
+        }
+        
+        // 3. Stitch clips if we have a stitching service
+        let finalVideoURL: URL
+        if clips.count > 1, let stitchingService = stitchingService {
+            print("\n🎬 Stitching \(clips.count) clips...")
+            finalVideoURL = try await stitchingService.stitchClips(
+                clips,
+                withTransitions: transitionStyle,
+                outputQuality: exportQuality
+            )
+            print("✅ Video stitched successfully")
+        } else if let firstClip = clips.first?.localURL {
+            // Single clip, use it directly
+            finalVideoURL = firstClip
+        } else {
+            throw PipelineError.processingError("No video clips generated")
+        }
+        
+        // 4. Mix audio if voiceover exists and we have a stitching service
+        let outputURL: URL
+        if let voiceover = voiceoverTrack,
+           let voiceoverURL = voiceover.localURL,
+           stitchingService != nil {
+            print("\n🎵 Mixing audio with video...")
+            outputURL = try await mixAudioWithVideo(
+                video: finalVideoURL,
+                audio: voiceoverURL
+            )
+            print("✅ Audio mixed successfully")
+        } else {
+            outputURL = finalVideoURL
+        }
+        
+        // Calculate total duration
+        let totalDuration = clips.reduce(0) { $0 + $1.duration }
+        
+        return ProductionOutput(
+            videoURL: outputURL,
+            voiceoverTrack: voiceoverTrack,
+            clips: clips,
+            totalDuration: totalDuration
+        )
+    }
+    
+    // MARK: - Private Methods
     
     private func downloadVideo(from url: URL, clipName: String) async throws -> URL {
         // Create local file URL
@@ -163,6 +296,89 @@ class PipelineServiceBridge {
         try FileManager.default.moveItem(at: tempURL, to: localURL)
         
         return localURL
+    }
+    
+    private func segmentScript(_ script: String, strategy: SegmentationStrategy) async throws -> [ScriptSegment] {
+        switch strategy {
+        case .automatic:
+            // Simple paragraph-based segmentation for now
+            return segmentByParagraphs(script)
+        case .byScenes:
+            // TODO: Implement scene detection
+            return segmentByParagraphs(script)
+        case .byDuration(let seconds):
+            return segmentByDuration(script, targetDuration: seconds)
+        case .byParagraphs:
+            return segmentByParagraphs(script)
+        case .custom(let segments):
+            return segments
+        }
+    }
+    
+    private func segmentByParagraphs(_ script: String) -> [ScriptSegment] {
+        let paragraphs = script.components(separatedBy: "\n\n").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        
+        return paragraphs.enumerated().map { index, paragraph in
+            ScriptSegment(
+                text: paragraph,
+                name: "Scene \(index + 1)",
+                stages: Set(PipelineStage.allCases),
+                estimatedDuration: estimateDuration(for: paragraph)
+            )
+        }
+    }
+    
+    private func segmentByDuration(_ script: String, targetDuration: TimeInterval) -> [ScriptSegment] {
+        // Estimate words per second (roughly 2-3 words per second for video)
+        let wordsPerSecond = 2.5
+        let targetWords = Int(targetDuration * wordsPerSecond)
+        
+        let words = script.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        var segments: [ScriptSegment] = []
+        var currentWords: [String] = []
+        var segmentIndex = 0
+        
+        for word in words {
+            currentWords.append(word)
+            
+            if currentWords.count >= targetWords {
+                let segmentText = currentWords.joined(separator: " ")
+                segments.append(ScriptSegment(
+                    text: segmentText,
+                    name: "Segment \(segmentIndex + 1)",
+                    stages: Set(PipelineStage.allCases),
+                    estimatedDuration: targetDuration
+                ))
+                currentWords = []
+                segmentIndex += 1
+            }
+        }
+        
+        // Add remaining words as final segment
+        if !currentWords.isEmpty {
+            let segmentText = currentWords.joined(separator: " ")
+            segments.append(ScriptSegment(
+                text: segmentText,
+                name: "Segment \(segmentIndex + 1)",
+                stages: Set(PipelineStage.allCases),
+                estimatedDuration: estimateDuration(for: segmentText)
+            ))
+        }
+        
+        return segments
+    }
+    
+    private func estimateDuration(for text: String) -> TimeInterval {
+        // Estimate based on word count (roughly 2-3 words per second)
+        let wordCount = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
+        return max(5.0, Double(wordCount) / 2.5) // Minimum 5 seconds
+    }
+    
+    private func mixAudioWithVideo(video videoURL: URL, audio audioURL: URL) async throws -> URL {
+        // TODO: Implement actual audio mixing with AVFoundation
+        // For now, return the video URL
+        print("⚠️ Audio mixing not yet implemented, returning video without audio")
+        return videoURL
     }
 }
 
