@@ -75,9 +75,10 @@ extension PipelineStage: Identifiable {
     var icon: String {
         switch self {
         case .segmentation: return "scissors"
+        case .continuityAnalysis: return "magnifyingglass.circle.fill"
+        case .continuityInjection: return "link.circle.fill"
         case .enhancement: return "wand.and.stars"
         case .cameraDirection: return "video.fill"
-        case .continuity: return "link.circle.fill"
         case .lighting: return "light.max"
         }
     }
@@ -87,14 +88,17 @@ extension PipelineStage: Identifiable {
         case .segmentation:
             return "Intelligently breaks your story into optimal video segments. Each segment is analyzed for pacing, emotional beats, and natural transition points to create a cinematic flow."
             
+        case .continuityAnalysis:
+            return "Analyzes your scene to detect key elements that need consistency: characters, locations, objects, lighting, and visual style. Calculates a continuity score to ensure seamless storytelling."
+            
+        case .continuityInjection:
+            return "Injects continuity elements from previous scenes into your current prompt. Ensures visual consistency across your entire film by maintaining character appearances, locations, and atmosphere."
+            
         case .enhancement:
             return "Uses AI to enrich your prompts with vivid visual details, atmospheric elements, and cinematic language that video generation models understand best."
             
         case .cameraDirection:
             return "Adds professional camera movements like pans, zooms, and tracking shots. Considers the emotional tone of each scene to choose appropriate cinematography."
-            
-        case .continuity:
-            return "Ensures visual consistency across your entire video. Tracks characters, objects, locations, and visual themes to maintain coherence from scene to scene."
             
         case .lighting:
             return "Optimizes lighting and mood for each scene. Considers time of day, emotional tone, and genre to create the perfect atmosphere."
@@ -110,6 +114,20 @@ extension PipelineStage: Identifiable {
                 "Action sequences get their own segments"
             ]
             
+        case .continuityAnalysis:
+            return [
+                "Detects: 'detective in red jacket' as key character",
+                "Identifies: 'abandoned warehouse' as location",
+                "Calculates continuity score: 0.85/1.0"
+            ]
+            
+        case .continuityInjection:
+            return [
+                "Adds: 'The same detective from previous scenes'",
+                "Maintains: 'Dark, moody lighting established earlier'",
+                "Ensures: 'Same abandoned warehouse setting'"
+            ]
+            
         case .enhancement:
             return [
                 "\"A dark room\" → \"A dimly lit room with shadows dancing on weathered walls\"",
@@ -121,13 +139,6 @@ extension PipelineStage: Identifiable {
                 "Intimate moments: Slow push-in close-ups",
                 "Action scenes: Dynamic handheld movement",
                 "Establishing shots: Wide angles with subtle drift"
-            ]
-            
-        case .continuity:
-            return [
-                "Character clothing remains consistent",
-                "Weather conditions match across scenes",
-                "Props and objects maintain their positions"
             ]
             
         case .lighting:

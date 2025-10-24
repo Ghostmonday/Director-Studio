@@ -10,7 +10,7 @@ struct OnboardingView: View {
     @State private var currentPage = 0
     @State private var animateContent = false
     
-    let pages = OnboardingPage.allPages
+    let pages = OnboardingContent.pages
     
     var body: some View {
         ZStack {
@@ -147,35 +147,7 @@ struct OnboardingPageView: View {
     }
 }
 
-/// Onboarding page data
-struct OnboardingPage {
-    let icon: String
-    let title: String
-    let description: String
-    
-    static let allPages = [
-        OnboardingPage(
-            icon: "text.bubble.fill",
-            title: "Write Your Story",
-            description: "Transform your ideas, screenplays, and journal entries into cinematic videos. Just paste your text and let AI do the magic."
-        ),
-        OnboardingPage(
-            icon: "wand.and.stars",
-            title: "AI-Powered Pipeline",
-            description: "Our intelligent pipeline segments your story, adds cinematography, ensures continuity, and generates professional videos."
-        ),
-        OnboardingPage(
-            icon: "film.stack",
-            title: "Studio Control",
-            description: "Arrange clips, record voiceovers, and export your final masterpiece. Your personal film studio in your pocket."
-        ),
-        OnboardingPage(
-            icon: "sparkles",
-            title: "Ready to Create?",
-            description: "From journal to cinema. From emotion to vision. Let's bring your stories to life!"
-        )
-    ]
-}
+// OnboardingPage has been moved to Resources/OnboardingContent.swift
 
 // Preview
 struct OnboardingView_Previews: PreviewProvider {

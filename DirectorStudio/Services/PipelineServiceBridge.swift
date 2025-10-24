@@ -1,19 +1,17 @@
-//
-//  PipelineServiceBridge.swift
-//  DirectorStudio
-//
-//  PURPOSE: Temporary bridge until real modules are integrated
-//
-
 import Foundation
 import UIKit
 
-/// Temporary bridge service for pipeline operations
-class PipelineService {
-    private let polloService = PolloAIService()
-    private let deepSeekService = DeepSeekAIService()
+/// Service that bridges the AI services with the pipeline stages
+class PipelineServiceBridge {
+    private let polloService: PolloAIService
+    private let deepSeekService: DeepSeekAIService
     
-    /// Generate a clip with optional reference image
+    init() {
+        self.polloService = PolloAIService()
+        self.deepSeekService = DeepSeekAIService()
+    }
+    
+    /// Generate a clip using the full pipeline
     func generateClip(
         prompt: String,
         clipName: String,
@@ -28,14 +26,40 @@ class PipelineService {
         print("   Image: \(referenceImageData != nil ? "Yes (\(referenceImageData!.count / 1024)KB)" : "No")")
         print("   Featured: \(isFeaturedDemo)")
         
-        // Enhance prompt if needed (using DeepSeek)
-        var enhancedPrompt = prompt
+        // Stage 1: Analyze continuity
+        var continuityAnalysis: ContinuityAnalysis?
+        var processedPrompt = prompt
+        
+        if enabledStages.contains(.continuityAnalysis) {
+            print("🎬 Analyzing continuity...")
+            continuityAnalysis = ContinuityManager.shared.analyzeContinuity(
+                prompt: prompt,
+                isFirstClip: false, // TODO: Track if this is the first clip in a project
+                referenceImage: referenceImageData
+            )
+            print("✅ Continuity analysis complete")
+            print("   Detected: \(continuityAnalysis?.detectedElements ?? "none")")
+            print("   Score: \(continuityAnalysis?.continuityScore ?? 0)")
+        }
+        
+        // Stage 2: Inject continuity elements
+        if enabledStages.contains(.continuityInjection), let analysis = continuityAnalysis {
+            print("🎬 Injecting continuity elements...")
+            processedPrompt = ContinuityManager.shared.injectContinuity(
+                prompt: prompt,
+                analysis: analysis,
+                referenceImage: referenceImageData
+            )
+            print("✅ Continuity injection complete")
+        }
+        
+        // Then enhance prompt if needed (using DeepSeek)
+        var enhancedPrompt = processedPrompt
         if enabledStages.contains(.enhancement) {
             print("🔧 Enhancing prompt with DeepSeek...")
             do {
                 enhancedPrompt = try await deepSeekService.enhancePrompt(
-                    prompt: prompt,
-                    style: .cinematic
+                    prompt: processedPrompt
                 )
                 print("✅ Enhanced prompt: \(enhancedPrompt.prefix(100))...")
             } catch {
@@ -69,11 +93,14 @@ class PipelineService {
         
         // Create clip
         let clip = GeneratedClip(
+            id: UUID(),
             name: clipName,
             localURL: localVideoURL,
             thumbnailURL: nil,
             syncStatus: .notUploaded,
+            createdAt: Date(),
             duration: duration,
+            projectID: nil,
             isGeneratedFromImage: referenceImageData != nil,
             isFeaturedDemo: isFeaturedDemo
         )
@@ -85,23 +112,20 @@ class PipelineService {
         return clip
     }
     
-    /// Download video from remote URL to local storage
-    private func downloadVideo(from remoteURL: URL, clipName: String) async throws -> URL {
-        let (data, _) = try await URLSession.shared.data(from: remoteURL)
+    private func downloadVideo(from url: URL, clipName: String) async throws -> URL {
+        // Create local file URL
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileName = "\(clipName.replacingOccurrences(of: " ", with: "_"))_\(Date().timeIntervalSince1970).mp4"
+        let localURL = documentsPath.appendingPathComponent(fileName)
         
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let localURL = documentsURL.appendingPathComponent("DirectorStudio/Clips/\(UUID().uuidString).mp4")
+        // Download file
+        let (tempURL, _) = try await URLSession.shared.download(from: url)
         
-        // Create directory if needed
-        try FileManager.default.createDirectory(
-            at: localURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        
-        try data.write(to: localURL)
+        // Move to permanent location
+        try FileManager.default.moveItem(at: tempURL, to: localURL)
         
         return localURL
     }
 }
 
-
+// Backward compatibility typealias is now in PipelineService.swift

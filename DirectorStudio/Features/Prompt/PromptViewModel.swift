@@ -8,9 +8,10 @@ import SwiftUI
 /// Pipeline stages that can be toggled
 enum PipelineStage: String, CaseIterable {
     case segmentation = "Segmentation"
+    case continuityAnalysis = "Continuity Analysis"
+    case continuityInjection = "Continuity Injection"
     case enhancement = "Enhancement"
     case cameraDirection = "Camera Direction"
-    case continuity = "Continuity"
     case lighting = "Lighting"
     
     var displayName: String {
@@ -21,12 +22,14 @@ enum PipelineStage: String, CaseIterable {
         switch self {
         case .segmentation:
             return "Break script into logical segments"
+        case .continuityAnalysis:
+            return "Analyze scene for elements that need consistency"
+        case .continuityInjection:
+            return "Apply continuity elements to maintain visual coherence"
         case .enhancement:
             return "Enhance visual descriptions"
         case .cameraDirection:
             return "Add camera movement and angles"
-        case .continuity:
-            return "Ensure visual consistency across clips"
         case .lighting:
             return "Optimize lighting and mood"
         }
@@ -46,7 +49,7 @@ class PromptViewModel: ObservableObject {
     @Published var showingStageHelp: PipelineStage? = nil
     @Published var generationError: Error? = nil
     
-    private let pipelineService = PipelineService()
+    private let pipelineService = PipelineServiceBridge()
     
     /// Generate a clip from the current prompt
     func generateClip(coordinator: AppCoordinator) async {

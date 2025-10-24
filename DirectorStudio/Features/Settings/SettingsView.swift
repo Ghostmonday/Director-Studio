@@ -4,6 +4,18 @@
 
 import SwiftUI
 
+// VideoStyle is now in CoreTypes.swift
+extension VideoStyle {
+    var displayName: String {
+        switch self {
+        case .cinematic: return "Cinematic"
+        case .documentary: return "Documentary"
+        case .animated: return "Animated"
+        case .artistic: return "Artistic"
+        }
+    }
+}
+
 /// Settings view with multiple sections
 struct SettingsView: View {
     @EnvironmentObject var coordinator: AppCoordinator
@@ -381,19 +393,6 @@ extension AppCoordinator {
         let polloKey = UserDefaults.standard.string(forKey: "POLLO_API_KEY") ?? ""
         let deepSeekKey = UserDefaults.standard.string(forKey: "DEEPSEEK_API_KEY") ?? ""
         return !polloKey.isEmpty || !deepSeekKey.isEmpty
-    }
-}
-
-// Temporary VideoStyle definition until properly integrated
-extension VideoStyle {
-    var displayName: String {
-        switch self {
-        case .cinematic: return "Cinematic"
-        case .documentary: return "Documentary"
-        case .artistic: return "Artistic"
-        case .commercial: return "Commercial"
-        case .vlog: return "Vlog"
-        }
     }
 }
 

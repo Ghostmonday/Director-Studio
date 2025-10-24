@@ -91,7 +91,7 @@ public final class DeepSeekAIService: AIServiceProtocol, @unchecked Sendable {
         )
     }
     
-    public func enhancePrompt(prompt: String, style: VideoStyle) async throws -> String {
+    public func enhancePrompt(prompt: String, style: VideoStyle = .cinematic) async throws -> String {
         let systemPrompt = """
         You are a video prompt enhancement expert. Take the user's prompt and enhance it with:
         - Specific visual details

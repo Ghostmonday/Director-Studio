@@ -106,45 +106,5 @@ struct LibraryView: View {
     }
 }
 
-/// Settings view
-struct SettingsView: View {
-    @EnvironmentObject var coordinator: AppCoordinator
-    
-    var body: some View {
-        Form {
-            Section("Account") {
-                if coordinator.isAuthenticated {
-                    Label("Signed in to iCloud", systemImage: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                } else {
-                    Label("Not signed in", systemImage: "xmark.circle.fill")
-                        .foregroundColor(.red)
-                }
-            }
-            
-            Section("Storage") {
-                Toggle("Auto-upload to iCloud", isOn: .constant(true))
-                Toggle("Upload voiceovers separately", isOn: .constant(false))
-            }
-            
-            Section("Experimental") {
-                Toggle("Advanced pipeline options", isOn: .constant(false))
-                Toggle("Export in 4K", isOn: .constant(false))
-            }
-            
-            Section("About") {
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text("1.0.0")
-                        .foregroundColor(.gray)
-                }
-            }
-        }
-        .navigationTitle("Settings")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-    }
-}
+// SettingsView has been moved to Features/Settings/SettingsView.swift
 
