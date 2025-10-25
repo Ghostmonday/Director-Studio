@@ -106,3 +106,54 @@ CreditsManager.shared.credits = 0
 - ✅ Clear user guidance
 - ✅ Seamless demo → paid transition
 - ✅ Protection against credit abuse
+
+## Developer Mode (DEBUG builds only)
+
+### Security Features
+Developer mode includes multiple security layers to prevent unauthorized access:
+
+1. **Build Configuration Check**
+   - Only available in DEBUG builds
+   - Completely removed from release builds via #if DEBUG
+
+2. **Secret Gesture Activation**
+   - Hidden in Settings → About DirectorStudio
+   - Requires 5 taps within 2 seconds to reveal
+   - Provides haptic feedback when unlocked
+
+3. **Monthly Rotating Passcode**
+   - Format: `YYYYDSMM` (e.g., "2025DS10" for October 2025)
+   - Changes automatically each month
+   - Invalid passcode shows error feedback
+
+4. **Time-Limited Sessions**
+   - Dev mode expires after 1 hour
+   - Must re-enter passcode to continue
+   - Automatic cleanup on expiration
+
+5. **Configuration Requirement**
+   - Requires `DEV_MODE = YES` in build config
+   - Additional protection against tampering
+
+### Dev Mode Features
+When activated, dev mode provides:
+- 🆓 Free API usage (no credit consumption)
+- 🎯 Real API calls instead of demo videos
+- 🔧 Credit manipulation tools for testing
+- 🚫 Bypasses all credit checks
+- 💜 Clear purple visual indicators
+
+### Usage
+1. Go to Settings → About
+2. Tap "About DirectorStudio" 5 times quickly
+3. Developer Options section appears
+4. Tap "Enter Dev Passcode"
+5. Enter current month's passcode (YYYYDSMM)
+6. Dev mode active for 1 hour
+
+### Security Considerations
+- Never share passcode format publicly
+- Passcode changes monthly
+- All security checks must pass
+- Visual indicators prevent accidental use
+- Automatic expiration limits exposure
