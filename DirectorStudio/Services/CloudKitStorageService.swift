@@ -60,7 +60,7 @@ class CloudKitStorageService: StorageServiceProtocol {
             
             // Update sync status locally
             var updatedClip = clip
-            updatedClip.syncStatus = .uploaded
+            updatedClip.syncStatus = .synced
             try await saveClipMetadataLocally(updatedClip)
             
         } catch {
@@ -150,7 +150,7 @@ class CloudKitStorageService: StorageServiceProtocol {
             
             // Update sync status locally
             var updatedVoiceover = voiceover
-            updatedVoiceover.syncStatus = .uploaded
+            updatedVoiceover.syncStatus = .synced
             try await saveVoiceoverMetadataLocally(updatedVoiceover)
             
         } catch {
@@ -229,7 +229,7 @@ class CloudKitStorageService: StorageServiceProtocol {
         let projectID = (record["projectID"] as? String).flatMap { UUID(uuidString: $0) }
         let isGeneratedFromImage = (record["isGeneratedFromImage"] as? Int) == 1
         let isFeaturedDemo = (record["isFeaturedDemo"] as? Int) == 1
-        let syncStatus = SyncStatus(rawValue: record["syncStatus"] as? String ?? "") ?? .uploaded
+        let syncStatus = SyncStatus(rawValue: record["syncStatus"] as? String ?? "") ?? .synced
         
         // Download video file if available
         var localURL: URL?
@@ -273,14 +273,14 @@ class CloudKitStorageService: StorageServiceProtocol {
         
         let id = UUID(uuidString: record.recordID.recordName) ?? UUID()
         let clipID = (record["clipID"] as? String).flatMap { UUID(uuidString: $0) }
-        let syncStatus = SyncStatus(rawValue: record["syncStatus"] as? String ?? "") ?? .uploaded
+        let syncStatus = SyncStatus(rawValue: record["syncStatus"] as? String ?? "") ?? .synced
         
         // Decode waveform data
         var waveformData: [Float]?
         if let data = record["waveformData"] as? Data {
             waveformData = data.withUnsafeBytes { bytes in
                 Array(UnsafeBufferPointer<Float>(
-                    start: bytes.assumingMemoryBound(to: Float.self),
+                    start: bytes.baseAddress?.assumingMemoryBound(to: Float.self),
                     count: data.count / MemoryLayout<Float>.size
                 ))
             }

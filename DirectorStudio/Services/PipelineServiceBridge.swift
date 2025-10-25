@@ -252,7 +252,7 @@ class PipelineServiceBridge {
             // Single clip, use it directly
             finalVideoURL = firstClip
         } else {
-            throw PipelineError.processingError("No video clips generated")
+            throw PipelineError.executionFailed("No video clips generated")
         }
         
         // 4. Mix audio if voiceover exists and we have a stitching service

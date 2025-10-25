@@ -1,15 +1,15 @@
 import Foundation
 
 /// Result of continuity analysis
-struct ContinuityAnalysis {
-    let isFirstClip: Bool
-    let detectedElements: String
-    let suggestedElements: [String]
-    let continuityScore: Double
+public struct ContinuityAnalysis {
+    public let isFirstClip: Bool
+    public let detectedElements: String
+    public let suggestedElements: [String]
+    public let continuityScore: Double
 }
 
 /// Manages visual and narrative continuity across generated clips
-class ContinuityManager {
+class ContinuityManager: ContinuityManagerProtocol {
     static let shared = ContinuityManager()
     
     // MARK: - Continuity State
