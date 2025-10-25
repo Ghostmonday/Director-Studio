@@ -13,6 +13,8 @@ struct PromptView: View {
     @ObservedObject private var creditsManager = CreditsManager.shared
     @State private var showImagePicker = false
     @State private var showTemplates = false
+    @State private var showSegmentEditor = false
+    @StateObject private var segmentCollection = MultiClipSegmentCollection()
     
     var body: some View {
         NavigationView {
@@ -478,6 +480,56 @@ struct PromptView: View {
                     .disabled(coordinator.isGuestMode || viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
                     .opacity(viewModel.isGenerating ? 0.8 : 1.0)
                     
+                    // Multi-clip option for longer scripts
+                    if viewModel.promptText.count > 200 {
+                        Button(action: {
+                            prepareSegments()
+                            showSegmentEditor = true
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "square.stack.3d.up.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.purple)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("Generate Multiple Clips")
+                                            .font(.headline)
+                                        
+                                        Label("NEW", systemImage: "sparkle")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 2)
+                                            .background(Color.purple)
+                                            .cornerRadius(6)
+                                    }
+                                    
+                                    Text("Create a series with perfect continuity")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "arrow.right.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.purple)
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.purple.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.purple.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .disabled(viewModel.isGenerating || viewModel.promptText.isEmpty)
+                        .padding(.top, 8)
+                    }
+                    
                     // Purchase prompt if low on credits
                     if creditsManager.shouldPromptPurchase && !viewModel.useDefaultAdImage {
                         Button(action: {
@@ -526,6 +578,15 @@ struct PromptView: View {
             .sheet(isPresented: $viewModel.showingPromptHelp) {
                 PromptHelpSheet()
             }
+            .sheet(isPresented: $showSegmentEditor) {
+                SegmentEditorView(
+                    segmentCollection: segmentCollection,
+                    isPresented: $showSegmentEditor,
+                    onGenerate: { segments in
+                        // Will be handled by MultiClipGenerationView
+                    }
+                )
+            }
             .alert("Insufficient Credits", isPresented: $viewModel.showingCreditsAlert) {
                 Button("Purchase Credits") {
                     // Navigate to credits purchase view
@@ -553,6 +614,34 @@ struct PromptView: View {
                 }
             }
         )
+    }
+    
+    private func prepareSegments() {
+        // Create segments based on the current script
+        let segments = MultiClipSegmentCollection.createSegments(
+            from: viewModel.promptText,
+            strategy: determineSegmentationStrategy()
+        )
+        
+        // Clear existing and add new segments
+        segmentCollection.segments.removeAll()
+        for segment in segments {
+            segmentCollection.addSegment(segment)
+        }
+    }
+    
+    private func determineSegmentationStrategy() -> MultiClipSegmentationStrategy {
+        let text = viewModel.promptText
+        let wordCount = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
+        
+        // Use different strategies based on content
+        if text.contains("INT.") || text.contains("EXT.") || text.contains("SCENE:") {
+            return .byScenes
+        } else if wordCount > 300 {
+            return .byDuration(5.0) // 5 second segments
+        } else {
+            return .byParagraphs
+        }
     }
 }
 
