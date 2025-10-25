@@ -14,7 +14,13 @@ public final class BillingManager: ObservableObject {
     
     // MARK: - Published Properties
     
-    @Published public var userBalance: UserBalance
+    @Published public var userBalance: UserBalance = UserBalance(
+        availableTokens: 30,
+        subscriptionTokens: 0,
+        lifetimeTokensPurchased: 30,
+        allowOverage: false,
+        subscriptionRenewDate: nil
+    )
     @Published public var activeSubscription: PricingEngine.SubscriptionPlan?
     @Published public var isProcessingPayment: Bool = false
     @Published public var lastError: BillingError?

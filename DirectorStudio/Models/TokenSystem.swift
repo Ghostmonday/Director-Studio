@@ -5,7 +5,7 @@
 import Foundation
 
 /// Video quality tiers with associated token costs
-public enum VideoQualityTier: String, CaseIterable {
+public enum VideoQualityTier: String, CaseIterable, Codable {
     case low = "Standard"
     case medium = "HD"
     case high = "4K"
@@ -16,6 +16,15 @@ public enum VideoQualityTier: String, CaseIterable {
         case .low: return 15
         case .medium: return 20
         case .high: return 25
+        }
+    }
+    
+    /// Token cost multiplier for each tier (used by TokenMeteringEngine)
+    public var tokenMultiplier: Double {
+        switch self {
+        case .low: return 1.0      // Standard quality baseline
+        case .medium: return 1.33  // ~33% more (20/15)
+        case .high: return 1.67    // ~67% more (25/15)
         }
     }
     

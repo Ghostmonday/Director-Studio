@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 90;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,11 +12,11 @@
 		28D84D421334ECB10E7F788F /* InsufficientCreditsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61335CCF3B3E77DFC84EA7D3 /* InsufficientCreditsOverlay.swift */; };
 		2CBEC35B18F366EA5B43C905 /* Notifications+Credits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 721BC5701783F8C36C50BA44 /* Notifications+Credits.swift */; };
 		559F4515E0316A7F9DEC438C /* PolishedPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D3763E2401E47364AE3D590 /* PolishedPromptView.swift */; };
-		5AE3231A39C76372701313BB /* VoiceoverGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8C3DDA9C41D713A328175F /* VoiceoverGenerationService.swift */; };
+		5AE3231A39C76372701313BB /* DirectorStudio/Services/VoiceoverGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8C3DDA9C41D713A328175F /* DirectorStudio/Services/VoiceoverGenerationService.swift */; };
 		738F086B21C75CAED54C261F /* EnhancedClipRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD90189A434C2DFE5E6CBBF /* EnhancedClipRow.swift */; };
 		87EE9C225CB3E58B500AC9B9 /* TokenSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3265F70AABAF7CB6938FF3E3 /* TokenSystem.swift */; };
-		94B809A40355668814DBE4F0 /* VideoStitchingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F1C29A646342F73AA8948E /* VideoStitchingService.swift */; };
-		99943B4B90F399DCDF14B752 /* CloudKitStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C2D574F714010A73346265 /* CloudKitStorageService.swift */; };
+		94B809A40355668814DBE4F0 /* DirectorStudio/Services/VideoStitchingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F1C29A646342F73AA8948E /* DirectorStudio/Services/VideoStitchingService.swift */; };
+		99943B4B90F399DCDF14B752 /* DirectorStudio/Services/CloudKitStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C2D574F714010A73346265 /* DirectorStudio/Services/CloudKitStorageService.swift */; };
 		9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113F2EAAF20100A0660D /* LoadingView.swift */; };
 		9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113E2EAAF20100A0660D /* ErrorView.swift */; };
 		9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311402EAAF20100A0660D /* TooltipView.swift */; };
@@ -31,7 +31,7 @@
 		9B9311602EAAF7ED00A0660D /* DeepSeekAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */; };
 		9B9311622EAAF81300A0660D /* AIServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311612EAAF81300A0660D /* AIServiceFactory.swift */; };
 		9B9311642EAB125A00A0660D /* ContinuityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311632EAB125A00A0660D /* ContinuityManager.swift */; };
-		9B9311662EAB158200A0660D /* CoreTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311652EAB158200A0660D /* CoreTypes.swift */; };
+		9B9311662EAB158200A0660D /* CoreTypes/CoreTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311652EAB158200A0660D /* CoreTypes/CoreTypes.swift */; };
 		9B9311682EAB2AD200A0660D /* CreditsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311672EAB2AD100A0660D /* CreditsManager.swift */; };
 		9B93116A2EAB2AD400A0660D /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311692EAB2AD300A0660D /* StoreKitManager.swift */; };
 		9B93116A2EAB2B0100A0660D /* CreditsPurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311692EAB2B0100A0660D /* CreditsPurchaseView.swift */; };
@@ -54,7 +54,7 @@
 		B01234731234567890123456 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234731234567890123455 /* ExportService.swift */; };
 		B01234751234567890123456 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234751234567890123455 /* CrashReporter.swift */; };
 		B18E75D1884AD952EBB5BBE8 /* EnhancedClipCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97056445E4CD3BC52617CE3B /* EnhancedClipCell.swift */; };
-		BA64330A01B603E504DF4A54 /* PipelineProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B00DF7B74AC9DF76123272F /* PipelineProtocols.swift */; };
+		BA64330A01B603E504DF4A54 /* DirectorStudio/Services/PipelineProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B00DF7B74AC9DF76123272F /* DirectorStudio/Services/PipelineProtocols.swift */; };
 		BD79DEF998290034C72B7E58 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07172BD7B4049D8B85F02298 /* AVFoundation.framework */; };
 		BE818CDA369F96FD0B183EF9 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38655C42D992EBAD2BE00103 /* CloudKit.framework */; };
 		C0742592824C3D90BA02FF68 /* SegmentEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F549D05C3AF5BED311740 /* SegmentEditorView.swift */; };
@@ -68,11 +68,11 @@
 		07172BD7B4049D8B85F02298 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		0B0218374E973A139F793E87 /* MultiClipGenerationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MultiClipGenerationView.swift; sourceTree = "<group>"; };
 		157F0D32215137C86DD5449C /* EnhancedCreditsPurchaseView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnhancedCreditsPurchaseView.swift; sourceTree = "<group>"; };
-		17F1C29A646342F73AA8948E /* VideoStitchingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/VideoStitchingService.swift; sourceTree = SOURCE_ROOT; };
+		17F1C29A646342F73AA8948E /* DirectorStudio/Services/VideoStitchingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/VideoStitchingService.swift; sourceTree = SOURCE_ROOT; };
 		24440F5D4736E8CD989B8AD9 /* MultiClipSegment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MultiClipSegment.swift; sourceTree = "<group>"; };
-		2B00DF7B74AC9DF76123272F /* PipelineProtocols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/PipelineProtocols.swift; sourceTree = SOURCE_ROOT; };
+		2B00DF7B74AC9DF76123272F /* DirectorStudio/Services/PipelineProtocols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/PipelineProtocols.swift; sourceTree = SOURCE_ROOT; };
 		2BC5E460F050E980290C4EBB /* DirectorStudioTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudioTheme.swift; sourceTree = "<group>"; };
-		2D590354DE7376EBE99A42E5 /* MultiClipSegment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultiClipSegment.swift; path = MultiClipSegment.swift; sourceTree = "<group>"; };
+		2D590354DE7376EBE99A42E5 /* MultiClipSegment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MultiClipSegment.swift; sourceTree = "<group>"; };
 		315EBE6C8267A2B416F174A1 /* DirectorStudioTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudioTheme.swift; sourceTree = "<group>"; };
 		3265F70AABAF7CB6938FF3E3 /* TokenSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenSystem.swift; sourceTree = "<group>"; };
 		38655C42D992EBAD2BE00103 /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
@@ -96,7 +96,7 @@
 		9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeepSeekAIService.swift; path = DirectorStudio/Services/DeepSeekAIService.swift; sourceTree = SOURCE_ROOT; };
 		9B9311612EAAF81300A0660D /* AIServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceFactory.swift; sourceTree = "<group>"; };
 		9B9311632EAB125A00A0660D /* ContinuityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuityManager.swift; sourceTree = "<group>"; };
-		9B9311652EAB158200A0660D /* CoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTypes/CoreTypes.swift; sourceTree = "<group>"; };
+		9B9311652EAB158200A0660D /* CoreTypes/CoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTypes/CoreTypes.swift; sourceTree = "<group>"; };
 		9B9311672EAB2AD100A0660D /* CreditsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsManager.swift; sourceTree = "<group>"; };
 		9B9311692EAB2AD300A0660D /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		9B9311692EAB2B0100A0660D /* CreditsPurchaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsPurchaseView.swift; sourceTree = "<group>"; };
@@ -120,10 +120,10 @@
 		B01234781234567890123455 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B01234791234567890123455 /* DirectorStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DirectorStudio.entitlements; sourceTree = "<group>"; };
 		B1A56E098BBFBDC14DBA314A /* PolishedStudioView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PolishedStudioView.swift; sourceTree = "<group>"; };
-		BB8C3DDA9C41D713A328175F /* VoiceoverGenerationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/VoiceoverGenerationService.swift; sourceTree = SOURCE_ROOT; };
+		BB8C3DDA9C41D713A328175F /* DirectorStudio/Services/VoiceoverGenerationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/VoiceoverGenerationService.swift; sourceTree = SOURCE_ROOT; };
 		BBA19D6ADB6E69CD02BF0D67 /* MultiClipGenerationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MultiClipGenerationView.swift; sourceTree = "<group>"; };
 		E2750D2808218979C9A79F4E /* ClipPreviewSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClipPreviewSheet.swift; sourceTree = "<group>"; };
-		F1C2D574F714010A73346265 /* CloudKitStorageService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/CloudKitStorageService.swift; sourceTree = SOURCE_ROOT; };
+		F1C2D574F714010A73346265 /* DirectorStudio/Services/CloudKitStorageService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/CloudKitStorageService.swift; sourceTree = SOURCE_ROOT; };
 		F22F549D05C3AF5BED311740 /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
 		F474C1F23AFC635C7DFACB1B /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -131,12 +131,10 @@
 /* Begin PBXFrameworksBuildPhase section */
 		B01234521234567890123456 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				BE818CDA369F96FD0B183EF9 /* CloudKit.framework in Frameworks */,
 				BD79DEF998290034C72B7E58 /* AVFoundation.framework in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -193,6 +191,7 @@
 				9B93114C2EAAF26B00A0660D /* Resources */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 0;
 		};
 		B01234511234567890123456 /* Products */ = {
 			isa = PBXGroup;
@@ -204,7 +203,7 @@
 		B01234551234567890123456 /* DirectorStudio */ = {
 			isa = PBXGroup;
 			children = (
-				9B9311652EAB158200A0660D /* CoreTypes.swift */,
+				9B9311652EAB158200A0660D /* CoreTypes/CoreTypes.swift */,
 				B01234781234567890123455 /* Info.plist */,
 				B01234851234567890123456 /* App */,
 				B01234861234567890123456 /* Features */,
@@ -273,10 +272,10 @@
 				9B93115A2EAAF7C300A0660D /* PolloAIService.swift */,
 				9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */,
 				9B9311612EAAF81300A0660D /* AIServiceFactory.swift */,
-				2B00DF7B74AC9DF76123272F /* PipelineProtocols.swift */,
-				17F1C29A646342F73AA8948E /* VideoStitchingService.swift */,
-				BB8C3DDA9C41D713A328175F /* VoiceoverGenerationService.swift */,
-				F1C2D574F714010A73346265 /* CloudKitStorageService.swift */,
+				2B00DF7B74AC9DF76123272F /* DirectorStudio/Services/PipelineProtocols.swift */,
+				17F1C29A646342F73AA8948E /* DirectorStudio/Services/VideoStitchingService.swift */,
+				BB8C3DDA9C41D713A328175F /* DirectorStudio/Services/VoiceoverGenerationService.swift */,
+				F1C2D574F714010A73346265 /* DirectorStudio/Services/CloudKitStorageService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -343,7 +342,6 @@
 				315EBE6C8267A2B416F174A1 /* DirectorStudioTheme.swift */,
 				2BC5E460F050E980290C4EBB /* DirectorStudioTheme.swift */,
 			);
-			name = Theme;
 			path = Theme;
 			sourceTree = "<group>";
 		};
@@ -359,8 +357,6 @@
 				B01234951234567890123456 /* Resources */,
 			);
 			buildRules = (
-			);
-			dependencies = (
 			);
 			name = DirectorStudio;
 			productName = DirectorStudio;
@@ -382,7 +378,6 @@
 				};
 			};
 			buildConfigurationList = B01234441234567890123456 /* Build configuration list for PBXProject "DirectorStudio" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -390,6 +385,7 @@
 				Base,
 			);
 			mainGroup = B01234401234567890123456;
+			preferredProjectObjectVersion = 90;
 			productRefGroup = B01234511234567890123456 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -402,17 +398,14 @@
 /* Begin PBXResourcesBuildPhase section */
 		B01234951234567890123456 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B01234941234567890123456 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				B01234561234567890123456 /* DirectorStudioApp.swift in Sources */,
 				B01234571234567890123456 /* AppCoordinator.swift in Sources */,
@@ -441,17 +434,17 @@
 				B01234651234567890123456 /* LibraryViewModel.swift in Sources */,
 				B01234671234567890123456 /* GeneratedClip.swift in Sources */,
 				B01234681234567890123456 /* VoiceoverTrack.swift in Sources */,
-				9B9311662EAB158200A0660D /* CoreTypes.swift in Sources */,
+				9B9311662EAB158200A0660D /* CoreTypes/CoreTypes.swift in Sources */,
 				B01234691234567890123456 /* StorageLocation.swift in Sources */,
 				B01234701234567890123456 /* AuthService.swift in Sources */,
 				9B9311542EAAF37900A0660D /* SettingsView.swift in Sources */,
 				B01234711234567890123456 /* StorageService.swift in Sources */,
 				B01234731234567890123456 /* ExportService.swift in Sources */,
 				B01234751234567890123456 /* CrashReporter.swift in Sources */,
-				BA64330A01B603E504DF4A54 /* PipelineProtocols.swift in Sources */,
-				94B809A40355668814DBE4F0 /* VideoStitchingService.swift in Sources */,
-				5AE3231A39C76372701313BB /* VoiceoverGenerationService.swift in Sources */,
-				99943B4B90F399DCDF14B752 /* CloudKitStorageService.swift in Sources */,
+				BA64330A01B603E504DF4A54 /* DirectorStudio/Services/PipelineProtocols.swift in Sources */,
+				94B809A40355668814DBE4F0 /* DirectorStudio/Services/VideoStitchingService.swift in Sources */,
+				5AE3231A39C76372701313BB /* DirectorStudio/Services/VoiceoverGenerationService.swift in Sources */,
+				99943B4B90F399DCDF14B752 /* DirectorStudio/Services/CloudKitStorageService.swift in Sources */,
 				C0742592824C3D90BA02FF68 /* SegmentEditorView.swift in Sources */,
 				1B37008AFB32183B2F2F574F /* MultiClipGenerationView.swift in Sources */,
 				A5D2C81BF065338A72401F17 /* MultiClipSegment.swift in Sources */,
@@ -468,12 +461,11 @@
 				E196FE06584FA2146CA8CBC9 /* DirectorStudioTheme.swift in Sources */,
 				87EE9C225CB3E58B500AC9B9 /* TokenSystem.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		B01234961234567890123456 /* Debug */ = {
+		B01234961234567890123456 /* Debug configuration for PBXProject "DirectorStudio" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -537,7 +529,7 @@
 			};
 			name = Debug;
 		};
-		B01234971234567890123456 /* Release */ = {
+		B01234971234567890123456 /* Release configuration for PBXProject "DirectorStudio" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -594,7 +586,7 @@
 			};
 			name = Release;
 		};
-		B01234981234567890123456 /* Debug */ = {
+		B01234981234567890123456 /* Debug configuration for PBXNativeTarget "DirectorStudio" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -602,7 +594,7 @@
 				CODE_SIGN_ENTITLEMENTS = DirectorStudio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = R7KX4HNBFY;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
@@ -623,23 +615,23 @@
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.directorstudio.app;
 				PRODUCT_NAME = DirectorStudio;
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,6";
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		B01234991234567890123456 /* Release */ = {
+		B01234991234567890123456 /* Release configuration for PBXNativeTarget "DirectorStudio" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = DirectorStudio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = R7KX4HNBFY;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
@@ -660,11 +652,12 @@
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.directorstudio.app;
 				PRODUCT_NAME = DirectorStudio;
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,6";
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -674,19 +667,17 @@
 		B01234441234567890123456 /* Build configuration list for PBXProject "DirectorStudio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B01234961234567890123456 /* Debug */,
-				B01234971234567890123456 /* Release */,
+				B01234961234567890123456 /* Debug configuration for PBXProject "DirectorStudio" */,
+				B01234971234567890123456 /* Release configuration for PBXProject "DirectorStudio" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		B01234541234567890123456 /* Build configuration list for PBXNativeTarget "DirectorStudio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B01234981234567890123456 /* Debug */,
-				B01234991234567890123456 /* Release */,
+				B01234981234567890123456 /* Debug configuration for PBXNativeTarget "DirectorStudio" */,
+				B01234991234567890123456 /* Release configuration for PBXNativeTarget "DirectorStudio" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */

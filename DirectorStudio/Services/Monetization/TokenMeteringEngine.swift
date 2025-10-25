@@ -127,42 +127,6 @@ public final class TokenMeteringEngine: ObservableObject {
 }
 
 // MARK: - Supporting Types
-
-/// Video quality tiers with token multipliers
-public enum VideoQualityTier: String, CaseIterable, Codable {
-    case watermark = "Watermark"
-    case standard = "Standard"
-    case hd = "HD"
-    case ultraHD = "Ultra HD"
-    case studio = "Studio"
-    
-    /// Token cost multiplier for each tier
-    public var tokenMultiplier: Double {
-        switch self {
-        case .watermark: return 0.5
-        case .standard: return 1.0
-        case .hd: return 1.5
-        case .ultraHD: return 2.2
-        case .studio: return 3.0
-        }
-    }
-    
-    /// Display properties
-    public var resolution: String {
-        switch self {
-        case .watermark: return "720p + Watermark"
-        case .standard: return "1080p"
-        case .hd: return "1080p Enhanced"
-        case .ultraHD: return "4K"
-        case .studio: return "4K Pro"
-        }
-    }
-    
-    public var displayName: String {
-        return "\(rawValue) (\(resolution))"
-    }
-}
-
 /// Token calculation result
 public struct TokenCalculation {
     public let duration: TimeInterval

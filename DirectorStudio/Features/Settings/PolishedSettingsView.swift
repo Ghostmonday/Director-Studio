@@ -374,7 +374,7 @@ struct PolishedSettingsView: View {
         if creditsManager.isDevMode {
             creditsManager.disableDevMode()
         } else {
-            creditsManager.enableDevMode(passcode: generateMonthlyPasscode())
+            _ = creditsManager.enableDevMode(passcode: generateMonthlyPasscode())
         }
         HapticFeedback.impact(.medium)
     }
@@ -399,7 +399,7 @@ struct PolishedSettingsView: View {
     
     private func resetCredits() {
         // Reset credits to 0
-        creditsManager.useCredits(amount: creditsManager.credits)
+        _ = creditsManager.useCredits(amount: creditsManager.credits)
         HapticFeedback.notification(.warning)
     }
     

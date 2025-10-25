@@ -191,13 +191,9 @@ extension View {
     }
     
     func fadeInAnimation(delay: Double = 0) -> some View {
-        opacity(0)
+        self
+            .transition(.opacity)
             .animation(.easeOut(duration: 0.4).delay(delay), value: UUID())
-            .onAppear {
-                withAnimation {
-                    self.opacity(1)
-                }
-            }
     }
 }
 
