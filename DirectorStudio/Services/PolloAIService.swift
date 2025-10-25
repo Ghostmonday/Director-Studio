@@ -12,16 +12,11 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     private let apiKey: String
     private let endpoint: String
     private let session: URLSession
-    private let isDemoMode: Bool
     
     public init(apiKey: String? = nil, endpoint: String? = nil) {
         // Get from Info.plist or use provided values
         self.apiKey = apiKey ?? Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String ?? ""
         self.endpoint = endpoint ?? Bundle.main.infoDictionary?["POLLO_API_ENDPOINT"] as? String ?? "https://api.pollo.ai/v1"
-        
-        // Check if we're in demo mode (config or no credits)
-        let configDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
-        self.isDemoMode = configDemoMode || CreditsManager.shared.shouldUseDemoMode
         
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
@@ -65,8 +60,8 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     }
     
     public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
-        // Demo mode - return a sample video URL
-        if isDemoMode {
+        // Check if we should use demo mode based on credits
+        if CreditsManager.shared.shouldUseDemoMode || apiKey == "demo-key" {
             print("🎬 DEMO MODE: Simulating video generation...")
             
             // Simulate processing delay
@@ -127,8 +122,8 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     ///   - duration: Duration of the video in seconds
     /// - Returns: URL to the generated video
     public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
-        // Demo mode - return a sample video URL
-        if isDemoMode {
+        // Check if we should use demo mode based on credits
+        if CreditsManager.shared.shouldUseDemoMode || apiKey == "demo-key" {
             print("🎬 DEMO MODE: Simulating image-to-video generation...")
             print("   Image size: \(imageData.count / 1024)KB")
             print("   Prompt: \(prompt)")

@@ -7,6 +7,24 @@
 
 import Foundation
 
+/// Credit-related errors
+public enum CreditError: LocalizedError {
+    case insufficientCredits(needed: Int, have: Int)
+    case generationBlocked
+    case purchaseRequired
+    
+    public var errorDescription: String? {
+        switch self {
+        case .insufficientCredits(let needed, let have):
+            return "You need \(needed) credits but only have \(have). Please purchase a credit pack or upgrade your plan."
+        case .generationBlocked:
+            return "Video generation is blocked. Please check your credits."
+        case .purchaseRequired:
+            return "You need more credits to generate a video. Please purchase a credit pack or upgrade your plan."
+        }
+    }
+}
+
 /// Cost breakdown for transparency
 public struct CostBreakdown {
     let videoDuration: TimeInterval
@@ -32,10 +50,14 @@ public final class CreditsManager: ObservableObject {
     
     @Published public var credits: Int = 0
     @Published public var isLoadingCredits: Bool = false
+    @Published public var hasPurchased: Bool = false
+    @Published public var lastCreditError: CreditError? = nil
     
     private let userDefaults = UserDefaults.standard
     private let creditsKey = "user_credits"
     private let firstLaunchKey = "first_launch_completed"
+    private let hasPurchasedKey = "user_has_purchased"
+    private let freeCreditGrantedKey = "free_credit_granted"
     
     private init() {
         loadCredits()
@@ -45,6 +67,7 @@ public final class CreditsManager: ObservableObject {
     /// Load credits from storage
     private func loadCredits() {
         credits = userDefaults.integer(forKey: creditsKey)
+        hasPurchased = userDefaults.bool(forKey: hasPurchasedKey)
     }
     
     /// Save credits to storage
@@ -54,18 +77,42 @@ public final class CreditsManager: ObservableObject {
     
     /// Check if this is first launch and give free credits
     private func checkFirstLaunch() {
-        if !userDefaults.bool(forKey: firstLaunchKey) {
-            // First launch - give 20 free credits for App Store launch!
-            credits = 20
+        // Grant 1 free demo credit for new users
+        if !userDefaults.bool(forKey: freeCreditGrantedKey) && credits == 0 && !hasPurchased {
+            credits = 1
             saveCredits()
+            userDefaults.set(true, forKey: freeCreditGrantedKey)
+            print("🎁 Welcome! You've received 1 free credit to try DirectorStudio!")
+        }
+        
+        // Legacy: Handle old first launch key
+        if !userDefaults.bool(forKey: firstLaunchKey) {
             userDefaults.set(true, forKey: firstLaunchKey)
-            print("🎁 Welcome! You've received 20 free credits to get started!")
         }
     }
     
     /// Check if user should be in demo mode
     public var shouldUseDemoMode: Bool {
-        return credits <= 0
+        return !hasPurchased && credits == 0
+    }
+    
+    /// Check if user can generate video with given cost
+    public func canGenerate(cost: Int) -> Bool {
+        return credits >= cost
+    }
+    
+    /// Pre-flight check for video generation
+    public func checkCreditsForGeneration(cost: Int) throws {
+        guard credits >= cost else {
+            lastCreditError = .insufficientCredits(needed: cost, have: credits)
+            throw CreditError.insufficientCredits(needed: cost, have: credits)
+        }
+        lastCreditError = nil
+    }
+    
+    /// Check if user should see purchase prompts
+    public var shouldPromptPurchase: Bool {
+        return credits == 0 || (!hasPurchased && credits <= 3)
     }
     
     /// Calculate credits needed for video duration
@@ -129,9 +176,14 @@ public final class CreditsManager: ObservableObject {
     }
     
     /// Add credits (for purchases)
-    public func addCredits(_ amount: Int) {
+    public func addCredits(_ amount: Int, fromPurchase: Bool = true) {
         credits += amount
+        if fromPurchase && !hasPurchased {
+            hasPurchased = true
+            userDefaults.set(true, forKey: hasPurchasedKey)
+        }
         saveCredits()
+        lastCreditError = nil
         print("✅ Added \(amount) credits. Total: \(credits)")
     }
     

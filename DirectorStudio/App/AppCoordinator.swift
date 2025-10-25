@@ -27,6 +27,7 @@ class AppCoordinator: ObservableObject {
     @Published var generatedClips: [GeneratedClip] = []
     @Published var isAuthenticated: Bool = false
     @Published var isGuestMode: Bool = false  // Changed to false for testing - allows text input without auth
+    @Published var showingCreditsPurchase: Bool = false
     
     // MARK: - Services
     let authService: AuthService

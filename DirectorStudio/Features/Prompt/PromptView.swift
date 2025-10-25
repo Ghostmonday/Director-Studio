@@ -10,6 +10,7 @@ import PhotosUI
 struct PromptView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @StateObject private var viewModel = PromptViewModel()
+    @ObservedObject private var creditsManager = CreditsManager.shared
     @State private var showImagePicker = false
     @State private var showTemplates = false
     
@@ -408,32 +409,74 @@ struct PromptView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 
-                // Generate button with loading state
-                Button(action: {
-                    Task {
-                        await viewModel.generateClip(coordinator: coordinator)
-                    }
-                }) {
+                // Credit cost display
+                let creditCost = creditsManager.creditsNeeded(
+                    for: viewModel.videoDuration,
+                    enabledStages: viewModel.enabledStages
+                )
+                let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canGenerate(cost: creditCost)
+                
+                VStack(spacing: 8) {
+                    // Credit status
                     HStack {
-                        if viewModel.isGenerating {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "wand.and.stars")
-                        }
-                        Text(viewModel.isGenerating ? "Generating..." : "Generate Clip")
+                        Image(systemName: "dollarsign.circle.fill")
+                            .foregroundColor(hasEnoughCredits ? .green : .orange)
+                        Text("Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Spacer()
+                        
+                        Text("Balance: \(creditsManager.credits)")
+                            .font(.subheadline)
+                            .foregroundColor(hasEnoughCredits ? .primary : .red)
+                            .fontWeight(.semibold)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(coordinator.isGuestMode ? Color.gray : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
+                    .padding(.horizontal)
+                    
+                    // Generate button with loading state
+                    Button(action: {
+                        Task {
+                            await viewModel.generateClip(coordinator: coordinator)
+                        }
+                    }) {
+                        HStack {
+                            if viewModel.isGenerating {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "wand.and.stars")
+                            }
+                            Text(viewModel.isGenerating ? "Generating..." : hasEnoughCredits ? "Generate Clip" : "Insufficient Credits")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(coordinator.isGuestMode || !hasEnoughCredits ? Color.gray : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
+                    }
+                    .disabled(coordinator.isGuestMode || viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
+                    .opacity(viewModel.isGenerating ? 0.8 : 1.0)
+                    
+                    // Purchase prompt if low on credits
+                    if creditsManager.shouldPromptPurchase && !viewModel.useDefaultAdImage {
+                        Button(action: {
+                            viewModel.showingCreditsAlert = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Get More Credits")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.blue)
+                        }
+                        .padding(.top, 4)
+                    }
                 }
                 .padding()
-                .disabled(coordinator.isGuestMode || viewModel.isGenerating)
-                .opacity(viewModel.isGenerating ? 0.8 : 1.0)
                 
                 if coordinator.isGuestMode {
                     Text("Sign in to iCloud to create content")
@@ -464,6 +507,19 @@ struct PromptView: View {
             // }
             .sheet(isPresented: $viewModel.showingPromptHelp) {
                 PromptHelpSheet()
+            }
+            .alert("Insufficient Credits", isPresented: $viewModel.showingCreditsAlert) {
+                Button("Purchase Credits") {
+                    // Navigate to credits purchase view
+                    coordinator.showingCreditsPurchase = true
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                if let creditError = creditsManager.lastCreditError {
+                    Text(creditError.localizedDescription)
+                } else {
+                    Text("You need more credits to generate a video. Please purchase a credit pack or upgrade your plan.")
+                }
             }
         }
     }

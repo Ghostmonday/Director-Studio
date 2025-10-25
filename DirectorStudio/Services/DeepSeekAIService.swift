@@ -12,16 +12,11 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
     private let apiKey: String
     private let endpoint: String
     private let session: URLSession
-    private let isDemoMode: Bool
     
     public init(apiKey: String? = nil, endpoint: String? = nil) {
         // Get from Info.plist or use provided values
         self.apiKey = apiKey ?? Bundle.main.infoDictionary?["DEEPSEEK_API_KEY"] as? String ?? ""
         self.endpoint = endpoint ?? Bundle.main.infoDictionary?["DEEPSEEK_API_ENDPOINT"] as? String ?? "https://api.deepseek.com/v1"
-        
-        // Check if we're in demo mode (config or no credits)
-        let configDemoMode = Bundle.main.infoDictionary?["DEMO_MODE"] as? String == "YES"
-        self.isDemoMode = configDemoMode || CreditsManager.shared.shouldUseDemoMode
         
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -101,8 +96,8 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
     
     public func enhancePrompt(prompt: String) async throws -> String {
         let style = VideoStyle.cinematic // Default style
-        // Demo mode - return enhanced prompt
-        if isDemoMode {
+        // Check if we should use demo mode based on credits
+        if CreditsManager.shared.shouldUseDemoMode || apiKey == "demo-key" {
             print("🎨 DEMO MODE: Simulating prompt enhancement...")
             
             // Simulate processing delay

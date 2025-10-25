@@ -51,12 +51,17 @@ class PipelineServiceBridge {
         // Initialize generation ID
         let generationId = UUID().uuidString
         
+        // Credit enforcement - calculate total cost
+        let totalCost = CreditsManager.shared.creditsNeeded(for: duration, enabledStages: enabledStages)
+        
         // Check credits for non-demo generation
         if !isFeaturedDemo {
-            let creditsNeeded = Int(ceil(duration / 5.0)) // 1 credit per 5 seconds
-            guard CreditsManager.shared.credits >= creditsNeeded else {
-                print("❌ Not enough credits. Need \(creditsNeeded), have \(CreditsManager.shared.credits)")
-                throw PipelineError.configurationError("Need \(creditsNeeded) credits, have \(CreditsManager.shared.credits)")
+            do {
+                try CreditsManager.shared.checkCreditsForGeneration(cost: totalCost)
+                print("✅ Credit check passed. Cost: \(totalCost), Available: \(CreditsManager.shared.credits)")
+            } catch let creditError as CreditError {
+                print("❌ Credit check failed: \(creditError.localizedDescription)")
+                throw PipelineError.configurationError(creditError.localizedDescription)
             }
         }
         
@@ -160,10 +165,11 @@ class PipelineServiceBridge {
         
         // Deduct credits for successful generation
         if !isFeaturedDemo {
-            let creditsUsed = Int(ceil(duration / 5.0))
-            let deducted = CreditsManager.shared.useCredits(amount: creditsUsed)
+            let deducted = CreditsManager.shared.useCredits(amount: totalCost)
             if deducted {
-                print("💳 Deducted \(creditsUsed) credits. Remaining: \(CreditsManager.shared.credits)")
+                print("💳 Deducted \(totalCost) credits. Remaining: \(CreditsManager.shared.credits)")
+            } else {
+                print("⚠️ Failed to deduct credits - this shouldn't happen after pre-check")
             }
         }
         

@@ -130,6 +130,19 @@ class PromptViewModel: ObservableObject {
     func generateClip(coordinator: AppCoordinator) async {
         guard !promptText.isEmpty else { return }
         
+        // Pre-flight credit check
+        let cost = CreditsManager.shared.creditsNeeded(for: videoDuration, enabledStages: enabledStages)
+        
+        // If not a featured demo and insufficient credits, show alert
+        if !useDefaultAdImage && !CreditsManager.shared.canGenerate(cost: cost) {
+            generationError = CreditError.insufficientCredits(
+                needed: cost,
+                have: CreditsManager.shared.credits
+            )
+            showingCreditsAlert = true
+            return
+        }
+        
         isGenerating = true
         defer { isGenerating = false }
         
