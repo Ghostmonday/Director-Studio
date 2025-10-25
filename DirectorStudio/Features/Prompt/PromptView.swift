@@ -19,551 +19,625 @@ struct PromptView: View {
     @State private var insufficientCreditsInfo: (needed: Int, have: Int) = (0, 0)
     @State private var showingPurchaseView = false
     
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                // Quick action buttons
-                HStack(spacing: 12) {
-                    Button(action: {
-                        viewModel.loadDemoContent()
-                    }) {
-                        Label("Demo", systemImage: "play.circle.fill")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.purple)
-                    
-                    Button(action: {
-                        showTemplates = true
-                    }) {
-                        Label("Templates", systemImage: "doc.text.fill")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.blue)
-                    
-                    Button(action: {
-                        viewModel.applyOptimalSettings()
-                    }) {
-                        Label("Optimal", systemImage: "wand.and.stars")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.green)
-                    
-                    Spacer()
-                    
-                    if !viewModel.promptText.isEmpty {
-                        Button(action: {
-                            viewModel.clearAll()
-                        }) {
-                            Image(systemName: "trash")
-                                .font(.subheadline)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                    }
+    // MARK: - Computed Views
+    
+    @ViewBuilder
+    private var quickActionButtons: some View {
+        HStack(spacing: 12) {
+            Button(action: {
+                viewModel.loadDemoContent()
+            }) {
+                Label("Demo", systemImage: "play.circle.fill")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
+            .tint(.purple)
+            
+            Button(action: {
+                showTemplates = true
+            }) {
+                Label("Templates", systemImage: "doc.text.fill")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
+            .tint(.blue)
+            
+            Button(action: {
+                viewModel.applyOptimalSettings()
+            }) {
+                Label("Optimal", systemImage: "wand.and.stars")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
+            .tint(.green)
+            
+            Spacer()
+            
+            if !viewModel.promptText.isEmpty {
+                Button(action: {
+                    viewModel.clearAll()
+                }) {
+                    Image(systemName: "trash")
+                        .font(.subheadline)
                 }
-                .padding(.horizontal)
-                
-                // How it works section
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "film.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Script to Screen")
-                                .font(.headline)
-                            Text("Transform your written script into cinematic videos")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                    }
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
+                .buttonStyle(.bordered)
+                .tint(.red)
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private var howItWorksSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "film.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Script to Screen")
+                        .font(.headline)
+                    Text("Write your scene. Watch it render.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-                
-                // Project name input
-                TextField("Project Name", text: $viewModel.projectName)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal)
+                Spacer()
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(12)
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+    
+    @ViewBuilder
+    private var projectNameField: some View {
+        TextField("Project Name", text: $viewModel.projectName)
+            .textFieldStyle(.roundedBorder)
+            .padding(.horizontal)
+            .disabled(coordinator.isGuestMode)
+    }
+    
+    @ViewBuilder
+    private var promptTextSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Script Your Scene", systemImage: "doc.text.magnifyingglass")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Button(action: {
+                    showTemplates = true
+                }) {
+                    Text("Use Template")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $viewModel.promptText)
+                    .frame(minHeight: 150)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.systemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5), lineWidth: 1)
+                    )
                     .disabled(coordinator.isGuestMode)
                 
-                // Prompt text input with better guidance
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Label("Script Your Scene", systemImage: "doc.text.magnifyingglass")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Spacer()
-                        Button(action: {
-                            showTemplates = true
-                        }) {
-                            Text("Use Template")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    ZStack(alignment: .topLeading) {
-                        TextEditor(text: $viewModel.promptText)
-                            .frame(minHeight: 150)
-                            .padding(8)
-                            .scrollContentBackground(.hidden)
-                            .background(Color(.systemBackground))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5), lineWidth: 1)
-                            )
-                            .disabled(coordinator.isGuestMode)
-                        
-                        if viewModel.promptText.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Write your scene like a movie script:")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.gray)
-                                
-                                Text("• Characters and their actions\n• Setting and environment\n• Dialogue or narration\n• Camera angles and mood")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray.opacity(0.8))
-                            }
-                            .padding(12)
-                            .allowsHitTesting(false)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                
-                // Image reference section with explanation
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Label("Reference Image", systemImage: "photo")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        Text("(Optional)")
+                if viewModel.promptText.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Describe your scene:")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .fontWeight(.medium)
+                            .foregroundColor(.gray)
                         
-                        Spacer()
-                        
-                        if viewModel.selectedImage != nil {
-                            Button(action: {
-                                viewModel.selectedImage = nil
-                                viewModel.useDefaultAdImage = false
-                            }) {
-                                Label("Remove", systemImage: "xmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
+                        Text("• Who's in the shot and what they're doing\n• Location, time of day, lighting\n• Camera movement and framing\n• Mood and atmosphere")
+                            .font(.caption2)
+                            .foregroundColor(.gray.opacity(0.8))
                     }
-                    .padding(.horizontal)
-                    
-                    Text("Add an image to guide the visual style, composition, or mood of your video")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                    
-                    if let image = viewModel.selectedImage {
-                        // Show thumbnail preview
-                        HStack {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 80, height: 80)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.blue, lineWidth: 2)
-                                )
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Image selected")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                Text("Will be used as visual reference")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding()
-                        .background(Color.blue.opacity(0.05))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
-                    } else {
-                        // Show image picker button
-                        Button(action: {
-                            showImagePicker = true
-                        }) {
-                            HStack {
-                                Image(systemName: "photo.on.rectangle.angled")
-                                    .font(.system(size: 24))
-                                Text("Add Reference Image")
-                                    .font(.subheadline)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .foregroundColor(.primary)
-                            .cornerRadius(10)
-                        }
-                        .padding(.horizontal)
-                        .disabled(coordinator.isGuestMode)
-                        .sheet(isPresented: $showImagePicker) {
-                            ImagePicker(selectedImage: $viewModel.selectedImage, useDefaultAd: $viewModel.useDefaultAdImage)
-                        }
+                    .padding(12)
+                    .allowsHitTesting(false)
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    private var imageReferenceSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Reference Image", systemImage: "photo")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text("(Optional)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                if viewModel.selectedImage != nil {
+                    Button(action: {
+                        viewModel.selectedImage = nil
+                        viewModel.useDefaultAdImage = false
+                    }) {
+                        Label("Remove", systemImage: "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
                 }
-                .padding(.vertical, 8)
+            }
+            .padding(.horizontal)
+            
+            Text("Upload a reference to guide style, tone, and composition")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+            
+            if let image = viewModel.selectedImage {
+                imagePreview(image: image)
+            } else {
+                imagePickerButton
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    @ViewBuilder
+    private func imagePreview(image: UIImage) -> some View {
+        HStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.blue, lineWidth: 2)
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Image selected")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                Text("Will be used as visual reference")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color.blue.opacity(0.05))
+        .cornerRadius(10)
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private var imagePickerButton: some View {
+        Button(action: {
+            showImagePicker = true
+        }) {
+            HStack {
+                Image(systemName: "photo.on.rectangle.angled")
+                    .font(.system(size: 24))
+                Text("Add Reference Image")
+                    .font(.subheadline)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .foregroundColor(.primary)
+            .cornerRadius(10)
+        }
+        .padding(.horizontal)
+        .disabled(coordinator.isGuestMode)
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(selectedImage: $viewModel.selectedImage, useDefaultAd: $viewModel.useDefaultAdImage)
+        }
+    }
+    
+    @ViewBuilder
+    private var videoDurationControl: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Video Duration")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text("\(Int(viewModel.videoDuration))s")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                    .fontWeight(.semibold)
+            }
+            .padding(.horizontal)
+            
+            HStack(spacing: 12) {
+                Text("3s")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
                 
-                // Video duration control
-                VStack(alignment: .leading, spacing: 8) {
+                Slider(value: $viewModel.videoDuration, in: 3...20, step: 1)
+                    .disabled(coordinator.isGuestMode)
+                
+                Text("20s")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 8)
+    }
+    
+    @ViewBuilder
+    private var qualityTierSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Video Quality", systemImage: "sparkles.tv")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+            
+            Text("Quality tiers launching soon")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    private var pipelineStageToggles: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Pipeline Controls", systemImage: "cpu")
+                    .font(.headline)
+                Spacer()
+                Button(action: {
+                    viewModel.applyOptimalSettings()
+                }) {
+                    Text("Optimal")
+                        .font(.caption)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color.green.opacity(0.2))
+                        .foregroundColor(.green)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal)
+            
+            Text("Toggle stages to balance quality, speed, and cost")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+            
+            ForEach(PipelineStage.allCases, id: \.self) { stage in
+                pipelineStageRow(for: stage)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func pipelineStageRow(for stage: PipelineStage) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Toggle(isOn: binding(for: stage)) {
                     HStack {
-                        Text("Video Duration")
+                        Text(stage.displayName)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        Spacer()
-                        Text("\(Int(viewModel.videoDuration))s")
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                            .fontWeight(.semibold)
-                    }
-                    .padding(.horizontal)
-                    
-                    HStack(spacing: 12) {
-                        Text("3s")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
                         
-                        Slider(value: $viewModel.videoDuration, in: 3...20, step: 1)
-                            .disabled(coordinator.isGuestMode)
-                        
-                        Text("20s")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
+                        if stage == .enhancement {
+                            creditBadge("+2", color: .orange)
+                        } else if stage == .continuityAnalysis || stage == .continuityInjection || stage == .cameraDirection || stage == .lighting {
+                            creditBadge("+1", color: .blue)
+                        }
                     }
-                    .padding(.horizontal)
                 }
-                .padding(.vertical, 8)
+                .disabled(coordinator.isGuestMode)
+                .tint(.blue)
                 
-                        // Quality Tier Selection (Coming Soon)
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Label("Video Quality", systemImage: "sparkles.tv")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Spacer()
-                                Text("Coming Soon")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal)
-                            
-                            Text("Multiple quality tiers will be available in the next update")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal)
-                        }
+                Text(stage.description)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Button(action: {
+                viewModel.showingStageHelp = stage
+            }) {
+                Image(systemName: "info.circle")
+                    .font(.caption)
+                    .foregroundColor(.blue.opacity(0.6))
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 4)
+    }
+    
+    @ViewBuilder
+    private func creditBadge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(8)
+    }
+    
+    @ViewBuilder
+    private var creditsAndCostDisplay: some View {
+        VStack(spacing: 8) {
+            currentCreditsRow
+            
+            if !viewModel.promptText.isEmpty {
+                costEstimationRow
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+    
+    @ViewBuilder
+    private var currentCreditsRow: some View {
+        HStack {
+            if CreditsManager.shared.credits == 0 {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                Text("Preview mode — Purchase credits to render")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.blue)
+                Text("\(CreditsManager.shared.credits) credits remaining")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            NavigationLink(destination: CreditsPurchaseView()) {
+                Text("Get Credits")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var costEstimationRow: some View {
+        let estimatedCredits = Int(ceil(viewModel.videoDuration / 5.0))
+        let estimatedCost = Double(estimatedCredits) * 0.50
+        
+        HStack {
+            Image(systemName: "info.circle")
+                .font(.caption)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(estimatedCredits) credits • $\(String(format: "%.2f", estimatedCost))")
+                    .font(.caption)
+                    .fontWeight(.medium)
                 
-                // Pipeline stage toggles with better organization
-                VStack(alignment: .leading, spacing: 12) {
+                if estimatedCredits == 1 {
+                    Text("Minimum 1 credit")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var generateSection: some View {
+        let creditCost = creditsManager.creditsNeeded(
+            for: viewModel.videoDuration,
+            enabledStages: viewModel.enabledStages
+        )
+        let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canGenerate(cost: creditCost)
+        
+        VStack(spacing: 8) {
+            if creditsManager.isDevMode {
+                devModeIndicator
+            }
+            
+            creditStatusRow(creditCost: creditCost, hasEnoughCredits: hasEnoughCredits)
+            
+            generateButton(creditCost: creditCost, hasEnoughCredits: hasEnoughCredits)
+            
+            if viewModel.promptText.count > 200 {
+                multiClipButton
+            }
+            
+            if creditsManager.shouldPromptPurchase && !viewModel.useDefaultAdImage {
+                purchasePromptButton
+            }
+        }
+        .padding()
+    }
+    
+    @ViewBuilder
+    private var devModeIndicator: some View {
+        HStack {
+            Image(systemName: "hammer.fill")
+                .foregroundColor(.purple)
+            Text("DEV MODE - Free Usage")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.purple)
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 4)
+        .background(Color.purple.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private func creditStatusRow(creditCost: Int, hasEnoughCredits: Bool) -> some View {
+        HStack {
+            Image(systemName: "dollarsign.circle.fill")
+                .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .green : .orange))
+            Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
+                .font(.subheadline)
+                .fontWeight(.medium)
+            
+            Spacer()
+            
+            Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.credits)")
+                .font(.subheadline)
+                .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .primary : .red))
+                .fontWeight(.semibold)
+        }
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private func generateButton(creditCost: Int, hasEnoughCredits: Bool) -> some View {
+        Button(action: {
+            if !creditsManager.canGenerate(cost: creditCost) {
+                insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
+                showingInsufficientCredits = true
+            } else {
+                Task {
+                    await viewModel.generateClip(coordinator: coordinator)
+                }
+            }
+        }) {
+            HStack {
+                if viewModel.isGenerating {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: "wand.and.stars")
+                }
+                Text(viewModel.isGenerating ? "Generating..." : hasEnoughCredits ? "Generate Clip" : "Insufficient Credits")
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(coordinator.isGuestMode || !hasEnoughCredits ? Color.gray : Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
+        }
+        .disabled(coordinator.isGuestMode || viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
+        .opacity(viewModel.isGenerating ? 0.8 : 1.0)
+    }
+    
+    @ViewBuilder
+    private var multiClipButton: some View {
+        Button(action: {
+            prepareSegments()
+            showSegmentEditor = true
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: "square.stack.3d.up.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.purple)
+                
+                VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Label("AI Enhancement Options", systemImage: "cpu")
+                        Text("Generate Multiple Clips")
                             .font(.headline)
-                        Spacer()
-                        Button(action: {
-                            viewModel.applyOptimalSettings()
-                        }) {
-                            Text("Optimal")
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 4)
-                                .background(Color.green.opacity(0.2))
-                                .foregroundColor(.green)
-                                .cornerRadius(12)
-                        }
+                        
+                        Label("NEW", systemImage: "sparkle")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.purple)
+                            .cornerRadius(6)
                     }
-                    .padding(.horizontal)
                     
-                    Text("Enable AI features to enhance your video quality")
+            Text("Break your script into scenes with automatic continuity")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                    
-                    ForEach(PipelineStage.allCases, id: \.self) { stage in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Toggle(isOn: binding(for: stage)) {
-                                    HStack {
-                                        Text(stage.displayName)
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                        
-                                        if stage == .enhancement {
-                                            Text("+2")
-                                                .font(.caption2)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.2))
-                                                .foregroundColor(.orange)
-                                                .cornerRadius(8)
-                                        } else if stage == .continuityAnalysis || stage == .continuityInjection || stage == .cameraDirection || stage == .lighting {
-                                            Text("+1")
-                                                .font(.caption2)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.blue.opacity(0.2))
-                                                .foregroundColor(.blue)
-                                                .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .disabled(coordinator.isGuestMode)
-                                .tint(.blue)
-                                
-                                Text(stage.description)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            
-                            Button(action: {
-                                viewModel.showingStageHelp = stage
-                            }) {
-                                Image(systemName: "info.circle")
-                                    .font(.caption)
-                                    .foregroundColor(.blue.opacity(0.6))
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
-                    }
                 }
                 
                 Spacer()
                 
-                // Credits and Cost Display
-                VStack(spacing: 8) {
-                    // Current credits
-                    HStack {
-                        if CreditsManager.shared.credits == 0 {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            Text("Demo Mode - Purchase credits for real AI")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.blue)
-                            Text("\(CreditsManager.shared.credits) credits remaining")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        NavigationLink(destination: CreditsPurchaseView()) {
-                            Text("Get Credits")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    
-                    // Cost estimation with new billing
-                    if !viewModel.promptText.isEmpty {
-                        // Simplified cost calculation for launch
-                        let estimatedCredits = Int(ceil(viewModel.videoDuration / 5.0))
-                        let estimatedCost = Double(estimatedCredits) * 0.50 // $0.50 per credit estimate
-                        
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .font(.caption)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(estimatedCredits) credits • $\(String(format: "%.2f", estimatedCost))")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                
-                                if estimatedCredits == 1 {
-                                    Text("Minimum 1 credit")
-                                        .font(.caption2)
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                            
-                            // Button(action: { viewModel.showingCostBreakdown = true }) {
-                            //     Text("See breakdown")
-                            //         .font(.caption2)
-                            //         .underline()
-                            // }
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 4)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-                
-                // Credit cost display
-                let creditCost = creditsManager.creditsNeeded(
-                    for: viewModel.videoDuration,
-                    enabledStages: viewModel.enabledStages
-                )
-                let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canGenerate(cost: creditCost)
-                
-                VStack(spacing: 8) {
-                    // Dev mode indicator
-                    if creditsManager.isDevMode {
-                        HStack {
-                            Image(systemName: "hammer.fill")
-                                .foregroundColor(.purple)
-                            Text("DEV MODE - Free Usage")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.purple)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
-                        .background(Color.purple.opacity(0.1))
-                        .cornerRadius(8)
-                        .padding(.horizontal)
-                    }
-                    
-                    // Credit status
-                    HStack {
-                        Image(systemName: "dollarsign.circle.fill")
-                            .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .green : .orange))
-                        Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        Spacer()
-                        
-                        Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.credits)")
-                            .font(.subheadline)
-                            .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .primary : .red))
-                            .fontWeight(.semibold)
-                    }
-                    .padding(.horizontal)
-                    
-                    // Generate button with loading state
-                    Button(action: {
-                        // Check credits first
-                        if !creditsManager.canAfford(credits: creditCost) {
-                            insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
-                            showingInsufficientCredits = true
-                        } else {
-                            Task {
-                                await viewModel.generateClip(coordinator: coordinator)
-                            }
-                        }
-                    }) {
-                        HStack {
-                            if viewModel.isGenerating {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "wand.and.stars")
-                            }
-                            Text(viewModel.isGenerating ? "Generating..." : hasEnoughCredits ? "Generate Clip" : "Insufficient Credits")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(coordinator.isGuestMode || !hasEnoughCredits ? Color.gray : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
-                    }
-                    .disabled(coordinator.isGuestMode || viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
-                    .opacity(viewModel.isGenerating ? 0.8 : 1.0)
-                    
-                    // Multi-clip option for longer scripts
-                    if viewModel.promptText.count > 200 {
-                        Button(action: {
-                            prepareSegments()
-                            showSegmentEditor = true
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "square.stack.3d.up.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.purple)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("Generate Multiple Clips")
-                                            .font(.headline)
-                                        
-                                        Label("NEW", systemImage: "sparkle")
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 2)
-                                            .background(Color.purple)
-                                            .cornerRadius(6)
-                                    }
-                                    
-                                    Text("Create a series with perfect continuity")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.purple)
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.purple.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .strokeBorder(Color.purple.opacity(0.3), lineWidth: 1)
-                                    )
-                            )
-                        }
-                        .disabled(viewModel.isGenerating || viewModel.promptText.isEmpty)
-                        .padding(.top, 8)
-                    }
-                    
-                    // Purchase prompt if low on credits
-                    if creditsManager.shouldPromptPurchase && !viewModel.useDefaultAdImage {
-                        Button(action: {
-                            showingPurchaseView = true
-                        }) {
-                            HStack {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Get More Credits")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(.blue)
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-                .padding()
-                
-                if coordinator.isGuestMode {
-                    Text("Sign in to iCloud to create content")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                        .padding(.bottom)
-                }
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(.purple)
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.purple.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color.purple.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .disabled(viewModel.isGenerating || viewModel.promptText.isEmpty)
+        .padding(.top, 8)
+    }
+    
+    @ViewBuilder
+    private var purchasePromptButton: some View {
+        Button(action: {
+            showingPurchaseView = true
+        }) {
+            HStack {
+                Image(systemName: "plus.circle.fill")
+                Text("Get More Credits")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(.blue)
+        }
+        .padding(.top, 4)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    quickActionButtons
+                    
+                    howItWorksSection
+                    
+                    projectNameField
+                    
+                    promptTextSection
+                    
+                    imageReferenceSection
+                    
+                    videoDurationControl
+                    
+                    qualityTierSection
+                    
+                    pipelineStageToggles
+                    
+                    Spacer()
+                    
+                    creditsAndCostDisplay
+                    
+                    generateSection
+                    
+                    if coordinator.isGuestMode {
+                        Text("Sign in to iCloud to create content")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .padding(.bottom)
+                    }
+                }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationTitle("Script")
@@ -728,7 +802,7 @@ struct ImagePicker: View {
                     .cornerRadius(10)
                 }
                 .padding(.horizontal)
-                .onChange(of: selectedItem) { newItem in
+                .onChange(of: selectedItem) { _, newItem in
                     Task {
                         if let data = try? await newItem?.loadTransferable(type: Data.self),
                            let image = UIImage(data: data) {
@@ -1053,9 +1127,9 @@ struct PromptHelpSheet: View {
                                     .foregroundColor(.blue)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Describe Your Scene")
+                                    Text("Write Your Scene")
                                         .font(.headline)
-                                    Text("Write what you want to see: characters, actions, setting, mood")
+                                    Text("Describe who, where, when, and what's happening")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -1072,9 +1146,9 @@ struct PromptHelpSheet: View {
                                     .foregroundColor(.purple)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("AI Enhancement")
+                                    Text("Pipeline Processing")
                                         .font(.headline)
-                                    Text("Your text is enhanced with cinematic details and visual elements")
+                                    Text("Each stage refines your script with cinematic detail")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -1091,9 +1165,9 @@ struct PromptHelpSheet: View {
                                     .foregroundColor(.green)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Video Generation")
+                                    Text("Render and Export")
                                         .font(.headline)
-                                    Text("AI creates a video matching your description")
+                                    Text("Your scene is generated frame-by-frame")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -1107,27 +1181,27 @@ struct PromptHelpSheet: View {
                     
                     // Tips section
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Writing Great Prompts")
+                        Text("Writing Better Scripts")
                             .font(.headline)
                         
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("Be Visual", systemImage: "eye")
+                            Label("Think Visually", systemImage: "eye")
                                 .font(.subheadline)
-                            Text("Focus on what can be seen: appearance, actions, environment")
+                            Text("Describe what can be filmed: faces, actions, locations")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .padding(.leading, 28)
                             
-                            Label("Set the Mood", systemImage: "cloud.sun")
+                            Label("Set the Atmosphere", systemImage: "cloud.sun")
                                 .font(.subheadline)
-                            Text("Describe lighting, weather, time of day, atmosphere")
+                            Text("Specify time of day, lighting conditions, and weather")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .padding(.leading, 28)
                             
-                            Label("Add Movement", systemImage: "figure.walk")
+                            Label("Direct the Camera", systemImage: "figure.walk")
                                 .font(.subheadline)
-                            Text("Include actions and camera movements for dynamic videos")
+                            Text("Call out camera angles, movement, and framing")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .padding(.leading, 28)

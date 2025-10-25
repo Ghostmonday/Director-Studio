@@ -21,7 +21,9 @@ struct PolishedPromptView: View {
     private let theme = DirectorStudioTheme.self
     
     var creditCost: Int {
-        viewModel.calculateCreditCost(creditsManager: creditsManager)
+        let baseCost = max(1, viewModel.promptText.count / 100)
+        let stageCost = viewModel.enabledStages.count * 2
+        return baseCost + stageCost
     }
     
     var hasEnoughCredits: Bool {
@@ -45,7 +47,7 @@ struct PolishedPromptView: View {
                         promptInputSection
                         
                         // Reference image section
-                        if viewModel.useReferenceImage || viewModel.referenceImage != nil {
+                        if viewModel.selectedImage != nil {
                             referenceImageSection
                                 .transition(.asymmetric(
                                     insertion: .move(edge: .top).combined(with: .opacity),
@@ -116,7 +118,10 @@ struct PolishedPromptView: View {
                 )
             }
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
+        .alert("Error", isPresented: .init(
+            get: { viewModel.generationError != nil },
+            set: { if !$0 { viewModel.generationError = nil } }
+        )) {
             Button("OK") { }
         } message: {
             Text(viewModel.generationError?.localizedDescription ?? "An error occurred")
@@ -178,7 +183,11 @@ struct PolishedPromptView: View {
                         color: theme.Colors.accent
                     ) {
                         withAnimation(theme.Animation.smooth) {
-                            viewModel.useReferenceImage.toggle()
+                            if viewModel.selectedImage == nil {
+                                showImagePicker = true
+                            } else {
+                                viewModel.selectedImage = nil
+                            }
                         }
                         HapticFeedback.impact(.light)
                     }
@@ -245,7 +254,7 @@ struct PolishedPromptView: View {
                     .scaleEffect(0.8)
             }
             
-            if let image = viewModel.referenceImage {
+            if let image = viewModel.selectedImage {
                 ZStack(alignment: .topTrailing) {
                     Image(uiImage: image)
                         .resizable()
@@ -255,8 +264,7 @@ struct PolishedPromptView: View {
                         .cornerRadius(theme.CornerRadius.large)
                     
                     Button(action: { 
-                        viewModel.referenceImage = nil
-                        viewModel.useReferenceImage = false
+                        viewModel.selectedImage = nil
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
@@ -268,7 +276,7 @@ struct PolishedPromptView: View {
                 }
             } else {
                 ImagePicker(
-                    selectedImage: $viewModel.referenceImage,
+                    selectedImage: $viewModel.selectedImage,
                     useDefaultAd: $viewModel.useDefaultAdImage
                 )
                 .frame(height: 200)
@@ -287,11 +295,11 @@ struct PolishedPromptView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: theme.Spacing.small) {
-                ForEach(viewModel.availableStages, id: \.self) { stage in
+                ForEach(PipelineStage.allCases, id: \.self) { stage in
                     PipelineToggle(
                         stage: stage,
                         isEnabled: binding(for: stage),
-                        creditCost: viewModel.creditCostForStage(stage)
+                        creditCost: stage == .enhancement ? 2 : 1
                     )
                 }
             }
@@ -403,7 +411,7 @@ struct PolishedPromptView: View {
     }
     
     private func generateAction() {
-        if !creditsManager.canAfford(credits: creditCost) {
+        if !creditsManager.canGenerate(cost: creditCost) {
             insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
             showingInsufficientCredits = true
             HapticFeedback.notification(.warning)

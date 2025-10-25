@@ -517,8 +517,8 @@ struct AppIconSelectorView: View {
     }
 }
 
-/// About view
-struct AboutView: View {
+/// About view (legacy)
+struct LegacyAboutView: View {
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "film.stack")

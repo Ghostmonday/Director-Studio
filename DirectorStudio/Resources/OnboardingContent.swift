@@ -5,54 +5,54 @@ struct OnboardingContent {
     
     static let pages = [
         OnboardingPage(
-            title: "Welcome to DirectorStudio",
-            subtitle: "Direct the Impossible",
-            description: "From Turn your stories, journals, and ideas into stunning video sequences with AI-powered cinematography.",
+            title: "Direct the Impossible",
+            subtitle: "Script to Screen",
+            description: "Write your scene. Watch it come to life. Professional-quality video from nothing but words.",
             imageName: "film.fill",
             primaryColor: .blue,
             features: [
-                "Write or paste any text",
-                "AI enhances with cinematic vision",
-                "Generate videos in seconds"
+                "Write your scene",
+                "Cinematic generation",
+                "Export and share"
             ]
         ),
         
         OnboardingPage(
-            title: "Intelligent Pipeline",
-            subtitle: "Hollywood-Grade Processing",
-            description: "Our multi-stage pipeline transforms your words through advanced AI models, ensuring cinematic quality.",
+            title: "The Director's Pipeline",
+            subtitle: "Frame-by-Frame Control",
+            description: "Every stage refines your vision. From lighting to continuity, shape every detail before render.",
             imageName: "wand.and.stars",
             primaryColor: .purple,
             features: [
-                "Story Analysis & Segmentation",
-                "Cinematography Enhancement",
-                "Visual Continuity Engine"
+                "Scene breakdown",
+                "Visual enhancement",
+                "Seamless continuity"
             ]
         ),
         
         OnboardingPage(
             title: "Visual References",
-            subtitle: "Guide Your Vision",
-            description: "Add reference images to influence the visual style and maintain consistency across your scenes.",
+            subtitle: "Show, Don't Tell",
+            description: "Upload images to guide tone, style, and composition. Your vision stays consistent across every shot.",
             imageName: "photo.on.rectangle.angled",
             primaryColor: .orange,
             features: [
-                "Upload reference images",
-                "Maintain visual consistency",
-                "Style transfer capabilities"
+                "Style reference",
+                "Visual consistency",
+                "Mood control"
             ]
         ),
         
         OnboardingPage(
-            title: "Your Studio Awaits",
-            subtitle: "Organize & Export",
-            description: "Manage your clips, create projects, and export your cinematic creations with professional tools.",
+            title: "Your Project Library",
+            subtitle: "Everything in One Place",
+            description: "Organize scenes, manage projects, and export production-ready video. Your studio, your rules.",
             imageName: "play.rectangle.fill",
             primaryColor: .green,
             features: [
+                "Scene organization",
                 "Project management",
-                "Clip organization",
-                "Professional export options"
+                "Ready to export"
             ]
         )
     ]
@@ -74,23 +74,23 @@ extension OnboardingContent {
     static let quickTips = [
         QuickTip(
             icon: "lightbulb.fill",
-            title: "Pro Tip: Scene Descriptions",
-            description: "Be specific about lighting, mood, and camera angles for best results"
+            title: "Think Like a Director",
+            description: "Specify lighting, camera movement, and mood in your script"
         ),
         QuickTip(
             icon: "wand.and.stars",
-            title: "Enhancement Magic",
-            description: "Let AI enhance your prompts with professional cinematography terms"
+            title: "Cinematic Pipeline",
+            description: "Multi-stage enhancement turns rough drafts into polished scenes"
         ),
         QuickTip(
             icon: "photo.stack",
-            title: "Reference Images",
-            description: "Add images to maintain consistent visual style across scenes"
+            title: "Style References",
+            description: "Upload images to maintain visual consistency across your project"
         ),
         QuickTip(
             icon: "slider.horizontal.3",
-            title: "Pipeline Control",
-            description: "Toggle stages on/off to customize your generation process"
+            title: "Fine-Tune Processing",
+            description: "Toggle pipeline stages to balance speed, cost, and quality"
         )
     ]
 }

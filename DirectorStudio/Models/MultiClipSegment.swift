@@ -268,7 +268,7 @@ public class MultiClipSegmentCollection: ObservableObject {
     }
 }
 
-public enum MultiClipMultiClipSegmentationStrategy {
+public enum MultiClipSegmentationStrategy {
     case byParagraphs
     case byDuration(TimeInterval)
     case byScenes

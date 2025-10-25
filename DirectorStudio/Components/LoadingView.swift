@@ -10,7 +10,7 @@ struct LoadingView: View {
     let progress: Double?
     @State private var isAnimating = false
     
-    init(message: String = "Loading...", progress: Double? = nil) {
+    init(message: String = "Rolling...", progress: Double? = nil) {
         self.message = message
         self.progress = progress
     }
@@ -105,6 +105,15 @@ struct InlineLoadingView: View {
     }
 }
 
+/// Filmmaking-specific loading messages
+struct DirectorLoadingMessages {
+    static let generating = "Creating your vision..."
+    static let enhancing = "Polishing every frame..."
+    static let stitching = "Editing together..."
+    static let uploading = "Saving to library..."
+    static let processing = "Working on your scene..."
+}
+
 /// Success animation view
 struct SuccessAnimationView: View {
     @State private var scale: CGFloat = 0.5
@@ -147,8 +156,8 @@ struct SuccessAnimationView: View {
 struct LoadingView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 40) {
-            LoadingView(message: "Generating your video...", progress: 0.65)
-            InlineLoadingView(message: "Processing")
+            LoadingView(message: "Creating your vision...", progress: 0.65)
+            InlineLoadingView(message: "Working on your scene")
             SuccessAnimationView()
         }
         .padding()

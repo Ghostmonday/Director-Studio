@@ -123,7 +123,7 @@ struct PolishedSettingsView: View {
             
             // Quick stats
             HStack(spacing: theme.Spacing.medium) {
-                ProfileStat(value: "\(coordinator.clips.count)", label: "Clips")
+                ProfileStat(value: "\(coordinator.generatedClips.count)", label: "Clips")
                 Divider().frame(height: 30)
                 ProfileStat(value: formatStorage(), label: "Storage")
                 Divider().frame(height: 30)
@@ -357,7 +357,7 @@ struct PolishedSettingsView: View {
     }
     
     private func formatStorage() -> String {
-        let totalSize = coordinator.clips.count * 50 // Assume 50MB per clip
+        let totalSize = coordinator.generatedClips.count * 50 // Assume 50MB per clip
         if totalSize > 1000 {
             return "\(totalSize / 1000)GB"
         } else {

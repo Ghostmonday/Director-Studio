@@ -17,40 +17,36 @@ struct EnhancedCreditsPurchaseView: View {
     @State private var showingSuccessConfetti = false
     
     enum PurchaseOption: String, CaseIterable {
-        case starter = "starter_pack"
-        case pro = "pro_pack"
-        case unlimited = "unlimited_pack"
+        case starter = "tokens_500"
+        case pro = "tokens_2200"
+        case unlimited = "tokens_6000"
         
-        var credits: Int {
+        var bundle: TokenBundle {
             switch self {
-            case .starter: return 10
-            case .pro: return 50
-            case .unlimited: return 200
+            case .starter: return TokenBundle.bundles[0]
+            case .pro: return TokenBundle.bundles[2]
+            case .unlimited: return TokenBundle.bundles[3]
             }
+        }
+        
+        var tokens: Int {
+            bundle.tokens
+        }
+        
+        var credits: Int { // Legacy support
+            tokens / 100
         }
         
         var price: String {
-            switch self {
-            case .starter: return "$4.99"
-            case .pro: return "$19.99"
-            case .unlimited: return "$49.99"
-            }
+            bundle.displayPrice
         }
         
         var savings: String? {
-            switch self {
-            case .starter: return nil
-            case .pro: return "Save 20%"
-            case .unlimited: return "Save 50%"
-            }
+            bundle.savingsText
         }
         
         var badge: String? {
-            switch self {
-            case .starter: return nil
-            case .pro: return "Popular"
-            case .unlimited: return "Best Value"
-            }
+            bundle.badge
         }
         
         var color: Color {
@@ -62,13 +58,16 @@ struct EnhancedCreditsPurchaseView: View {
         }
         
         var features: [String] {
+            let quality = VideoQualityTier.medium
+            let estimatedVideos = TokenCalculator.estimateVideos(tokens: tokens, duration: 10, quality: quality)
+            
             switch self {
             case .starter:
-                return ["Perfect for trying out", "10 video generations", "Standard quality"]
+                return ["Try it out", "~\(estimatedVideos) videos", "All quality tiers"]
             case .pro:
-                return ["Most popular choice", "50 video generations", "HD quality", "Priority processing"]
+                return ["Most popular", "~\(estimatedVideos) videos", bundle.savingsText ?? "", "Priority support"]
             case .unlimited:
-                return ["Best for power users", "200 video generations", "4K quality", "Fastest processing", "Early access features"]
+                return ["Best value", "~\(estimatedVideos) videos", bundle.savingsText ?? "", "Early access", "Premium support"]
             }
         }
     }
@@ -172,7 +171,7 @@ struct EnhancedCreditsPurchaseView: View {
         VStack(spacing: 16) {
             Image(systemName: "sparkles")
                 .font(.system(size: 50))
-                .foregroundColor(
+                .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .purple],
                         startPoint: .topLeading,
@@ -183,11 +182,11 @@ struct EnhancedCreditsPurchaseView: View {
                 .animation(.spring(response: 0.8, dampingFraction: 0.6), value: animateIn)
             
             VStack(spacing: 8) {
-                Text("Power Up Your Creativity")
+                Text("Purchase Credits")
                     .font(.title)
                     .fontWeight(.bold)
                 
-                Text("Generate amazing videos with AI")
+                Text("Choose your pack and start creating")
                     .font(.body)
                     .foregroundColor(.secondary)
             }

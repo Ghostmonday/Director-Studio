@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// Credit-related errors
 public enum CreditError: LocalizedError {
@@ -48,13 +49,16 @@ public struct CostBreakdown {
 public final class CreditsManager: ObservableObject {
     public static let shared = CreditsManager()
     
-    @Published public var credits: Int = 0
+    @Published public var tokens: Int = 0
+    @Published public var credits: Int = 0 // Legacy support during migration
     @Published public var isLoadingCredits: Bool = false
     @Published public var hasPurchased: Bool = false
     @Published public var lastCreditError: CreditError? = nil
+    @Published public var selectedQuality: VideoQualityTier = .medium
     
     private let userDefaults = UserDefaults.standard
-    private let creditsKey = "user_credits"
+    private let tokensKey = "user_tokens"
+    private let creditsKey = "user_credits" // Legacy key
     private let firstLaunchKey = "first_launch_completed"
     private let hasPurchasedKey = "user_has_purchased"
     private let freeCreditGrantedKey = "free_credit_granted"
@@ -100,29 +104,61 @@ public final class CreditsManager: ObservableObject {
     }
     
     private init() {
-        loadCredits()
+        loadTokens()
         checkFirstLaunch()
+        
+        // Load selected quality
+        if let qualityRaw = userDefaults.string(forKey: "selected_video_quality"),
+           let quality = VideoQualityTier(rawValue: qualityRaw) {
+            selectedQuality = quality
+        }
     }
     
-    /// Load credits from storage
-    private func loadCredits() {
-        credits = userDefaults.integer(forKey: creditsKey)
+    /// Load tokens from storage (with migration from credits)
+    private func loadTokens() {
+        // Check if we have tokens already
+        let storedTokens = userDefaults.integer(forKey: tokensKey)
+        
+        if storedTokens > 0 {
+            // Use existing tokens
+            tokens = storedTokens
+        } else {
+            // Migrate from old credits system (1 credit = 100 tokens)
+            let oldCredits = userDefaults.integer(forKey: creditsKey)
+            if oldCredits > 0 {
+                tokens = oldCredits * 100
+                userDefaults.set(tokens, forKey: tokensKey)
+                print("💱 Migrated \(oldCredits) credits to \(tokens) tokens")
+            }
+        }
+        
+        // Sync legacy credits property
+        credits = tokens / 100
+        
         hasPurchased = userDefaults.bool(forKey: hasPurchasedKey)
     }
     
-    /// Save credits to storage
+    /// Save tokens to storage
+    private func saveTokens() {
+        userDefaults.set(tokens, forKey: tokensKey)
+        // Also update legacy credits for backward compatibility
+        credits = tokens / 100
+        userDefaults.set(credits, forKey: creditsKey)
+    }
+    
+    /// Save credits to storage (legacy support)
     private func saveCredits() {
         userDefaults.set(credits, forKey: creditsKey)
     }
     
-    /// Check if this is first launch and give free credits
+    /// Check if this is first launch and give free tokens
     private func checkFirstLaunch() {
-        // Grant 1 free demo credit for new users
-        if !userDefaults.bool(forKey: freeCreditGrantedKey) && credits == 0 && !hasPurchased {
-            credits = 1
-            saveCredits()
+        // Grant 150 free tokens for new users (enough for ~10 seconds of SD video)
+        if !userDefaults.bool(forKey: freeCreditGrantedKey) && tokens == 0 && !hasPurchased {
+            tokens = FreeTrialConfig.tokens
+            saveTokens()
             userDefaults.set(true, forKey: freeCreditGrantedKey)
-            print("🎁 Welcome! You've received 1 free credit to try DirectorStudio!")
+            print("🎁 Welcome! You've received \(FreeTrialConfig.tokens) free tokens to try DirectorStudio!")
         }
         
         // Legacy: Handle old first launch key
@@ -137,7 +173,13 @@ public final class CreditsManager: ObservableObject {
         if isDevMode {
             return false
         }
-        return !hasPurchased && credits == 0
+        return !hasPurchased && tokens == 0
+    }
+    
+    /// Set video quality preference
+    public func setVideoQuality(_ quality: VideoQualityTier) {
+        selectedQuality = quality
+        userDefaults.set(quality.rawValue, forKey: "selected_video_quality")
     }
     
     /// Check if user can generate video with given cost
@@ -167,7 +209,7 @@ public final class CreditsManager: ObservableObject {
     
     /// Check if user should see purchase prompts
     public var shouldPromptPurchase: Bool {
-        return credits == 0 || (!hasPurchased && credits <= 3)
+        return tokens < 300 || (!hasPurchased && tokens <= 500)
     }
     
     /// Calculate credits needed for video duration
@@ -249,27 +291,91 @@ public final class CreditsManager: ObservableObject {
         )
     }
     
-    /// Add credits (for purchases)
+    /// Add credits (for purchases) - LEGACY
     public func addCredits(_ amount: Int, fromPurchase: Bool = true) {
-        credits += amount
+        // Convert to tokens
+        addTokens(amount * 100, fromPurchase: fromPurchase)
+    }
+    
+    // MARK: - Token Management
+    
+    /// Add tokens (for purchases)
+    public func addTokens(_ amount: Int, fromPurchase: Bool = true) {
+        tokens += amount
         if fromPurchase && !hasPurchased {
             hasPurchased = true
             userDefaults.set(true, forKey: hasPurchasedKey)
         }
-        saveCredits()
+        saveTokens()
         lastCreditError = nil
-        print("✅ Added \(amount) credits. Total: \(credits)")
+        print("✅ Added \(amount) tokens. Total: \(tokens)")
         
-        // Track lifetime credits
-        let lifetime = userDefaults.integer(forKey: "lifetime_credits_earned")
-        userDefaults.set(lifetime + amount, forKey: "lifetime_credits_earned")
+        // Track lifetime tokens
+        let lifetime = userDefaults.integer(forKey: "lifetime_tokens_earned")
+        userDefaults.set(lifetime + amount, forKey: "lifetime_tokens_earned")
         
         // Post notification for UI updates
         NotificationCenter.default.post(
             name: .creditsDidChange,
             object: nil,
-            userInfo: ["creditsAdded": amount, "total": credits]
+            userInfo: ["tokensAdded": amount, "totalTokens": tokens, "creditsAdded": amount/100, "total": credits]
         )
+    }
+    
+    /// Use tokens for generation
+    public func useTokens(amount: Int) -> Bool {
+        // Dev mode doesn't consume tokens
+        if isDevMode {
+            print("🧑‍💻 DEV MODE: Skipping token deduction (would use \(amount) tokens)")
+            return true
+        }
+        
+        guard tokens >= amount else {
+            print("❌ Not enough tokens. Need \(amount), have \(tokens)")
+            NotificationCenter.default.post(
+                name: .insufficientCredits, 
+                object: nil,
+                userInfo: ["needed": amount, "have": tokens, "isTokens": true]
+            )
+            lastCreditError = .insufficientCredits(needed: amount/100, have: tokens/100)
+            return false
+        }
+        
+        tokens -= amount
+        saveTokens()
+        print("💳 Used \(amount) tokens. Remaining: \(tokens)")
+        
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: .creditsDidChange,
+            object: nil,
+            userInfo: ["tokensUsed": amount, "remainingTokens": tokens, "creditsUsed": amount/100, "remaining": credits]
+        )
+        
+        return true
+    }
+    
+    /// Calculate token cost for video generation
+    public func calculateTokenCost(
+        duration: TimeInterval,
+        quality: VideoQualityTier,
+        enabledStages: Set<PipelineStage>
+    ) -> Int {
+        let includesEnhancement = enabledStages.contains(.enhancement)
+        let includesContinuity = enabledStages.contains(.continuityInjection)
+        
+        return TokenCalculator.calculateCost(
+            duration: duration,
+            quality: quality,
+            includesEnhancement: includesEnhancement,
+            includesContinuity: includesContinuity
+        )
+    }
+    
+    /// Check if user can afford generation with tokens
+    public func canAffordGeneration(tokenCost: Int) -> Bool {
+        if isDevMode { return true }
+        return tokens >= tokenCost
     }
     
     /// Purchase options

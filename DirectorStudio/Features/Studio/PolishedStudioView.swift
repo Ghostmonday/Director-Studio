@@ -32,7 +32,7 @@ struct PolishedStudioView: View {
     }
     
     var filteredClips: [GeneratedClip] {
-        var clips = coordinator.clips
+        var clips = coordinator.generatedClips
         
         // Apply search
         if !searchText.isEmpty {
@@ -170,7 +170,7 @@ struct PolishedStudioView: View {
             // Stats bar
             HStack(spacing: theme.Spacing.large) {
                 StatBadge(
-                    value: "\(coordinator.clips.count)",
+                    value: "\(coordinator.generatedClips.count)",
                     label: "Total Clips",
                     icon: "film.stack",
                     color: theme.Colors.primary
@@ -228,11 +228,11 @@ struct PolishedStudioView: View {
             }
             
             VStack(spacing: theme.Spacing.small) {
-                Text("Your Studio Awaits")
+                Text("Nothing Here Yet")
                     .font(theme.Typography.title2)
                     .fontWeight(.semibold)
                 
-                Text("Generated clips will appear here for editing")
+                Text("Your rendered scenes will appear here")
                     .font(theme.Typography.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -242,7 +242,7 @@ struct PolishedStudioView: View {
             NavigationLink(destination: PolishedPromptView()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                    Text("Create Your First Clip")
+                    Text("Create First Scene")
                 }
                 .font(theme.Typography.headline)
             }
@@ -286,7 +286,7 @@ struct PolishedStudioView: View {
             do {
                 let clips = try await coordinator.storageService.loadClips()
                 await MainActor.run {
-                    coordinator.clips = clips
+                    coordinator.generatedClips = clips
                 }
             } catch {
                 print("Failed to load clips: \(error)")
@@ -302,12 +302,12 @@ struct PolishedStudioView: View {
     // MARK: - Computed Properties
     
     private var totalDuration: TimeInterval {
-        coordinator.clips.reduce(0) { $0 + $1.duration }
+        coordinator.generatedClips.reduce(0) { $0 + $1.duration }
     }
     
     private var todayClipsCount: Int {
         let calendar = Calendar.current
-        return coordinator.clips.filter { calendar.isDateInToday($0.createdAt) }.count
+        return coordinator.generatedClips.filter { calendar.isDateInToday($0.createdAt) }.count
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {

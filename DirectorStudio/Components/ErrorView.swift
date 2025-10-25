@@ -61,7 +61,7 @@ struct ErrorView: View {
                     Button(action: onRetry) {
                         HStack {
                             Image(systemName: "arrow.clockwise")
-                            Text("Try Again")
+                            Text("Roll Again")
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -134,26 +134,26 @@ enum ErrorAction {
     
     var title: String {
         switch self {
-        case .generic: return "Something went wrong"
-        case .network: return "Connection issue"
-        case .apiKey: return "API key missing"
-        case .storage: return "Storage error"
-        case .permission: return "Permission needed"
+        case .generic: return "Scene Not Ready"
+        case .network: return "Connection Lost"
+        case .apiKey: return "Setup Required"
+        case .storage: return "Storage Issue"
+        case .permission: return "Permission Needed"
         }
     }
     
     var message: String {
         switch self {
         case .generic: 
-            return "We encountered an unexpected error. Please try again."
+            return "Something unexpected happened. Let's try that again."
         case .network: 
-            return "Check your internet connection and try again."
+            return "We lost connection. Check your internet and roll again."
         case .apiKey: 
-            return "Please add your API keys in Settings to use this feature."
+            return "Complete setup in Settings to start creating."
         case .storage: 
-            return "Unable to save or load your content. Check available storage."
+            return "Storage is full. Free up space to save your work."
         case .permission: 
-            return "This feature requires additional permissions. Please check Settings."
+            return "We need your permission to access this feature."
         }
     }
 }

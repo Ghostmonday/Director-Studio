@@ -51,22 +51,22 @@ struct InsufficientCreditsOverlay: View {
                 
                 // Title and message
                 VStack(spacing: 12) {
-                    Text("Not Enough Credits")
+                    Text("Need More Credits")
                         .font(.title2)
                         .fontWeight(.bold)
                     
                     VStack(spacing: 8) {
                         HStack(spacing: 4) {
-                            Text("You need")
+                            Text("Required:")
                             Text("\(creditsNeeded)")
                                 .fontWeight(.bold)
                                 .foregroundColor(.orange)
-                            Text("credits for this action")
+                            Text("credits")
                         }
                         .font(.body)
                         
                         HStack(spacing: 4) {
-                            Text("You have")
+                            Text("Available:")
                             Text("\(creditsHave)")
                                 .fontWeight(.bold)
                                 .foregroundColor(creditsHave > 0 ? .blue : .red)
@@ -88,7 +88,7 @@ struct InsufficientCreditsOverlay: View {
                     }) {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                            Text("Get \(creditsShort) More Credits")
+                            Text("Purchase Credits")
                                 .fontWeight(.semibold)
                         }
                         .foregroundColor(.white)
@@ -111,7 +111,7 @@ struct InsufficientCreditsOverlay: View {
                             isShowing = false
                         }
                     }) {
-                        Text("View All Credit Packs")
+                        Text("See All Packs")
                             .font(.subheadline)
                             .foregroundColor(.blue)
                     }
@@ -162,90 +162,7 @@ struct FirstTimeBonusOverlay: View {
                 .ignoresSafeArea()
             
             // Content card
-            VStack(spacing: 24) {
-                // Animated gift icon
-                ZStack {
-                    ForEach(0..<3) { index in
-                        Circle()
-                            .stroke(
-                                LinearGradient(
-                                    colors: [.blue.opacity(0.3), .purple.opacity(0.3)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 2
-                            )
-                            .frame(width: 80 + CGFloat(index * 20), 
-                                   height: 80 + CGFloat(index * 20))
-                            .scaleEffect(animateIn ? 1 : 0.5)
-                            .opacity(animateIn ? 1 - Double(index) * 0.3 : 0)
-                            .animation(
-                                .spring(response: 0.8, dampingFraction: 0.5)
-                                    .delay(Double(index) * 0.1),
-                                value: animateIn
-                            )
-                    }
-                    
-                    Image(systemName: "gift.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .rotationEffect(.degrees(animateIn ? 0 : -20))
-                        .animation(.spring(response: 0.6, dampingFraction: 0.6), value: animateIn)
-                }
-                
-                // Welcome message
-                VStack(spacing: 12) {
-                    Text("Welcome to DirectorStudio!")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    Text("Here's a free credit to get you started")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                
-                // Claim button
-                Button(action: {
-                    onClaim()
-                    withAnimation(.spring()) {
-                        isShowing = false
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "sparkles")
-                        Text("Claim Your Free Credit")
-                            .fontWeight(.semibold)
-                        Image(systemName: "sparkles")
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(12)
-                    .shadow(color: .blue.opacity(0.3), radius: 10, y: 5)
-                }
-            }
-            .padding(24)
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-            .shadow(radius: 20)
-            .frame(maxWidth: 350)
-            .scaleEffect(animateIn ? 1 : 0.8)
-            .opacity(animateIn ? 1 : 0)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: animateIn)
+            contentCard
         }
         .onAppear {
             withAnimation {
@@ -254,6 +171,104 @@ struct FirstTimeBonusOverlay: View {
             
             // Celebration haptic
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+    }
+    
+    private var contentCard: some View {
+        VStack(spacing: 24) {
+            animatedGiftIcon
+            welcomeMessage
+            claimButton
+        }
+        .padding(24)
+        .background(Color(.systemBackground))
+        .cornerRadius(20)
+        .shadow(radius: 20)
+        .frame(maxWidth: 350)
+        .scaleEffect(animateIn ? 1 : 0.8)
+        .opacity(animateIn ? 1 : 0)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: animateIn)
+    }
+    
+    private var animatedGiftIcon: some View {
+        ZStack {
+            ForEach(0..<3) { index in
+                animatedCircle(index: index)
+            }
+            
+            Image(systemName: "gift.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.blue, .purple],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .rotationEffect(.degrees(animateIn ? 0 : -20))
+                .animation(.spring(response: 0.6, dampingFraction: 0.6), value: animateIn)
+        }
+    }
+    
+    private func animatedCircle(index: Int) -> some View {
+        Circle()
+            .stroke(
+                LinearGradient(
+                    colors: [.blue.opacity(0.3), .purple.opacity(0.3)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 2
+            )
+            .frame(width: 80 + CGFloat(index * 20),
+                   height: 80 + CGFloat(index * 20))
+            .scaleEffect(animateIn ? 1 : 0.5)
+            .opacity(animateIn ? 1 - Double(index) * 0.3 : 0)
+            .animation(
+                .spring(response: 0.8, dampingFraction: 0.5)
+                    .delay(Double(index) * 0.1),
+                value: animateIn
+            )
+    }
+    
+    private var welcomeMessage: some View {
+        VStack(spacing: 12) {
+            Text("Welcome to DirectorStudio!")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            Text("Your first credit is on us")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+    
+    private var claimButton: some View {
+        Button(action: {
+            onClaim()
+            withAnimation(.spring()) {
+                isShowing = false
+            }
+        }) {
+            HStack {
+                Image(systemName: "sparkles")
+                Text("Claim Your Free Credit")
+                    .fontWeight(.semibold)
+                Image(systemName: "sparkles")
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                LinearGradient(
+                    colors: [.blue, .purple],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(12)
+            .shadow(color: .blue.opacity(0.3), radius: 10, y: 5)
         }
     }
 }

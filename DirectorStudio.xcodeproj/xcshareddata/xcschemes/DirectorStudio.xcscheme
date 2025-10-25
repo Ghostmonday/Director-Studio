@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "B01234531234567890123456"
-               BuildableName = "DirectorStudio.app"
+               BuildableName = "DirectorStudio"
                BlueprintName = "DirectorStudio"
                ReferencedContainer = "container:DirectorStudio.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B01234531234567890123456"
-            BuildableName = "DirectorStudio.app"
+            BuildableName = "DirectorStudio"
             BlueprintName = "DirectorStudio"
             ReferencedContainer = "container:DirectorStudio.xcodeproj">
          </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B01234531234567890123456"
-            BuildableName = "DirectorStudio.app"
+            BuildableName = "DirectorStudio"
             BlueprintName = "DirectorStudio"
             ReferencedContainer = "container:DirectorStudio.xcodeproj">
          </BuildableReference>

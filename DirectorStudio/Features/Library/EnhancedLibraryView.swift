@@ -340,7 +340,7 @@ struct EnhancedLibraryView: View {
                 
                 Image(systemName: "film.stack")
                     .font(.system(size: 50))
-                    .foregroundColor(
+                    .foregroundStyle(
                         LinearGradient(
                             colors: [.blue, .purple],
                             startPoint: .topLeading,
@@ -367,7 +367,7 @@ struct EnhancedLibraryView: View {
             NavigationLink(destination: PromptView()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                    Text("Create Your First Clip")
+                    Text("Create First Scene")
                 }
                 .font(.headline)
                 .foregroundColor(.white)
