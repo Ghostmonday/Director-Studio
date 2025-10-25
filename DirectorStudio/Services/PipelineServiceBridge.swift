@@ -54,8 +54,11 @@ class PipelineServiceBridge {
         // Credit enforcement - calculate total cost
         let totalCost = CreditsManager.shared.creditsNeeded(for: duration, enabledStages: enabledStages)
         
+        // Check if we should use demo mode
+        let shouldUseDemoMode = CreditsManager.shared.shouldUseDemoMode && !isFeaturedDemo
+        
         // Check credits for non-demo generation
-        if !isFeaturedDemo {
+        if !isFeaturedDemo && !shouldUseDemoMode {
             do {
                 try CreditsManager.shared.checkCreditsForGeneration(cost: totalCost)
                 print("✅ Credit check passed. Cost: \(totalCost), Available: \(CreditsManager.shared.credits)")
@@ -63,6 +66,35 @@ class PipelineServiceBridge {
                 print("❌ Credit check failed: \(creditError.localizedDescription)")
                 throw PipelineError.configurationError(creditError.localizedDescription)
             }
+        }
+        
+        // Demo mode - return sample video without API calls
+        if shouldUseDemoMode {
+            print("🎮 DEMO MODE: Returning sample video (no API calls, no credits used)")
+            
+            let demoVideoURL = URL(string: "https://storage.googleapis.com/griptapevideos/output/demo_\(Int.random(in: 1...5)).mp4")!
+            let localVideoURL = try await downloadVideo(from: demoVideoURL, clipName: clipName)
+            
+            let demoClip = GeneratedClip(
+                id: UUID(),
+                name: clipName + " (Demo)",
+                localURL: localVideoURL,
+                thumbnailURL: nil,
+                syncStatus: .notUploaded,
+                createdAt: Date(),
+                duration: 10.0,
+                projectID: nil,
+                isGeneratedFromImage: referenceImageData != nil,
+                isFeaturedDemo: true
+            )
+            
+            try await storageService.saveClip(demoClip)
+            print("✅ Demo clip saved: \(clipName)")
+            
+            // Post demo mode notification
+            NotificationCenter.default.post(name: .demoModeActivated, object: nil)
+            
+            return demoClip
         }
         
         print("🔄 Progress: Initializing pipeline... (0%)")

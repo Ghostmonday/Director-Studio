@@ -15,6 +15,9 @@ struct PromptView: View {
     @State private var showTemplates = false
     @State private var showSegmentEditor = false
     @StateObject private var segmentCollection = MultiClipSegmentCollection()
+    @State private var showingInsufficientCredits = false
+    @State private var insufficientCreditsInfo: (needed: Int, have: Int) = (0, 0)
+    @State private var showingPurchaseView = false
     
     var body: some View {
         NavigationView {
@@ -456,8 +459,14 @@ struct PromptView: View {
                     
                     // Generate button with loading state
                     Button(action: {
-                        Task {
-                            await viewModel.generateClip(coordinator: coordinator)
+                        // Check credits first
+                        if !creditsManager.canAfford(credits: creditCost) {
+                            insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
+                            showingInsufficientCredits = true
+                        } else {
+                            Task {
+                                await viewModel.generateClip(coordinator: coordinator)
+                            }
                         }
                     }) {
                         HStack {
@@ -533,7 +542,7 @@ struct PromptView: View {
                     // Purchase prompt if low on credits
                     if creditsManager.shouldPromptPurchase && !viewModel.useDefaultAdImage {
                         Button(action: {
-                            viewModel.showingCreditsAlert = true
+                            showingPurchaseView = true
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
@@ -587,17 +596,19 @@ struct PromptView: View {
                     }
                 )
             }
-            .alert("Insufficient Credits", isPresented: $viewModel.showingCreditsAlert) {
-                Button("Purchase Credits") {
-                    // Navigate to credits purchase view
-                    coordinator.showingCreditsPurchase = true
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                if let creditError = creditsManager.lastCreditError {
-                    Text(creditError.localizedDescription)
-                } else {
-                    Text("You need more credits to generate a video. Please purchase a credit pack or upgrade your plan.")
+            .sheet(isPresented: $showingPurchaseView) {
+                EnhancedCreditsPurchaseView()
+            }
+            .overlay {
+                if showingInsufficientCredits {
+                    InsufficientCreditsOverlay(
+                        isShowing: $showingInsufficientCredits,
+                        creditsNeeded: insufficientCreditsInfo.needed,
+                        creditsHave: insufficientCreditsInfo.have,
+                        onPurchase: {
+                            showingPurchaseView = true
+                        }
+                    )
                 }
             }
         }

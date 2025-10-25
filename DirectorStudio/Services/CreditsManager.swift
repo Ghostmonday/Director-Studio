@@ -196,12 +196,25 @@ public final class CreditsManager: ObservableObject {
         
         guard credits >= amount else {
             print("❌ Not enough credits. Need \(amount), have \(credits)")
+            NotificationCenter.default.post(
+                name: .insufficientCredits, 
+                object: nil,
+                userInfo: ["needed": amount, "have": credits]
+            )
             return false
         }
         
         credits -= amount
         saveCredits()
         print("💳 Used \(amount) credits. Remaining: \(credits)")
+        
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: .creditsDidChange,
+            object: nil,
+            userInfo: ["creditsUsed": amount, "remaining": credits]
+        )
+        
         return true
     }
     
@@ -246,6 +259,17 @@ public final class CreditsManager: ObservableObject {
         saveCredits()
         lastCreditError = nil
         print("✅ Added \(amount) credits. Total: \(credits)")
+        
+        // Track lifetime credits
+        let lifetime = userDefaults.integer(forKey: "lifetime_credits_earned")
+        userDefaults.set(lifetime + amount, forKey: "lifetime_credits_earned")
+        
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: .creditsDidChange,
+            object: nil,
+            userInfo: ["creditsAdded": amount, "total": credits]
+        )
     }
     
     /// Purchase options
