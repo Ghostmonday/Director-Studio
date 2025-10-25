@@ -1,12 +1,34 @@
 # DirectorStudio
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Platform:** iOS 17+, macOS 14+ (via Mac Catalyst)  
-**Architecture:** SwiftUI + Modular Pipeline
+**Architecture:** SwiftUI + Dependency-Injected Pipeline with Continuity Engine
 
 ## Overview
 
 DirectorStudio is a cinematic content creation app that transforms text prompts into video clips with synchronized voiceovers. Users can generate clips, stitch them together, record voiceovers while watching playback, and manage all content through a unified storage system (Local, iCloud, Supabase).
+
+## 🚀 New in v2.0: Pipeline Architecture
+
+### Dependency Injection
+The pipeline now uses constructor injection for all services, making it fully testable and swappable:
+- **Video Generation**: Pollo AI (with OpenAI/Anthropic ready)
+- **Text Enhancement**: DeepSeek AI for prompt optimization
+- **Continuity Engine**: Automatic visual consistency across clips
+- **Storage Backends**: Local, CloudKit, and Supabase support
+
+### Multi-Clip Generation
+When "Segmentation" is enabled, the app:
+1. Breaks scripts into logical segments
+2. Presents each segment for review/editing
+3. Generates clips with visual continuity
+4. Automatically injects continuity prompts
+5. Extracts last frames for next clip reference
+
+### Complete Production Pipeline
+```
+Script → Segmentation → Multi-Clip Generation → Stitching → Voiceover → Export
+```
 
 ## Critical Flow
 
@@ -46,8 +68,17 @@ DirectorStudio/
 │   └── StorageLocation.swift         # Storage backend enum
 ├── Services/
 │   ├── AuthService.swift             # iCloud authentication
-│   ├── StorageService.swift          # Local/iCloud/Supabase storage
-│   ├── PipelineService.swift         # Stub pipeline (ready for real modules)
+│   ├── StorageService.swift          # Local storage implementation
+│   ├── CloudKitStorageService.swift  # iCloud storage with CloudKit
+│   ├── PipelineServiceBridge.swift   # Main pipeline orchestrator with DI
+│   ├── PipelineProtocols.swift       # Protocol definitions for modularity
+│   ├── AIServiceFactory.swift        # Factory for AI service creation
+│   ├── PolloAIService.swift          # Pollo AI video generation
+│   ├── DeepSeekAIService.swift       # DeepSeek prompt enhancement
+│   ├── ContinuityManager.swift       # Visual continuity analysis & injection
+│   ├── VideoStitchingService.swift   # AVFoundation video stitching
+│   ├── VoiceoverGenerationService.swift # AI TTS and audio mixing
+│   ├── FrameExtractor.swift          # Extract frames for continuity
 │   └── ExportService.swift           # Video export & ShareSheet
 └── Utils/
     ├── Telemetry.swift               # Event logging
@@ -125,26 +156,42 @@ open DirectorStudio.xcodeproj
 
 ## Pipeline Modules
 
-The app is designed to accept production pipeline modules conforming to `PipelineModule`:
+The app uses a protocol-based architecture for maximum flexibility:
+
+### Core Protocols
 
 ```swift
-protocol PipelineModule {
-    var id: String { get }
-    var version: String { get }
-    
-    associatedtype Input
-    associatedtype Output
-    
-    func process(_ input: Input) async throws -> Output
+protocol VideoGenerationProtocol {
+    func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL
+    func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval) async throws -> URL
+}
+
+protocol TextEnhancementProtocol {
+    func enhancePrompt(prompt: String) async throws -> String
+}
+
+protocol ContinuityManagerProtocol {
+    func analyzeContinuity(prompt: String, isFirstClip: Bool, referenceImage: Data?) -> ContinuityAnalysis
+    func injectContinuity(prompt: String, analysis: ContinuityAnalysis, referenceImage: Data?) -> String
+}
+
+protocol VideoStitchingProtocol {
+    func stitchClips(_ clips: [GeneratedClip], withTransitions: TransitionStyle, outputQuality: ExportQuality) async throws -> URL
+}
+
+protocol VoiceoverGenerationProtocol {
+    func generateVoiceover(script: String, style: VoiceoverStyle) async throws -> VoiceoverTrack
+    func mixAudioWithVideo(voiceover: VoiceoverTrack, videoURL: URL, outputQuality: ExportQuality) async throws -> URL
 }
 ```
 
-Current stub modules:
-- SegmentationModule
-- EnhancementModule
-- CameraDirectionModule
-
-Real modules can be dropped in without modifying the core app structure.
+### Current Implementations
+- **PolloAIService**: Video generation via Pollo AI API
+- **DeepSeekAIService**: Advanced prompt enhancement
+- **ContinuityManager**: Visual consistency analysis & injection
+- **VideoStitchingService**: AVFoundation-based video stitching
+- **VoiceoverGenerationService**: AI TTS and audio mixing
+- **CloudKitStorageService**: Full iCloud sync implementation
 
 ## Authentication
 
@@ -185,15 +232,23 @@ The app compiles successfully for macOS and iOS. To test:
 
 ## Known Issues / Future Work
 
+### ✅ Completed in v2.0
+- [x] Real pipeline module integration with dependency injection
+- [x] iCloud sync implementation via CloudKit
+- [x] Advanced video stitching with transitions
+- [x] Voiceover generation placeholder (AI TTS ready)
+- [x] Frame extraction for continuity
+
+### 🚧 Remaining Tasks
 - [ ] Thumbnail generation for clips
 - [ ] Real video player integration
 - [ ] Actual voiceover recording (AVAudioRecorder)
-- [ ] iCloud sync implementation
 - [ ] Supabase backend integration
 - [ ] Guest mode demo video
-- [ ] Real pipeline module integration
 - [ ] Advanced export options (4K, etc.)
 - [ ] Onboarding flow
+- [ ] Segmented prompts UI (design complete, needs implementation)
+- [ ] Real AI TTS integration
 
 ## Protocols Compliance
 
@@ -213,9 +268,15 @@ Proprietary - DirectorStudio 2025
 
 ## 🎯 Latest Update
 
-**Image Reference Feature** - Now live! Generate promotional videos from screenshots with cinematic camera movements and professional effects. Duration control (3-20s), Featured Demo section, and complete Pollo AI integration.
+**v2.0 Pipeline Architecture** - Major refactor complete! 
 
-See [IMAGE_REFERENCE_IMPLEMENTATION.md](IMAGE_REFERENCE_IMPLEMENTATION.md) for details.
+- **Dependency Injection**: All services now use constructor injection for maximum flexibility
+- **Multi-Clip Generation**: Segmentation support with visual continuity between clips
+- **Video Stitching**: Complete AVFoundation implementation with multiple transition styles
+- **CloudKit Storage**: Full iCloud sync functionality
+- **Continuity Engine**: Automatic visual consistency with frame extraction and analysis
 
-**Last Updated:** October 23, 2025
+Previous update: **Image Reference Feature** - Generate promotional videos from screenshots with cinematic camera movements. See [IMAGE_REFERENCE_IMPLEMENTATION.md](IMAGE_REFERENCE_IMPLEMENTATION.md) for details.
+
+**Last Updated:** October 25, 2025
 
