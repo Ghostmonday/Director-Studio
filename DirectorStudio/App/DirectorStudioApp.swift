@@ -39,7 +39,7 @@ struct ContentView: View {
                 }
                 .tag(AppTab.studio)
             
-            LibraryView()
+            EnhancedLibraryView()
                 .tabItem {
                     Label("Library", systemImage: "folder")
                 }
