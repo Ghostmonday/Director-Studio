@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5AE3231A39C76372701313BB /* VoiceoverGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8C3DDA9C41D713A328175F /* VoiceoverGenerationService.swift */; };
+		94B809A40355668814DBE4F0 /* VideoStitchingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F1C29A646342F73AA8948E /* VideoStitchingService.swift */; };
+		99943B4B90F399DCDF14B752 /* CloudKitStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C2D574F714010A73346265 /* CloudKitStorageService.swift */; };
 		9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113F2EAAF20100A0660D /* LoadingView.swift */; };
 		9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113E2EAAF20100A0660D /* ErrorView.swift */; };
 		9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311402EAAF20100A0660D /* TooltipView.swift */; };
@@ -44,9 +47,12 @@
 		B01234751234567890123456 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234751234567890123455 /* CrashReporter.swift */; };
 		B01234761234567890123456 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B01234761234567890123455 /* CloudKit.framework */; };
 		B01234771234567890123456 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B01234771234567890123455 /* AVFoundation.framework */; };
+		BA64330A01B603E504DF4A54 /* PipelineProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B00DF7B74AC9DF76123272F /* PipelineProtocols.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		17F1C29A646342F73AA8948E /* VideoStitchingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/VideoStitchingService.swift; sourceTree = SOURCE_ROOT; };
+		2B00DF7B74AC9DF76123272F /* PipelineProtocols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/PipelineProtocols.swift; sourceTree = SOURCE_ROOT; };
 		9B93113E2EAAF20100A0660D /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		9B93113F2EAAF20100A0660D /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		9B9311402EAAF20100A0660D /* TooltipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipView.swift; sourceTree = "<group>"; };
@@ -87,6 +93,8 @@
 		B01234771234567890123455 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		B01234781234567890123455 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B01234791234567890123455 /* DirectorStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DirectorStudio.entitlements; sourceTree = "<group>"; };
+		BB8C3DDA9C41D713A328175F /* VoiceoverGenerationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/VoiceoverGenerationService.swift; sourceTree = SOURCE_ROOT; };
+		F1C2D574F714010A73346265 /* CloudKitStorageService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/CloudKitStorageService.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -228,6 +236,10 @@
 				9B93115A2EAAF7C300A0660D /* PolloAIService.swift */,
 				9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */,
 				9B9311612EAAF81300A0660D /* AIServiceFactory.swift */,
+				2B00DF7B74AC9DF76123272F /* PipelineProtocols.swift */,
+				17F1C29A646342F73AA8948E /* VideoStitchingService.swift */,
+				BB8C3DDA9C41D713A328175F /* VoiceoverGenerationService.swift */,
+				F1C2D574F714010A73346265 /* CloudKitStorageService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -381,6 +393,10 @@
 				B01234711234567890123456 /* StorageService.swift in Sources */,
 				B01234731234567890123456 /* ExportService.swift in Sources */,
 				B01234751234567890123456 /* CrashReporter.swift in Sources */,
+				BA64330A01B603E504DF4A54 /* PipelineProtocols.swift in Sources */,
+				94B809A40355668814DBE4F0 /* VideoStitchingService.swift in Sources */,
+				5AE3231A39C76372701313BB /* VoiceoverGenerationService.swift in Sources */,
+				99943B4B90F399DCDF14B752 /* CloudKitStorageService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

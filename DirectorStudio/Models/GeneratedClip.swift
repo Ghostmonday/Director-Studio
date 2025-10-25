@@ -5,7 +5,7 @@
 import Foundation
 
 /// Sync status for clips
-enum SyncStatus: String, Codable {
+public enum SyncStatus: String, Codable {
     case notUploaded = "Not Uploaded"
     case uploading = "Uploading"
     case synced = "Synced"
@@ -13,8 +13,8 @@ enum SyncStatus: String, Codable {
 }
 
 /// A generated video clip with metadata
-struct GeneratedClip: Identifiable, Codable {
-    let id: UUID
+public struct GeneratedClip: Identifiable, Codable {
+    public let id: UUID
     var name: String
     var localURL: URL?
     var thumbnailURL: URL?

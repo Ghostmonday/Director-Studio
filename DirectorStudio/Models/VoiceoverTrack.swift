@@ -5,8 +5,8 @@
 import Foundation
 
 /// A voiceover recording associated with video clips
-struct VoiceoverTrack: Identifiable, Codable {
-    let id: UUID
+public struct VoiceoverTrack: Identifiable, Codable {
+    public let id: UUID
     var name: String
     var localURL: URL?
     var duration: TimeInterval

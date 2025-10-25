@@ -6,8 +6,8 @@ struct OnboardingContent {
     static let pages = [
         OnboardingPage(
             title: "Welcome to DirectorStudio",
-            subtitle: "Transform Words Into Cinema",
-            description: "Turn your stories, journals, and ideas into stunning video sequences with AI-powered cinematography.",
+            subtitle: "Direct the Impossible",
+            description: "From Turn your stories, journals, and ideas into stunning video sequences with AI-powered cinematography.",
             imageName: "film.fill",
             primaryColor: .blue,
             features: [

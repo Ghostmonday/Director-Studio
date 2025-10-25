@@ -9,7 +9,7 @@ import UIKit
 import AVFoundation
 
 /// Export quality options
-enum ExportQuality: String, CaseIterable {
+public enum ExportQuality: String, CaseIterable {
     case high = "High Quality"
     case standard = "Standard Quality"
     

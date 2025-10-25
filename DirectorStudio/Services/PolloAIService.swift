@@ -8,7 +8,7 @@
 import Foundation
 
 /// Pollo AI service implementation
-public final class PolloAIService: AIServiceProtocol, @unchecked Sendable {
+public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @unchecked Sendable {
     private let apiKey: String
     private let endpoint: String
     private let session: URLSession
