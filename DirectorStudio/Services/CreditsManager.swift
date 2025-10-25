@@ -59,6 +59,46 @@ public final class CreditsManager: ObservableObject {
     private let hasPurchasedKey = "user_has_purchased"
     private let freeCreditGrantedKey = "free_credit_granted"
     
+    /// Developer mode for free testing (highly secure implementation)
+    public var isDevMode: Bool {
+        #if DEBUG
+        // Multiple security checks required:
+        
+        // 1. Check if dev mode is enabled in UserDefaults
+        guard UserDefaults.standard.bool(forKey: "DEV_MODE_ENABLED") else {
+            return false
+        }
+        
+        // 2. Verify secret passcode was entered correctly
+        guard let lastPasscodeEntry = UserDefaults.standard.object(forKey: "DEV_MODE_PASSCODE_TIMESTAMP") as? Date else {
+            return false
+        }
+        
+        // 3. Passcode expires after 1 hour for security
+        let oneHourAgo = Date().addingTimeInterval(-3600)
+        guard lastPasscodeEntry > oneHourAgo else {
+            // Expired - disable dev mode
+            UserDefaults.standard.set(false, forKey: "DEV_MODE_ENABLED")
+            UserDefaults.standard.removeObject(forKey: "DEV_MODE_PASSCODE_TIMESTAMP")
+            return false
+        }
+        
+        // 4. Check for debug build configuration
+        guard Bundle.main.infoDictionary?["DEV_MODE"] as? String == "YES" else {
+            return false
+        }
+        
+        // 5. Additional check for Xcode connection (prevents release builds)
+        let isDebugging = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != nil ||
+                         ProcessInfo.processInfo.environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil
+        
+        return true
+        #else
+        // Never allow dev mode in release builds
+        return false
+        #endif
+    }
+    
     private init() {
         loadCredits()
         checkFirstLaunch()
@@ -93,16 +133,31 @@ public final class CreditsManager: ObservableObject {
     
     /// Check if user should be in demo mode
     public var shouldUseDemoMode: Bool {
+        // Dev mode never uses demo mode - always gets real API access
+        if isDevMode {
+            return false
+        }
         return !hasPurchased && credits == 0
     }
     
     /// Check if user can generate video with given cost
     public func canGenerate(cost: Int) -> Bool {
+        // Dev mode always allows generation
+        if isDevMode {
+            return true
+        }
         return credits >= cost
     }
     
     /// Pre-flight check for video generation
     public func checkCreditsForGeneration(cost: Int) throws {
+        // Dev mode bypasses all credit checks
+        if isDevMode {
+            print("🧑‍💻 DEV MODE: Bypassing credit check (would cost \(cost) credits)")
+            lastCreditError = nil
+            return
+        }
+        
         guard credits >= cost else {
             lastCreditError = .insufficientCredits(needed: cost, have: credits)
             throw CreditError.insufficientCredits(needed: cost, have: credits)
@@ -133,6 +188,12 @@ public final class CreditsManager: ObservableObject {
     
     /// Use credits for video generation
     public func useCredits(amount: Int) -> Bool {
+        // Dev mode doesn't consume credits
+        if isDevMode {
+            print("🧑‍💻 DEV MODE: Skipping credit deduction (would use \(amount) credits)")
+            return true
+        }
+        
         guard credits >= amount else {
             print("❌ Not enough credits. Need \(amount), have \(credits)")
             return false
@@ -240,4 +301,36 @@ public final class CreditsManager: ObservableObject {
             self?.isLoadingCredits = false
         }
     }
+    
+    #if DEBUG
+    /// Enable dev mode with secure passcode
+    public func enableDevMode(passcode: String) -> Bool {
+        // Secure passcode: current year + "DS" + current month (e.g., "2025DS10")
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy"
+        let year = dateFormatter.string(from: Date())
+        dateFormatter.dateFormat = "MM"
+        let month = dateFormatter.string(from: Date())
+        
+        let expectedPasscode = "\(year)DS\(month)"
+        
+        guard passcode == expectedPasscode else {
+            print("❌ Invalid dev mode passcode")
+            return false
+        }
+        
+        // Enable dev mode and record timestamp
+        UserDefaults.standard.set(true, forKey: "DEV_MODE_ENABLED")
+        UserDefaults.standard.set(Date(), forKey: "DEV_MODE_PASSCODE_TIMESTAMP")
+        print("🧑‍💻 Dev mode enabled until \(Date().addingTimeInterval(3600))")
+        return true
+    }
+    
+    /// Disable dev mode
+    public func disableDevMode() {
+        UserDefaults.standard.set(false, forKey: "DEV_MODE_ENABLED")
+        UserDefaults.standard.removeObject(forKey: "DEV_MODE_PASSCODE_TIMESTAMP")
+        print("🧑‍💻 Dev mode disabled")
+    }
+    #endif
 }

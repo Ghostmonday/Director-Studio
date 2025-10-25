@@ -417,19 +417,37 @@ struct PromptView: View {
                 let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canGenerate(cost: creditCost)
                 
                 VStack(spacing: 8) {
+                    // Dev mode indicator
+                    if creditsManager.isDevMode {
+                        HStack {
+                            Image(systemName: "hammer.fill")
+                                .foregroundColor(.purple)
+                            Text("DEV MODE - Free Usage")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.purple)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
+                        .background(Color.purple.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                    
                     // Credit status
                     HStack {
                         Image(systemName: "dollarsign.circle.fill")
-                            .foregroundColor(hasEnoughCredits ? .green : .orange)
-                        Text("Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
+                            .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .green : .orange))
+                        Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
                         Spacer()
                         
-                        Text("Balance: \(creditsManager.credits)")
+                        Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.credits)")
                             .font(.subheadline)
-                            .foregroundColor(hasEnoughCredits ? .primary : .red)
+                            .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .primary : .red))
                             .fontWeight(.semibold)
                     }
                     .padding(.horizontal)

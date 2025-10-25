@@ -30,6 +30,13 @@ struct SettingsView: View {
     @State private var showingClearCache = false
     @State private var showingAbout = false
     
+    #if DEBUG
+    @State private var showDevSection = false
+    @State private var showingDevPasscode = false
+    @State private var devPasscode = ""
+    @State private var tapCount = 0
+    #endif
+    
     var body: some View {
         NavigationView {
             Form {
@@ -165,6 +172,82 @@ struct SettingsView: View {
                     Text("Appearance")
                 }
                 
+                // Developer Settings (DEBUG only - Hidden by default)
+                #if DEBUG
+                if showDevSection || CreditsManager.shared.isDevMode {
+                    Section {
+                        if CreditsManager.shared.isDevMode {
+                            // Dev Mode Active
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: "hammer.fill")
+                                        .foregroundColor(.purple)
+                                    Text("DEV MODE ACTIVE")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.purple)
+                                    Spacer()
+                                    
+                                    // Time remaining
+                                    if let timestamp = UserDefaults.standard.object(forKey: "DEV_MODE_PASSCODE_TIMESTAMP") as? Date {
+                                        let remaining = max(0, 3600 - Date().timeIntervalSince(timestamp))
+                                        Text("\(Int(remaining / 60))m left")
+                                            .font(.caption2)
+                                            .foregroundColor(.orange)
+                                    }
+                                }
+                                
+                                Text("Free API usage enabled")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color.purple.opacity(0.1))
+                            .cornerRadius(8)
+                            
+                            // Disable button
+                            Button(action: {
+                                CreditsManager.shared.disableDevMode()
+                            }) {
+                                Label("Disable Dev Mode", systemImage: "xmark.circle")
+                                    .foregroundColor(.red)
+                            }
+                        } else {
+                            // Passcode Entry
+                            Button(action: {
+                                showingDevPasscode = true
+                            }) {
+                                Label("Enter Dev Passcode", systemImage: "lock.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        // Credit manipulation (only when dev mode active)
+                        if CreditsManager.shared.isDevMode {
+                            Button(action: {
+                                CreditsManager.shared.addCredits(100, fromPurchase: false)
+                            }) {
+                                Label("Add 100 Test Credits", systemImage: "plus.circle")
+                            }
+                            
+                            Button(action: {
+                                CreditsManager.shared.credits = 0
+                            }) {
+                                Label("Reset Credits to 0", systemImage: "minus.circle")
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                    } header: {
+                        Text("Developer Options")
+                    } footer: {
+                        if !CreditsManager.shared.isDevMode {
+                            Text("Requires monthly passcode for security")
+                        }
+                    }
+                }
+                #endif
+                
                 // About
                 Section {
                     // Tutorial
@@ -189,6 +272,26 @@ struct SettingsView: View {
                     NavigationLink(destination: AboutView()) {
                         Label("About DirectorStudio", systemImage: "info.circle")
                     }
+                    #if DEBUG
+                    .onTapGesture {
+                        // Secret gesture: tap 5 times within 2 seconds to reveal dev section
+                        tapCount += 1
+                        
+                        if tapCount == 1 {
+                            // Reset after 2 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                tapCount = 0
+                            }
+                        } else if tapCount >= 5 {
+                            showDevSection = true
+                            tapCount = 0
+                            // Haptic feedback
+                            if enableHaptics {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            }
+                        }
+                    }
+                    #endif
                     
                 } header: {
                     Text("Support")
@@ -212,6 +315,32 @@ struct SettingsView: View {
         } message: {
             Text("This will remove all temporary files and may free up storage space.")
         }
+        #if DEBUG
+        .alert("Developer Mode", isPresented: $showingDevPasscode) {
+            TextField("Enter passcode", text: $devPasscode)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Cancel", role: .cancel) {
+                devPasscode = ""
+            }
+            Button("Enable") {
+                if CreditsManager.shared.enableDevMode(passcode: devPasscode) {
+                    // Success - already handled by CreditsManager
+                    if enableHaptics {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
+                } else {
+                    // Failed - show error feedback
+                    if enableHaptics {
+                        UINotificationFeedbackGenerator().notificationOccurred(.error)
+                    }
+                }
+                devPasscode = ""
+            }
+        } message: {
+            Text("Enter the monthly developer passcode to enable free API usage.")
+        }
+        #endif
     }
     
     private func clearCache() {

@@ -12,6 +12,9 @@ APP_BUNDLE_ID = com.directorstudio.app
 // Demo Mode Configuration
 APP_DEMO_MODE = $(DEMO_MODE)
 
+// Dev Mode Configuration (DEBUG builds only)
+DEV_MODE = $(DEV_MODE)
+
 // API Configuration in Info.plist
 API_CONFIG_POLLO_KEY = $(POLLO_API_KEY)
 API_CONFIG_POLLO_ENDPOINT = $(POLLO_API_ENDPOINT)
