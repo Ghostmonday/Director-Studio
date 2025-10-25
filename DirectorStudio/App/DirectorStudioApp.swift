@@ -27,21 +27,21 @@ struct ContentView: View {
     
     var body: some View {
         TabView(selection: $coordinator.selectedTab) {
-            PromptView()
+            PolishedPromptView()
                 .tabItem {
-                    Label("Prompt", systemImage: "text.bubble")
+                    Label("Create", systemImage: "wand.and.stars")
                 }
                 .tag(AppTab.prompt)
             
-            StudioView()
+            PolishedStudioView()
                 .tabItem {
-                    Label("Studio", systemImage: "film")
+                    Label("Studio", systemImage: "film.stack")
                 }
                 .tag(AppTab.studio)
             
             EnhancedLibraryView()
                 .tabItem {
-                    Label("Library", systemImage: "folder")
+                    Label("Library", systemImage: "photo.stack")
                 }
                 .tag(AppTab.library)
         }
@@ -59,7 +59,8 @@ struct ContentView: View {
             .padding(.top, 40) // Account for status bar
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView()
+            PolishedSettingsView()
+                .environmentObject(coordinator)
         }
     }
 }
