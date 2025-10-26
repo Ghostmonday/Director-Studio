@@ -9,8 +9,8 @@ import Foundation
 class SupabaseAPIKeyService {
     static let shared = SupabaseAPIKeyService()
     
-    // TODO: Replace with your actual Supabase project URL
-    private let supabaseURL = "https://YOUR_PROJECT_REF.supabase.co"
+    // Local Supabase instance
+    private let supabaseURL = "http://127.0.0.1:54321"
     
     // Cache keys for session (don't fetch every time)
     private var keyCache: [String: String] = [:]
