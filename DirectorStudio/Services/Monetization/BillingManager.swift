@@ -514,10 +514,6 @@ public final class BillingManager: ObservableObject {
         }
         return []
     }
-    
-    private init() {
-        loadUserBalance()
-    }
 }
 
 // MARK: - Supporting Types
