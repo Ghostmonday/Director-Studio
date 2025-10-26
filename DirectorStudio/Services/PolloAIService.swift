@@ -61,7 +61,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     
     public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
         // Check if we should use demo mode based on credits
-        if CreditsManager.shared.shouldUseDemoMode || apiKey == "demo-key" {
+        if CreditsManager.shared.shouldUseDemoMode {
             print("🎬 DEMO MODE: Simulating video generation...")
             
             // Simulate processing delay
@@ -71,14 +71,22 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             return URL(string: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4")!
         }
         
-        guard isAvailable else {
-            throw PipelineError.configurationError("Pollo API key not configured")
+        // Fetch API key from Supabase (secure)
+        let fetchedKey: String
+        if !apiKey.isEmpty && apiKey != "demo-key" {
+            // Use local key if available (for dev mode)
+            fetchedKey = apiKey
+            print("🔑 Using local Pollo key")
+        } else {
+            // Fetch from Supabase backend
+            fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
+            print("🔑 Using Supabase Pollo key")
         }
         
         let url = URL(string: "\(endpoint)/video/generate")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(fetchedKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: Any] = [
@@ -123,7 +131,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     /// - Returns: URL to the generated video
     public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
         // Check if we should use demo mode based on credits
-        if CreditsManager.shared.shouldUseDemoMode || apiKey == "demo-key" {
+        if CreditsManager.shared.shouldUseDemoMode {
             print("🎬 DEMO MODE: Simulating image-to-video generation...")
             print("   Image size: \(imageData.count / 1024)KB")
             print("   Prompt: \(prompt)")
@@ -135,8 +143,16 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             return URL(string: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4")!
         }
         
-        guard isAvailable else {
-            throw PipelineError.configurationError("Pollo API key not configured")
+        // Fetch API key from Supabase (secure)
+        let fetchedKey: String
+        if !apiKey.isEmpty && apiKey != "demo-key" {
+            // Use local key if available (for dev mode)
+            fetchedKey = apiKey
+            print("🔑 Using local Pollo key")
+        } else {
+            // Fetch from Supabase backend
+            fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
+            print("🔑 Using Supabase Pollo key")
         }
         
         // Convert image to base64
@@ -145,7 +161,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         let url = URL(string: "\(endpoint)/video/image-to-video")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(fetchedKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 300 // 5 minutes for video generation
         
