@@ -121,6 +121,16 @@ public final class CreditsManager: ObservableObject {
     
     /// Load tokens from storage (with migration from credits)
     private func loadTokens() {
+        // DEV MODE: Give unlimited tokens for testing
+        #if DEBUG
+        if userDefaults.bool(forKey: "DEV_MODE_ENABLED") {
+            tokens = 999999
+            credits = 9999
+            print("💰 DEV MODE: Granted unlimited tokens")
+            return
+        }
+        #endif
+        
         // Check if we have tokens already
         let storedTokens = userDefaults.integer(forKey: tokensKey)
         
