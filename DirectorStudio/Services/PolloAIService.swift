@@ -106,19 +106,48 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
+        // 🔍 DEBUG: Log the full request details
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📤 POLLO API REQUEST:")
+        print("   URL: \(url.absoluteString)")
+        print("   Method: POST")
+        print("   Headers:")
+        print("      Authorization: Bearer \(String(fetchedKey.prefix(15)))...")
+        print("      Content-Type: application/json")
+        print("   Body:")
+        print("      prompt: \(prompt)")
+        print("      duration: \(duration)")
+        print("      resolution: 1920x1080")
+        print("      fps: 30")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
         let (data, response) = try await session.data(for: request)
+        
+        // 🔍 DEBUG: Log the response
+        if let httpResponse = response as? HTTPURLResponse {
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("📥 POLLO API RESPONSE:")
+            print("   Status Code: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("   Response Body: \(responseString)")
+            }
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        }
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
+            print("❌ Pollo API returned error status code")
             throw PipelineError.apiError("Pollo video generation failed")
         }
         
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let videoURLString = json?["video_url"] as? String,
               let videoURL = URL(string: videoURLString) else {
+            print("❌ No valid video_url in response")
             throw PipelineError.apiError("Invalid video URL from Pollo")
         }
         
+        print("✅ Received video URL: \(videoURL.absoluteString)")
         return videoURL
     }
     
