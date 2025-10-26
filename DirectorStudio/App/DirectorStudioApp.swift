@@ -27,7 +27,7 @@ struct ContentView: View {
     
     var body: some View {
         TabView(selection: $coordinator.selectedTab) {
-            PolishedPromptView()
+            PromptView()
                 .tabItem {
                     Label("Create", systemImage: "wand.and.stars")
                 }
