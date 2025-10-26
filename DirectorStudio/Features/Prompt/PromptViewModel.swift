@@ -6,6 +6,33 @@ import Foundation
 import SwiftUI
 import Combine
 
+/// Generation mode for single video vs multi-clip film
+public enum GenerationMode: String, CaseIterable {
+    case single = "Single Video"
+    case multiClip = "Film/Series"
+    
+    var icon: String {
+        switch self {
+        case .single: return "video"
+        case .multiClip: return "film.stack"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .single: return "Create one video (TikTok, Instagram Reel)"
+        case .multiClip: return "Create a multi-part film or series"
+        }
+    }
+}
+
+/// Duration strategy for multi-clip generation
+public enum DurationStrategy: Equatable {
+    case uniform(TimeInterval)  // All clips same length
+    case custom                 // Individual control per clip
+    case auto                   // AI determines based on content
+}
+
 /// Pipeline stages that can be toggled
 public enum PipelineStage: String, CaseIterable {
     case segmentation = "Segmentation"
@@ -58,6 +85,11 @@ class PromptViewModel: ObservableObject {
     // @Published var selectedQualityTier: VideoQualityTier = .standard
     // @Published var selectedModelTier: PricingEngine.ModelTier = .standard
     
+    // Generation mode
+    @Published var generationMode: GenerationMode = .single
+    @Published var durationStrategy: DurationStrategy = .uniform(10.0)
+    @Published var uniformDuration: TimeInterval = 10.0
+    
     private let pipelineService = PipelineServiceBridge()
     private var cancellables = Set<AnyCancellable>()
     
@@ -68,6 +100,36 @@ class PromptViewModel: ObservableObject {
         
         // Set up auto-save
         setupAutoSave()
+    }
+    
+    // MARK: - Computed Properties
+    
+    /// Available stages based on generation mode
+    var availableStages: [PipelineStage] {
+        switch generationMode {
+        case .single:
+            // All except segmentation (not needed for single video)
+            return PipelineStage.allCases.filter { $0 != .segmentation }
+        case .multiClip:
+            // Hide segmentation & continuity (auto-applied)
+            return [.enhancement, .cameraDirection, .lighting]
+        }
+    }
+    
+    /// Auto-enabled stages for multi-clip mode
+    var autoEnabledStages: Set<PipelineStage> {
+        switch generationMode {
+        case .single:
+            return []
+        case .multiClip:
+            // Auto-enable these, don't show as toggles
+            return [.segmentation, .continuityAnalysis, .continuityInjection]
+        }
+    }
+    
+    /// Get all enabled stages including auto-enabled ones
+    var allEnabledStages: Set<PipelineStage> {
+        enabledStages.union(autoEnabledStages)
     }
     
     /// Set up auto-save for drafts
@@ -183,11 +245,14 @@ class PromptViewModel: ObservableObject {
                 referenceImage: imageData
             )
             
+            // Use all enabled stages including auto-enabled ones
+            let finalStages = generationMode == .multiClip ? allEnabledStages : enabledStages
+            
             // Generate with enhanced prompt
             let clip = try await pipelineService.generateClip(
                 prompt: enhancedPrompt,
                 clipName: clipName,
-                enabledStages: enabledStages,
+                enabledStages: finalStages,
                 referenceImageData: imageData,
                 isFeaturedDemo: useDefaultAdImage,
                 duration: videoDuration

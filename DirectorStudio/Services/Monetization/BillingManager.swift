@@ -24,16 +24,113 @@ public final class BillingManager: ObservableObject {
     @Published public var activeSubscription: PricingEngine.SubscriptionPlan?
     @Published public var isProcessingPayment: Bool = false
     @Published public var lastError: BillingError?
+    @Published public var pricingDegraded: Bool = false
     
     // MARK: - Dependencies
     
     private let tokenEngine = TokenMeteringEngine.shared
     private let pricingEngine = PricingEngine.shared
+    private let transactionManager = RenderTransactionManager.shared
     private var cancellables = Set<AnyCancellable>()
+    
+    // Admin override for degraded mode
+    private var degradedModeOverride: Bool = false
+    private var overrideTimestamp: Date?
+    
+    private init() {
+        // Check pricing health on startup
+        self.pricingDegraded = MonetizationConfig.PRICING_DEGRADED
+        
+        // Monitor for pricing changes
+        Timer.publish(every: 60, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.checkPricingHealth()
+            }
+            .store(in: &cancellables)
+    }
     
     // MARK: - User Balance Management
     
-    /// Check if user can afford a generation
+    /// Check if user can afford a generation using new pricing
+    public func canAffordGeneration(
+        duration: TimeInterval
+    ) -> (canAfford: Bool, reason: String?) {
+        // Validate pricing is safe
+        if pricingDegraded && !degradedModeOverride {
+            return (false, "Pricing system temporarily unavailable. Please try again later.")
+        }
+        
+        let tokensNeeded = MonetizationConfig.tokensToDebit(
+            MonetizationConfig.creditsForSeconds(duration)
+        )
+        
+        if userBalance.availableTokens < Double(tokensNeeded) {
+            let needed = tokensNeeded - Int(userBalance.availableTokens)
+            return (false, "Need \(needed) more tokens")
+        }
+        
+        return (true, nil)
+    }
+    
+    // MARK: - Pricing Health Management
+    
+    /// Check pricing health and update degraded status
+    private func checkPricingHealth() {
+        let wasDegraded = pricingDegraded
+        pricingDegraded = MonetizationConfig.PRICING_DEGRADED
+        
+        // Alert if pricing just became degraded
+        if !wasDegraded && pricingDegraded {
+            logPricingAlert()
+        }
+        
+        // Auto-disable override after 24 hours
+        if let timestamp = overrideTimestamp,
+           Date().timeIntervalSince(timestamp) > 86400 {
+            degradedModeOverride = false
+            overrideTimestamp = nil
+        }
+    }
+    
+    /// Enable admin override for degraded mode (requires explicit approval)
+    public func enableDegradedModeOverride(adminToken: String) -> Bool {
+        // Verify admin token (in production, this would check against secure backend)
+        guard adminToken == "ADMIN_OVERRIDE_\(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none))" else {
+            return false
+        }
+        
+        degradedModeOverride = true
+        overrideTimestamp = Date()
+        
+        print("⚠️ ADMIN OVERRIDE: Degraded mode override enabled until \(Date().addingTimeInterval(86400))")
+        return true
+    }
+    
+    /// Log pricing alert for operations team
+    private func logPricingAlert() {
+        let minPrice = MonetizationConfig.MIN_PRICE_PER_SEC
+        let currentCost = MonetizationConfig.CURRENT_UPSTREAM_COST
+        
+        print("""
+        🚨 PRICING ALERT: Margin at risk!
+        - Current upstream cost: $\(String(format: "%.3f", currentCost))/sec
+        - Minimum safe price: $\(String(format: "%.2f", minPrice))/sec
+        - Action required: Update pricing or reduce upstream costs
+        """)
+        
+        // In production, this would send alerts to ops team
+        NotificationCenter.default.post(
+            name: .pricingDegraded,
+            object: nil,
+            userInfo: [
+                "currentCost": currentCost,
+                "minPrice": minPrice
+            ]
+        )
+    }
+    
+    /// Legacy method for compatibility
     public func canAffordGeneration(
         duration: TimeInterval,
         quality: VideoQualityTier,
@@ -68,8 +165,98 @@ public final class BillingManager: ObservableObject {
         return (true, nil)
     }
     
-    /// Process a generation charge
+    /// Process a generation charge with new pricing
     public func chargeGeneration(
+        userId: String,
+        generationId: String,
+        duration: TimeInterval,
+        prompt: String? = nil,
+        isMultiClip: Bool = false,
+        pipelineStages: [String] = [],
+        success: Bool
+    ) async throws -> BillingTransaction {
+        // Validate pricing health
+        try MonetizationConfig.validatePricing()
+        
+        // Calculate pricing
+        let priceCents = MonetizationConfig.priceForSeconds(duration)
+        let credits = MonetizationConfig.creditsForSeconds(duration)
+        let tokensToDebit = MonetizationConfig.tokensToDebit(credits)
+        
+        // Calculate upstream cost
+        let upstreamCostCents = Int(duration * MonetizationConfig.CURRENT_UPSTREAM_COST * 100)
+        
+        // Only charge if successful
+        guard success else {
+            // Record failed transaction
+            let transaction = RenderTransaction(
+                userId: userId,
+                generationId: generationId,
+                requestedSeconds: duration,
+                estimatedCredits: credits,
+                tokensDebited: 0,  // Don't debit on failure
+                priceChargedCents: 0,  // Don't charge on failure
+                upstreamCostCents: upstreamCostCents,  // Still incurred cost
+                prompt: prompt,
+                isMultiClip: isMultiClip,
+                pipelineStages: pipelineStages,
+                errorMessage: "Generation failed",
+                wasSuccessful: false
+            )
+            transactionManager.recordTransaction(transaction)
+            
+            throw BillingError.generationFailed
+        }
+        
+        // Check balance
+        let affordability = canAffordGeneration(duration: duration)
+        guard affordability.canAfford else {
+            throw BillingError.insufficientBalance(affordability.reason ?? "Insufficient balance")
+        }
+        
+        // Deduct tokens
+        userBalance.availableTokens -= Double(tokensToDebit)
+        
+        // Record successful transaction
+        let transaction = RenderTransaction(
+            userId: userId,
+            generationId: generationId,
+            requestedSeconds: duration,
+            estimatedCredits: credits,
+            tokensDebited: tokensToDebit,
+            priceChargedCents: priceCents,
+            upstreamCostCents: upstreamCostCents,
+            prompt: prompt,
+            isMultiClip: isMultiClip,
+            pipelineStages: pipelineStages,
+            wasSuccessful: true
+        )
+        transactionManager.recordTransaction(transaction)
+        
+        // Create billing transaction for backward compatibility
+        let billingTransaction = BillingTransaction(
+            id: UUID(),
+            userId: userId,
+            timestamp: Date(),
+            type: .generation,
+            tokens: Double(tokensToDebit),
+            amount: Double(priceCents) / 100.0,
+            description: "Video Generation (\(Int(duration))s)",
+            metadata: [
+                "generation_id": generationId,
+                "duration": String(duration),
+                "margin": String(format: "%.1f%%", transaction.grossMarginPercent * 100)
+            ]
+        )
+        
+        saveTransaction(billingTransaction)
+        saveUserBalance()
+        
+        return billingTransaction
+    }
+    
+    /// Legacy charge generation method
+    public func chargeGenerationLegacy(
         userId: String,
         generationId: String,
         duration: TimeInterval,
@@ -400,4 +587,11 @@ public enum BillingError: LocalizedError {
             return "Invalid or expired promo code"
         }
     }
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    /// Posted when pricing enters degraded mode
+    public static let pricingDegraded = Notification.Name("DirectorStudio.pricingDegraded")
 }

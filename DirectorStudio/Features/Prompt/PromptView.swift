@@ -92,6 +92,33 @@ struct PromptView: View {
     }
     
     @ViewBuilder
+    private var generationModeSelector: some View {
+        VStack(spacing: 12) {
+            Text("What are you creating?")
+                .font(.headline)
+            
+            Picker("Generation Mode", selection: $viewModel.generationMode) {
+                ForEach(GenerationMode.allCases, id: \.self) { mode in
+                    Label(mode.rawValue, systemImage: mode.icon)
+                        .tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            
+            Text(viewModel.generationMode.description)
+                .font(.caption)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding(.vertical, 8)
+        .background(Color.gray.opacity(0.05))
+        .cornerRadius(10)
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
     private var projectNameField: some View {
         TextField("Project Name", text: $viewModel.projectName)
             .textFieldStyle(.roundedBorder)
@@ -238,8 +265,91 @@ struct PromptView: View {
         }
         .padding(.horizontal)
         .disabled(coordinator.isGuestMode)
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(selectedImage: $viewModel.selectedImage, useDefaultAd: $viewModel.useDefaultAdImage)
+    }
+    
+    @ViewBuilder
+    private var durationStrategySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Clip Duration Strategy")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            VStack(spacing: 8) {
+                // Uniform duration option
+                HStack {
+                    Image(systemName: viewModel.durationStrategy == .uniform(viewModel.uniformDuration) ? "circle.fill" : "circle")
+                        .foregroundColor(.blue)
+                        .onTapGesture {
+                            viewModel.durationStrategy = .uniform(viewModel.uniformDuration)
+                        }
+                    
+                    Text("All clips same length")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    if case .uniform = viewModel.durationStrategy {
+                        HStack {
+                            Text("\(Int(viewModel.uniformDuration))s")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            Stepper("", value: $viewModel.uniformDuration, in: 3...30, step: 1)
+                                .labelsHidden()
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Custom duration option
+                HStack {
+                    Image(systemName: viewModel.durationStrategy == .custom ? "circle.fill" : "circle")
+                        .foregroundColor(.blue)
+                        .onTapGesture {
+                            viewModel.durationStrategy = .custom
+                        }
+                    
+                    Text("Custom per clip")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    if case .custom = viewModel.durationStrategy {
+                        Text("Set in editor")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Auto duration option
+                HStack {
+                    Image(systemName: viewModel.durationStrategy == .auto ? "circle.fill" : "circle")
+                        .foregroundColor(.blue)
+                        .onTapGesture {
+                            viewModel.durationStrategy = .auto
+                        }
+                    
+                    Text("Auto-detect from content")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    if case .auto = viewModel.durationStrategy {
+                        Text("AI decides")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .padding(.vertical, 8)
+            .background(Color.gray.opacity(0.05))
+            .cornerRadius(8)
+            .padding(.horizontal)
         }
     }
     
@@ -322,8 +432,25 @@ struct PromptView: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
             
-            ForEach(PipelineStage.allCases.filter { $0 != .continuityAnalysis && $0 != .continuityInjection }, id: \.self) { stage in
+            ForEach(viewModel.availableStages, id: \.self) { stage in
                 pipelineStageRow(for: stage)
+            }
+            
+            // Info about auto-enabled stages for multi-clip
+            if viewModel.generationMode == .multiClip {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                    Text("Segmentation & continuity are automatically applied for films")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+                .padding(.horizontal)
             }
         }
     }
@@ -417,23 +544,22 @@ struct PromptView: View {
     
     @ViewBuilder
     private var costEstimationRow: some View {
-        let estimatedCredits = Int(ceil(viewModel.videoDuration / 5.0))
-        let estimatedCost = Double(estimatedCredits) * 0.50
+        let duration = viewModel.generationMode == .single ? viewModel.videoDuration : estimateTotalDuration()
+        let priceCents = MonetizationConfig.priceForSeconds(duration)
+        let tokens = creditsManager.creditsNeeded(for: duration, enabledStages: viewModel.enabledStages)
         
         HStack {
             Image(systemName: "info.circle")
                 .font(.caption)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(estimatedCredits) credits • $\(String(format: "%.2f", estimatedCost))")
+                Text("\(Int(duration))s • \(tokens) tokens • \(MonetizationConfig.formatPrice(priceCents))")
                     .font(.caption)
                     .fontWeight(.medium)
                 
-                if estimatedCredits == 1 {
-                    Text("Minimum 1 credit")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                }
+                Text("$0.15 per second")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
@@ -458,7 +584,8 @@ struct PromptView: View {
             
             generateButton(creditCost: creditCost, hasEnoughCredits: hasEnoughCredits)
             
-            if viewModel.promptText.count > 200 {
+            // Show multi-clip button only in single mode with long prompt
+            if viewModel.generationMode == .single && viewModel.promptText.count > 200 {
                 multiClipButton
             }
             
@@ -524,9 +651,11 @@ struct PromptView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(0.8)
                 } else {
-                    Image(systemName: "wand.and.stars")
+                    Image(systemName: viewModel.generationMode == .single ? "wand.and.stars" : "film.stack")
                 }
-                Text(viewModel.isGenerating ? "Generating..." : hasEnoughCredits ? "Generate Clip" : "Insufficient Credits")
+                Text(viewModel.isGenerating ? "Generating..." : hasEnoughCredits ? 
+                     (viewModel.generationMode == .single ? "Generate Video" : "Create Film") : 
+                     "Insufficient Credits")
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -611,6 +740,8 @@ struct PromptView: View {
                 VStack(spacing: 20) {
                     quickActionButtons
                     
+                    generationModeSelector
+                    
                     howItWorksSection
                     
                     projectNameField
@@ -619,9 +750,11 @@ struct PromptView: View {
                     
                     imageReferenceSection
                     
-                    videoDurationControl
-                    
-                    qualityTierSection
+                    if viewModel.generationMode == .single {
+                        videoDurationControl
+                    } else {
+                        durationStrategySection
+                    }
                     
                     pipelineStageToggles
                     
@@ -673,6 +806,9 @@ struct PromptView: View {
             .sheet(isPresented: $showingPurchaseView) {
                 EnhancedCreditsPurchaseView()
             }
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(selectedImage: $viewModel.selectedImage, useDefaultAd: $viewModel.useDefaultAdImage)
+            }
             .overlay {
                 if showingInsufficientCredits {
                     InsufficientCreditsOverlay(
@@ -701,17 +837,59 @@ struct PromptView: View {
         )
     }
     
-    private func prepareSegments() {
-        // Create segments based on the current script
-        let segments = MultiClipSegmentCollection.createSegments(
-            from: viewModel.promptText,
-            strategy: determineSegmentationStrategy()
-        )
+    private func estimateTotalDuration() -> TimeInterval {
+        // Estimate based on prompt length and duration strategy
+        let wordCount = viewModel.promptText.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
+        let estimatedSegments = max(1, wordCount / 50) // Roughly 50 words per segment
         
-        // Clear existing and add new segments
-        segmentCollection.segments.removeAll()
-        for segment in segments {
-            segmentCollection.addSegment(segment)
+        switch viewModel.durationStrategy {
+        case .uniform(let duration):
+            return duration * Double(estimatedSegments)
+        case .custom:
+            // Assume average 10s per segment
+            return 10.0 * Double(estimatedSegments)
+        case .auto:
+            // AI will determine, estimate conservatively
+            return 8.0 * Double(estimatedSegments)
+        }
+    }
+    
+    private func prepareSegments() {
+        // For multi-clip mode, prepare segments based on strategy
+        if viewModel.generationMode == .multiClip {
+            // Create segments based on the current script
+            let segments = MultiClipSegmentCollection.createSegments(
+                from: viewModel.promptText,
+                strategy: determineSegmentationStrategy()
+            )
+            
+            // Clear existing and add new segments
+            segmentCollection.segments.removeAll()
+            for var segment in segments {
+                // Apply duration based on strategy
+                switch viewModel.durationStrategy {
+                case .uniform(let duration):
+                    segment.duration = duration
+                case .custom:
+                    // Keep default duration, user will customize
+                    break
+                case .auto:
+                    // AI will determine, keep default for now
+                    break
+                }
+                segmentCollection.addSegment(segment)
+            }
+        } else {
+            // For single mode being converted to multi-clip
+            let segments = MultiClipSegmentCollection.createSegments(
+                from: viewModel.promptText,
+                strategy: determineSegmentationStrategy()
+            )
+            
+            segmentCollection.segments.removeAll()
+            for segment in segments {
+                segmentCollection.addSegment(segment)
+            }
         }
     }
     

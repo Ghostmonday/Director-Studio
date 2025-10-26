@@ -21,8 +21,16 @@ struct SegmentEditorView: View {
     }
     
     var estimatedCost: Int {
-        let baseCreditsPerSegment = 5 // Adjust based on your pricing
-        return enabledSegments.count * baseCreditsPerSegment
+        // Calculate total duration across all enabled segments
+        let totalDuration = enabledSegments.reduce(0.0) { $0 + $1.duration }
+        // Use MonetizationConfig for consistent pricing
+        let tokens = Int(ceil(MonetizationConfig.creditsForSeconds(totalDuration)))
+        return tokens
+    }
+    
+    var estimatedPriceCents: Int {
+        let totalDuration = enabledSegments.reduce(0.0) { $0 + $1.duration }
+        return MonetizationConfig.priceForSeconds(totalDuration)
     }
     
     var canGenerate: Bool {
@@ -186,10 +194,10 @@ struct SegmentEditorView: View {
             Divider()
                 .frame(height: 40)
             
-            // Credit cost
+            // Cost display
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
-                    Text("\(estimatedCost)")
+                    Text(MonetizationConfig.formatPrice(estimatedPriceCents))
                         .font(.title2)
                         .fontWeight(.bold)
                     if creditsManager.isDevMode {
@@ -202,7 +210,7 @@ struct SegmentEditorView: View {
                             .cornerRadius(4)
                     }
                 }
-                Label("Credits", systemImage: "dollarsign.circle")
+                Label("\(estimatedCost) tokens", systemImage: "dollarsign.circle")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -225,7 +233,7 @@ struct SegmentEditorView: View {
                         .font(.headline)
                     
                     if !creditsManager.isDevMode {
-                        Text("Cost: \(estimatedCost) credits • Balance: \(creditsManager.credits)")
+                        Text("\(MonetizationConfig.formatPrice(estimatedPriceCents)) • \(estimatedCost) tokens • Balance: \(creditsManager.credits)")
                             .font(.caption)
                             .opacity(0.8)
                     }

@@ -54,6 +54,8 @@
     <string>DirectorStudio needs microphone access to record voiceovers for your videos.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>DirectorStudio needs photo library access to save and export your videos.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>DirectorStudio needs to access your photo library to use reference images for video generation.</string>
     <key>NSCameraUsageDescription</key>
     <string>DirectorStudio may need camera access for future features.</string>
     <key>NSUbiquitousContainers</key>
