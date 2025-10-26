@@ -8,10 +8,12 @@ import AVKit
 struct EnhancedClipCell: View {
     let clip: GeneratedClip
     let isSelected: Bool
+    var onDelete: ((GeneratedClip) -> Void)?
     @State private var thumbnail: UIImage?
     @State private var isLoading = true
     @State private var showingMenu = false
     @State private var isHovered = false
+    @State private var showingDeleteConfirmation = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -148,6 +150,14 @@ struct EnhancedClipCell: View {
         .onAppear {
             loadThumbnail()
         }
+        .alert("Delete Clip?", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                onDelete?(clip)
+            }
+        } message: {
+            Text("This will permanently delete '\(clip.name)'. This action cannot be undone.")
+        }
     }
     
     // MARK: - Components
@@ -214,7 +224,9 @@ struct EnhancedClipCell: View {
         
         Divider()
         
-        Button(role: .destructive, action: {}) {
+        Button(role: .destructive, action: {
+            showingDeleteConfirmation = true
+        }) {
             Label("Delete", systemImage: "trash")
         }
     }

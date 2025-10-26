@@ -314,9 +314,21 @@ struct EnhancedLibraryView: View {
     @ViewBuilder
     private func clipView(for clip: GeneratedClip) -> some View {
         if viewMode == .grid {
-            EnhancedClipCell(clip: clip, isSelected: selectedClip?.id == clip.id)
+            EnhancedClipCell(
+                clip: clip, 
+                isSelected: selectedClip?.id == clip.id,
+                onDelete: { clip in
+                    viewModel.deleteClip(clip)
+                }
+            )
         } else {
-            EnhancedClipRow(clip: clip, isSelected: selectedClip?.id == clip.id)
+            EnhancedClipRow(
+                clip: clip, 
+                isSelected: selectedClip?.id == clip.id,
+                onDelete: { clip in
+                    viewModel.deleteClip(clip)
+                }
+            )
         }
     }
     
