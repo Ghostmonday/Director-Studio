@@ -1,16 +1,17 @@
 // MODULE: SupabaseAPIKeyService
-// VERSION: 1.0.0
-// PURPOSE: Securely fetch API keys from Supabase backend
+// VERSION: 2.0.0
+// PURPOSE: Securely fetch API keys from hosted Supabase backend
 
 import Foundation
 
-/// Service for fetching API keys from Supabase Edge Function
+/// Service for fetching API keys from Supabase database
 /// Keys are stored securely in Supabase database, never in app binary
 class SupabaseAPIKeyService {
     static let shared = SupabaseAPIKeyService()
     
-    // Local Supabase instance
-    private let supabaseURL = "http://127.0.0.1:54321"
+    // Hosted Supabase instance
+    private let supabaseURL = "https://xduwbxbulphvuqqfjrec.supabase.co"
+    private let supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkdXdieGJ1bHBodnVxcWZqcmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDcyMzIsImV4cCI6MjA3Njk4MzIzMn0.dtRj2vDMrLlJSeZ-5wvl-krQLn0IG9Wnzuqgm_AzwSw"
     
     // Cache keys for session (don't fetch every time)
     private var keyCache: [String: String] = [:]
@@ -27,21 +28,15 @@ class SupabaseAPIKeyService {
             return cached
         }
         
-        print("🔑 Fetching \(service) key from Supabase...")
+        print("🔑 Fetching \(service) key from hosted Supabase...")
         
-        let url = URL(string: "\(supabaseURL)/functions/v1/generate-api-key")!
+        // Use Supabase REST API to query the api_keys table
+        let url = URL(string: "\(supabaseURL)/rest/v1/api_keys?service=eq.\(service)&select=key")!
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // TODO: Replace with actual user authentication
-        // For now, using dev mode token
-        // In production, get from Supabase Auth:
-        // let token = try await supabase.auth.session.accessToken
-        request.setValue("Bearer dev-token", forHTTPHeaderField: "Authorization")
-        
-        let body = ["service": service]
-        request.httpBody = try JSONEncoder().encode(body)
+        request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(supabaseAnonKey)", forHTTPHeaderField: "Authorization")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -54,13 +49,26 @@ class SupabaseAPIKeyService {
             throw APIKeyError.httpError(httpResponse.statusCode)
         }
         
-        let result = try JSONDecoder().decode(APIKeyResponse.self, from: data)
+        // Parse the response array
+        let results = try JSONDecoder().decode([APIKeyRecord].self, from: data)
+        
+        guard let record = results.first else {
+            print("❌ No API key found for service: \(service)")
+            throw APIKeyError.missingKey
+        }
         
         // Cache the key
-        keyCache[service] = result.key
+        keyCache[service] = record.key
         
-        print("✅ Successfully fetched \(service) key")
-        return result.key
+        print("✅ Successfully fetched \(service) key from hosted Supabase")
+        return record.key
+    }
+    
+    /// Fetch API key using a more injectable approach for pipeline modules
+    /// - Parameter service: Service name (e.g. "Pollo", "DeepSeek")
+    /// - Returns: The API key for the service
+    func fetchAPIKey(for service: String) async throws -> String {
+        return try await getAPIKey(service: service)
     }
     
     /// Clear the key cache (e.g. on logout)
@@ -71,7 +79,7 @@ class SupabaseAPIKeyService {
 
 // MARK: - Response Models
 
-struct APIKeyResponse: Codable {
+struct APIKeyRecord: Codable {
     let key: String
 }
 

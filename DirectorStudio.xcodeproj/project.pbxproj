@@ -20,6 +20,9 @@
 		9B90AA7D2EAE31330085A1AC /* SupabaseAPIKeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA7B2EAE31330085A1AC /* SupabaseAPIKeyService.swift */; };
 		9B90AA7E2EAE31330085A1AC /* FrameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA7A2EAE31330085A1AC /* FrameExtractor.swift */; };
 		9B90AA832EAE338A0085A1AC /* BillingDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA812EAE338A0085A1AC /* BillingDashboardView.swift */; };
+		9B90AA872EAE3B940085A1AC /* APIUsageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA842EAE3B940085A1AC /* APIUsageManager.swift */; };
+		9B90AA882EAE3B940085A1AC /* FrameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA852EAE3B940085A1AC /* FrameExtractor.swift */; };
+		9B90AA892EAE3B940085A1AC /* SupabaseAPIKeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA862EAE3B940085A1AC /* SupabaseAPIKeyService.swift */; };
 		9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113F2EAAF20100A0660D /* LoadingView.swift */; };
 		9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113E2EAAF20100A0660D /* ErrorView.swift */; };
 		9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311402EAAF20100A0660D /* TooltipView.swift */; };
@@ -90,6 +93,9 @@
 		9B90AA7A2EAE31330085A1AC /* FrameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FrameExtractor.swift; path = Services/FrameExtractor.swift; sourceTree = "<group>"; };
 		9B90AA7B2EAE31330085A1AC /* SupabaseAPIKeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SupabaseAPIKeyService.swift; path = Services/SupabaseAPIKeyService.swift; sourceTree = "<group>"; };
 		9B90AA812EAE338A0085A1AC /* BillingDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingDashboardView.swift; sourceTree = "<group>"; };
+		9B90AA842EAE3B940085A1AC /* APIUsageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIUsageManager.swift; sourceTree = "<group>"; };
+		9B90AA852EAE3B940085A1AC /* FrameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameExtractor.swift; sourceTree = "<group>"; };
+		9B90AA862EAE3B940085A1AC /* SupabaseAPIKeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAPIKeyService.swift; sourceTree = "<group>"; };
 		9B93113E2EAAF20100A0660D /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		9B93113F2EAAF20100A0660D /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		9B9311402EAAF20100A0660D /* TooltipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipView.swift; sourceTree = "<group>"; };
@@ -294,6 +300,9 @@
 		B01234881234567890123456 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				9B90AA842EAE3B940085A1AC /* APIUsageManager.swift */,
+				9B90AA852EAE3B940085A1AC /* FrameExtractor.swift */,
+				9B90AA862EAE3B940085A1AC /* SupabaseAPIKeyService.swift */,
 				9B949E542EADAE880017473C /* Monetization */,
 				9B9311672EAB2AD100A0660D /* CreditsManager.swift */,
 				9B9311692EAB2AD300A0660D /* StoreKitManager.swift */,
@@ -448,6 +457,9 @@
 				9B949E582EADAE880017473C /* BillingManager.swift in Sources */,
 				B01234581234567890123456 /* PromptView.swift in Sources */,
 				9B90AA832EAE338A0085A1AC /* BillingDashboardView.swift in Sources */,
+				9B90AA872EAE3B940085A1AC /* APIUsageManager.swift in Sources */,
+				9B90AA882EAE3B940085A1AC /* FrameExtractor.swift in Sources */,
+				9B90AA892EAE3B940085A1AC /* SupabaseAPIKeyService.swift in Sources */,
 				B01234591234567890123456 /* PromptViewModel.swift in Sources */,
 				9B93114D2EAAF26B00A0660D /* DemoContent.swift in Sources */,
 				9B9311682EAB2AD200A0660D /* CreditsManager.swift in Sources */,
