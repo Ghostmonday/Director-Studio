@@ -64,8 +64,13 @@ struct ContentView: View {
         }
         .onAppear {
             // Auto-enable dev mode for testing
-            _ = CreditsManager.shared.enableDevMode(passcode: "2025DS10")
-            print("🔧 Dev Mode Auto-Enabled for Testing")
+            let devModeEnabled = CreditsManager.shared.enableDevMode(passcode: "2025DS10")
+            print("🔧 Dev Mode Auto-Enabled: \(devModeEnabled)")
+            print("🔧 Dev Mode Status: \(CreditsManager.shared.isDevMode)")
+            
+            // Give unlimited tokens for testing
+            CreditsManager.shared.tokens = 999999
+            print("💰 Granted 999,999 tokens for testing")
         }
     }
 }

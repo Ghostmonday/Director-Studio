@@ -60,9 +60,15 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     }
     
     public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
+        // DEBUG: Print current state
+        print("🔍 DEBUG: isDevMode = \(CreditsManager.shared.isDevMode)")
+        print("🔍 DEBUG: shouldUseDemoMode = \(CreditsManager.shared.shouldUseDemoMode)")
+        print("🔍 DEBUG: tokens = \(CreditsManager.shared.tokens)")
+        
         // Check if we should use demo mode based on credits
         if CreditsManager.shared.shouldUseDemoMode {
             print("🎬 DEMO MODE: Simulating video generation...")
+            print("❌ Returning Chrome demo video because shouldUseDemoMode = true")
             
             // Simulate processing delay
             try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
@@ -70,6 +76,8 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             // Return a 15-second cinematic video for App Store demo
             return URL(string: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4")!
         }
+        
+        print("✅ Not in demo mode - proceeding with real API call")
         
         // Fetch API key from Supabase (secure)
         let fetchedKey: String
