@@ -534,7 +534,7 @@ struct PromptView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
-            NavigationLink(destination: CreditsPurchaseView()) {
+            NavigationLink(destination: EnhancedCreditsPurchaseView()) {
                 Text("Get Credits")
                     .font(.caption)
                     .fontWeight(.semibold)

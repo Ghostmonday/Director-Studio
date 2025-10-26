@@ -165,7 +165,7 @@ struct EnhancedLibraryView: View {
                         .frame(width: 80)
                         
                         // Settings
-                        NavigationLink(destination: SettingsView()) {
+                        NavigationLink(destination: PolishedSettingsView()) {
                             Image(systemName: "gear")
                         }
                     }

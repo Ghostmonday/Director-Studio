@@ -177,7 +177,13 @@ struct PolishedSettingsView: View {
                     }
                     
                     if creditsManager.isDevMode {
-                        Pill(text: "DEV MODE", color: theme.Colors.creditsFree)
+                        Text("DEV MODE")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(theme.Colors.creditsFree)
+                            .clipShape(Capsule())
                     }
                 }
                 

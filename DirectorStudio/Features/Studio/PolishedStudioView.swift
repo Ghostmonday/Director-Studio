@@ -239,7 +239,7 @@ struct PolishedStudioView: View {
                     .padding(.horizontal, theme.Spacing.xxxLarge)
             }
             
-            NavigationLink(destination: PolishedPromptView()) {
+            NavigationLink(destination: PromptView()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                     Text("Create First Scene")
@@ -367,7 +367,13 @@ struct EnhancedStudioClipCell: View {
                         
                         // Featured badge
                         if clip.isFeaturedDemo {
-                            Pill(text: "DEMO", color: theme.Colors.secondary)
+                            Text("DEMO")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(theme.Colors.secondary)
+                                .clipShape(Capsule())
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
