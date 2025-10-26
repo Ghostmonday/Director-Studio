@@ -62,6 +62,11 @@ struct ContentView: View {
             PolishedSettingsView()
                 .environmentObject(coordinator)
         }
+        .onAppear {
+            // Auto-enable dev mode for testing
+            _ = CreditsManager.shared.enableDevMode(passcode: "2025DS10")
+            print("🔧 Dev Mode Auto-Enabled for Testing")
+        }
     }
 }
 
