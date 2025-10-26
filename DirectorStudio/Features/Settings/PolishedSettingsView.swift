@@ -13,6 +13,8 @@ struct PolishedSettingsView: View {
     @State private var animateIn = false
     @State private var devOptionsUnlocked = false
     @State private var tapCount = 0
+    @State private var showingDevPasscode = false
+    @State private var devPasscode = ""
     
     private let theme = DirectorStudioTheme.self
     
@@ -78,6 +80,24 @@ struct PolishedSettingsView: View {
         }
         .sheet(isPresented: $showingAbout) {
             AboutView()
+        }
+        .alert("Developer Mode", isPresented: $showingDevPasscode) {
+            TextField("Enter passcode", text: $devPasscode)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Cancel", role: .cancel) {
+                devPasscode = ""
+            }
+            Button("Enable") {
+                if creditsManager.enableDevMode(passcode: devPasscode) {
+                    HapticFeedback.notification(.success)
+                } else {
+                    HapticFeedback.notification(.error)
+                }
+                devPasscode = ""
+            }
+        } message: {
+            Text("Enter the monthly developer passcode (YYYYDSMM format)")
         }
         .onAppear {
             withAnimation(theme.Animation.gentle) {
@@ -373,10 +393,10 @@ struct PolishedSettingsView: View {
     private func toggleDevMode() {
         if creditsManager.isDevMode {
             creditsManager.disableDevMode()
+            HapticFeedback.impact(.medium)
         } else {
-            _ = creditsManager.enableDevMode(passcode: generateMonthlyPasscode())
+            showingDevPasscode = true
         }
-        HapticFeedback.impact(.medium)
     }
     
     private func generateMonthlyPasscode() -> String {
@@ -399,7 +419,7 @@ struct PolishedSettingsView: View {
     
     private func resetCredits() {
         // Reset credits to 0
-        _ = creditsManager.useCredits(amount: creditsManager.credits)
+        creditsManager.useCredits(amount: creditsManager.credits)
         HapticFeedback.notification(.warning)
     }
     
