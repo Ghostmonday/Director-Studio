@@ -322,7 +322,7 @@ struct PromptView: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
             
-            ForEach(PipelineStage.allCases, id: \.self) { stage in
+            ForEach(PipelineStage.allCases.filter { $0 != .continuityAnalysis && $0 != .continuityInjection }, id: \.self) { stage in
                 pipelineStageRow(for: stage)
             }
         }
