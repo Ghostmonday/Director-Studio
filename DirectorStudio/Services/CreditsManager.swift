@@ -87,15 +87,7 @@ public final class CreditsManager: ObservableObject {
             return false
         }
         
-        // 4. Check for debug build configuration
-        guard Bundle.main.infoDictionary?["DEV_MODE"] as? String == "YES" else {
-            return false
-        }
-        
-        // 5. Additional check for Xcode connection (prevents release builds)
-        let isDebugging = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != nil ||
-                         ProcessInfo.processInfo.environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil
-        
+        // Dev mode is now active!
         return true
         #else
         // Never allow dev mode in release builds
@@ -453,6 +445,10 @@ public final class CreditsManager: ObservableObject {
         UserDefaults.standard.set(true, forKey: "DEV_MODE_ENABLED")
         UserDefaults.standard.set(Date(), forKey: "DEV_MODE_PASSCODE_TIMESTAMP")
         print("🧑‍💻 Dev mode enabled until \(Date().addingTimeInterval(3600))")
+        
+        // Post notification to update UI
+        NotificationCenter.default.post(name: .creditsDidChange, object: nil)
+        
         return true
     }
     

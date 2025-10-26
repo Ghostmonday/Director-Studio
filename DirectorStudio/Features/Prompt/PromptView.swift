@@ -742,14 +742,14 @@ struct ImagePicker: View {
             VStack(spacing: 20) {
                 // Default ad.png option
                 Button(action: {
-                    if let adImage = UIImage(named: "reference_demo") {
+                    if let adImage = UIImage(named: "ad") {
                         selectedImage = adImage
                         useDefaultAd = true
                         dismiss()
                     }
                 }) {
                     HStack {
-                        if let adImage = UIImage(named: "reference_demo") {
+                        if let adImage = UIImage(named: "ad") {
                             Image(uiImage: adImage)
                                 .resizable()
                                 .scaledToFill()

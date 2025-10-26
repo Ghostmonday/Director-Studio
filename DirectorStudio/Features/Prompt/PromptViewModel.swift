@@ -165,8 +165,27 @@ class PromptViewModel: ObservableObject {
         }
         
         do {
-            let clip = try await pipelineService.generateClip(
+            // Get continuity manager
+            let continuityManager = ContinuityManager.shared
+            
+            // Analyze continuity (check if this is first clip in project)
+            let isFirstClip = (coordinator.currentProject?.clipCount ?? 0) == 0
+            let analysis = continuityManager.analyzeContinuity(
                 prompt: promptText,
+                isFirstClip: isFirstClip,
+                referenceImage: imageData
+            )
+            
+            // Inject continuity elements into prompt for better scene flow
+            let enhancedPrompt = continuityManager.injectContinuity(
+                prompt: promptText,
+                analysis: analysis,
+                referenceImage: imageData
+            )
+            
+            // Generate with enhanced prompt
+            let clip = try await pipelineService.generateClip(
+                prompt: enhancedPrompt,
                 clipName: clipName,
                 enabledStages: enabledStages,
                 referenceImageData: imageData,
