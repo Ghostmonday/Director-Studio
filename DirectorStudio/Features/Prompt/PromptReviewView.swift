@@ -24,13 +24,17 @@ struct PromptReviewView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header
-                    headerView
-                        .padding()
-                        .background(.regularMaterial)
-                    
-                    // Prompts list
-                    ScrollView {
+                    // Guardrail: Show error if no segments
+                    if segmentCollection.segments.isEmpty {
+                        emptyStateView
+                    } else {
+                        // Header
+                        headerView
+                            .padding()
+                            .background(.regularMaterial)
+                        
+                        // Prompts list
+                        ScrollView {
                         LazyVStack(spacing: 16) {
                             ForEach(Array(segmentCollection.segments.enumerated()), id: \.element.id) { index, segment in
                                 PromptEditCard(
@@ -64,10 +68,11 @@ struct PromptReviewView: View {
                         .padding()
                     }
                     
-                    // Continue button
-                    continueButton
-                        .padding()
-                        .background(.regularMaterial)
+                        // Continue button
+                        continueButton
+                            .padding()
+                            .background(.regularMaterial)
+                    }
                 }
             }
             .navigationTitle("Review Prompts")
@@ -109,14 +114,67 @@ struct PromptReviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    private var emptyStateView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.orange)
+            
+            VStack(spacing: 12) {
+                Text("Segmentation Failed")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Unable to break down your script into clips. Please try again or use a different script format.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            Button(action: { isPresented = false }) {
+                Label("Go Back", systemImage: "arrow.left")
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.orange)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+    }
+    
     private var continueButton: some View {
-        Button(action: onContinue) {
+        let hasEmptyPrompts = segmentCollection.segments.contains { $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let canContinue = !segmentCollection.segments.isEmpty && !hasEmptyPrompts
+        
+        return Button(action: {
+            guard canContinue else {
+                #if DEBUG
+                print("⚠️ [PromptReview] Blocked: Empty prompts detected")
+                #endif
+                return
+            }
+            onContinue()
+        }) {
             HStack(spacing: 12) {
-                Image(systemName: "arrow.right.circle.fill")
+                Image(systemName: canContinue ? "arrow.right.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.system(size: 20))
                 
-                Text("Continue to Duration Selection")
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(canContinue ? "Continue to Duration Selection" : "Fix Empty Prompts")
+                        .font(.headline)
+                    
+                    if !canContinue && hasEmptyPrompts {
+                        Text("Some prompts are empty - please add content")
+                            .font(.caption)
+                            .opacity(0.8)
+                    }
+                }
                 
                 Spacer()
             }
@@ -125,14 +183,15 @@ struct PromptReviewView: View {
             .frame(maxWidth: .infinity)
             .background(
                 LinearGradient(
-                    colors: [.blue, .purple],
+                    colors: canContinue ? [.blue, .purple] : [.gray],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .cornerRadius(16)
-            .shadow(color: .blue.opacity(0.3), radius: 10, y: 5)
+            .shadow(color: canContinue ? .blue.opacity(0.3) : .clear, radius: 10, y: 5)
         }
+        .disabled(!canContinue)
     }
 }
 

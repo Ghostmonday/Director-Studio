@@ -221,11 +221,13 @@ public class MultiClipSegmentCollection: ObservableObject {
             let isNewScene = sceneMarkers.contains { upperLine.hasPrefix($0) }
             
             if isNewScene && !currentScene.isEmpty {
-                let sceneText = currentScene.joined(separator: "\n")
-                segments.append(MultiClipSegment(
-                    text: sceneText,
-                    order: segments.count
-                ))
+                let sceneText = currentScene.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !sceneText.isEmpty {
+                    segments.append(MultiClipSegment(
+                        text: sceneText,
+                        order: segments.count
+                    ))
+                }
                 currentScene = [line]
             } else {
                 currentScene.append(line)
@@ -234,15 +236,38 @@ public class MultiClipSegmentCollection: ObservableObject {
         
         // Add final scene
         if !currentScene.isEmpty {
-            let sceneText = currentScene.joined(separator: "\n")
-            segments.append(MultiClipSegment(
-                text: sceneText,
-                order: segments.count
-            ))
+            let sceneText = currentScene.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !sceneText.isEmpty {
+                segments.append(MultiClipSegment(
+                    text: sceneText,
+                    order: segments.count
+                ))
+            }
         }
         
+        #if DEBUG
+        print("🎬 [Segmentation] byScenes found \(segments.count) segments")
+        #endif
+        
         // Fallback to paragraphs if no scenes detected
-        return segments.isEmpty ? segmentByParagraphs(text) : segments
+        if segments.isEmpty {
+            #if DEBUG
+            print("🎬 [Segmentation] No scenes found, falling back to paragraphs")
+            #endif
+            let paragraphSegments = segmentByParagraphs(text)
+            
+            // If paragraphs also empty, try sentences
+            if paragraphSegments.isEmpty {
+                #if DEBUG
+                print("🎬 [Segmentation] No paragraphs found, falling back to sentences")
+                #endif
+                return segmentBySentences(text, sentencesPerSegment: 2)
+            }
+            
+            return paragraphSegments
+        }
+        
+        return segments
     }
     
     private static func segmentBySentences(_ text: String, sentencesPerSegment: Int) -> [MultiClipSegment] {

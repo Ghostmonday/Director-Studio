@@ -220,10 +220,25 @@ struct SegmentingView: View {
         
         // Perform actual segmentation
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            #if DEBUG
+            print("🎬 [VideoGeneration] Starting segmentation")
+            print("   - Script length: \(script.count) characters")
+            print("   - Strategy: byScenes")
+            #endif
+            
             let segments = MultiClipSegmentCollection.createSegments(
                 from: script,
                 strategy: .byScenes
             )
+            
+            #if DEBUG
+            print("🎬 [VideoGeneration] Segmentation complete:")
+            print("   - Generated \(segments.count) segments")
+            for (i, seg) in segments.enumerated() {
+                print("   - Segment \(i+1): \(seg.text.prefix(50))... (\(seg.duration)s)")
+            }
+            #endif
+            
             onComplete(segments)
         }
     }
