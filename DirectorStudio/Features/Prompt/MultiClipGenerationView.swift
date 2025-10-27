@@ -18,6 +18,7 @@ struct MultiClipGenerationView: View {
     @State private var errorMessage = ""
     @State private var generatedClips: [GeneratedClip] = []
     @State private var continuityFrames: [UUID: UIImage] = [:]
+    @State private var continuityEnabled = true // Toggle for continuity mode
     
     private let pipelineService = PipelineServiceBridge()
     private let storageService = LocalStorageService()
@@ -39,6 +40,11 @@ struct MultiClipGenerationView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 24) {
+                    // Continuity settings (only show before generation starts)
+                    if !isGenerating && currentSegmentIndex == 0 {
+                        continuitySettings
+                    }
+                    
                     // Progress header
                     progressHeader
                     
@@ -80,6 +86,56 @@ struct MultiClipGenerationView: View {
         .onAppear {
             startGeneration()
         }
+    }
+    
+    private var continuitySettings: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "link.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(continuityEnabled ? .blue : .gray)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Continuity Mode")
+                        .font(.headline)
+                    
+                    Text(continuityEnabled ? 
+                         "Each clip will reference the previous clip's final frame" : 
+                         "Clips will be generated independently")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Toggle("", isOn: $continuityEnabled)
+                    .labelsHidden()
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(continuityEnabled ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(continuityEnabled ? Color.blue : Color.clear, lineWidth: 2)
+            )
+            
+            if continuityEnabled {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    
+                    Text("Extracts final frame at 90% of each clip for visual consistency")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
+            }
+        }
+        .padding(.horizontal)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
     
     private var progressHeader: some View {
@@ -240,15 +296,23 @@ struct MultiClipGenerationView: View {
             segmentCollection.updateSegmentState(id: segment.id, state: .generating)
             
             do {
-                // Get previous frame for continuity
-                let previousFrame = continuityFrames[segment.previousSegmentId ?? UUID()]
+                // Get previous frame for continuity (only if enabled)
+                let previousFrame = continuityEnabled ? continuityFrames[segment.previousSegmentId ?? UUID()] : nil
                 let referenceImageData = previousFrame?.jpegData(compressionQuality: 0.8)
                 
                 // Build prompt with continuity
                 var prompt = segment.text
-                if index > 0 {
+                if index > 0 && continuityEnabled {
                     prompt += "\n\n[CONTINUITY NOTE: This scene continues from the previous clip. Maintain visual consistency and flow.]"
                 }
+                
+                #if DEBUG
+                if continuityEnabled {
+                    print("🎬 [Continuity] Enabled for Segment \(index + 1) - Using previous frame: \(previousFrame != nil)")
+                } else {
+                    print("🚫 [Continuity] Disabled for Segment \(index + 1)")
+                }
+                #endif
                 
                 // Generate the clip
                 let clip = try await pipelineService.generateClip(
@@ -273,8 +337,8 @@ struct MultiClipGenerationView: View {
                 }
                 #endif
                 
-                // Extract last frame for next segment's continuity
-                if index < segments.count - 1 {
+                // Extract last frame for next segment's continuity (only if enabled)
+                if index < segments.count - 1 && continuityEnabled {
                     segmentCollection.updateSegmentState(id: segment.id, state: .extractingFrame)
                     
                     if let videoURL = clip.localURL {
@@ -287,6 +351,9 @@ struct MultiClipGenerationView: View {
                                 image: lastFrame,
                                 data: lastFrame.jpegData(compressionQuality: 0.8) ?? Data()
                             )
+                            #if DEBUG
+                            print("✅ [Continuity] Extracted frame from Segment \(index + 1) for next clip")
+                            #endif
                         }
                     }
                 }
