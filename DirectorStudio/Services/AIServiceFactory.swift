@@ -57,6 +57,11 @@ public final class AIServiceFactory {
     
     /// Create a video generation service based on available providers
     public static func createVideoService() -> VideoGenerationProtocol {
+        // FORCE REAL POLLO SERVICE FOR DEBUGGING
+        print("🚨 FORCING REAL POLLO SERVICE - BYPASSING API KEY CHECK")
+        return PolloAIService()
+        
+        /* OLD CODE - DISABLED FOR DEBUGGING
         // Check for Pollo first (primary video generation service)
         if let polloKey = Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String,
            !polloKey.isEmpty, !polloKey.contains("YOUR_") {
@@ -68,6 +73,7 @@ public final class AIServiceFactory {
         // Fallback to mock for testing
         print("⚠️ No video generation API keys found. Using mock video service.")
         return MockVideoService()
+        */
     }
     
     /// Create a text enhancement service based on available providers
@@ -141,6 +147,10 @@ final class MockVideoService: VideoGenerationProtocol, @unchecked Sendable {
     var isAvailable: Bool { true }
     
     func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
+        print("⚠️⚠️⚠️ MOCK VIDEO SERVICE BEING USED ⚠️⚠️⚠️")
+        print("⚠️ THIS SHOULD NOT HAPPEN - CHECK CONFIGURATION")
+        print("⚠️ Prompt was: \(prompt)")
+        
         // Simulate processing
         try await Task.sleep(nanoseconds: 2_000_000_000)
         

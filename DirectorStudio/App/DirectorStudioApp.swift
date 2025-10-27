@@ -71,6 +71,14 @@ struct ContentView: View {
             // Give unlimited tokens for testing
             CreditsManager.shared.tokens = 999999
             print("💰 Granted 999,999 tokens for testing")
+            
+            // Test API logging
+            print("\n🔍🔍🔍 TESTING API DEBUG LOGGING 🔍🔍🔍")
+            print("📱 App launched successfully")
+            print("🔧 Dev Mode: \(CreditsManager.shared.isDevMode)")
+            print("💰 Tokens: \(CreditsManager.shared.tokens)")
+            print("🎬 Demo Mode: REMOVED - all users have full access")
+            print("🔍🔍🔍 END TEST 🔍🔍🔍\n")
         }
     }
 }

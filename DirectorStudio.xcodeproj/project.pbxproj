@@ -26,7 +26,6 @@
 		9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113F2EAAF20100A0660D /* LoadingView.swift */; };
 		9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113E2EAAF20100A0660D /* ErrorView.swift */; };
 		9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311402EAAF20100A0660D /* TooltipView.swift */; };
-		9B93114D2EAAF26B00A0660D /* DemoContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93114A2EAAF26B00A0660D /* DemoContent.swift */; };
 		9B93114E2EAAF26B00A0660D /* OnboardingContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93114B2EAAF26B00A0660D /* OnboardingContent.swift */; };
 		9B9311512EAAF32000A0660D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93114F2EAAF32000A0660D /* OnboardingView.swift */; };
 		9B9311562EAAF3FA00A0660D /* StageHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311552EAAF3FA00A0660D /* StageHelpView.swift */; };
@@ -70,6 +69,11 @@
 		E0726CD4F8A883B9D2D4BE6F /* PolishedStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A56E098BBFBDC14DBA314A /* PolishedStudioView.swift */; };
 		E196FE06584FA2146CA8CBC9 /* DirectorStudioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 315EBE6C8267A2B416F174A1 /* DirectorStudioTheme.swift */; };
 		E85A1781E0AC184023DDB84E /* PolishedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45DAA51F31409B502E4AA42A /* PolishedSettingsView.swift */; };
+		C07425A0824C3D90BA02FF69 /* PromptReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F549E05C3AF5BED311741 /* PromptReviewView.swift */; };
+		C07425A1824C3D90BA02FF6A /* DurationSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F549F05C3AF5BED311742 /* DurationSelectionView.swift */; };
+		C07425A2824C3D90BA02FF6B /* CostConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */; };
+		C07425A3824C3D90BA02FF6C /* AIClipDurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A105C3AF5BED311744 /* AIClipDurator.swift */; };
+		C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,7 +103,6 @@
 		9B93113E2EAAF20100A0660D /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		9B93113F2EAAF20100A0660D /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		9B9311402EAAF20100A0660D /* TooltipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltipView.swift; sourceTree = "<group>"; };
-		9B93114A2EAAF26B00A0660D /* DemoContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoContent.swift; sourceTree = "<group>"; };
 		9B93114B2EAAF26B00A0660D /* OnboardingContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContent.swift; sourceTree = "<group>"; };
 		9B93114F2EAAF32000A0660D /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		9B9311552EAAF3FA00A0660D /* StageHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StageHelpView.swift; path = DirectorStudio/Features/Prompt/StageHelpView.swift; sourceTree = SOURCE_ROOT; };
@@ -141,6 +144,11 @@
 		E2750D2808218979C9A79F4E /* ClipPreviewSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClipPreviewSheet.swift; sourceTree = "<group>"; };
 		F1C2D574F714010A73346265 /* DirectorStudio/Services/CloudKitStorageService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/CloudKitStorageService.swift; sourceTree = SOURCE_ROOT; };
 		F22F549D05C3AF5BED311740 /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
+		F22F549E05C3AF5BED311741 /* PromptReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PromptReviewView.swift; sourceTree = "<group>"; };
+		F22F549F05C3AF5BED311742 /* DurationSelectionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DurationSelectionView.swift; sourceTree = "<group>"; };
+		F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CostConfirmationView.swift; sourceTree = "<group>"; };
+		F22F54A105C3AF5BED311744 /* AIClipDurator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIClipDurator.swift; sourceTree = "<group>"; };
+		F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VideoGenerationScreen.swift; sourceTree = "<group>"; };
 		F474C1F23AFC635C7DFACB1B /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -178,7 +186,6 @@
 		9B93114C2EAAF26B00A0660D /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				9B93114A2EAAF26B00A0660D /* DemoContent.swift */,
 				9B93114B2EAAF26B00A0660D /* OnboardingContent.swift */,
 			);
 			name = Resources;
@@ -314,6 +321,7 @@
 				9B93115A2EAAF7C300A0660D /* PolloAIService.swift */,
 				9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */,
 				9B9311612EAAF81300A0660D /* AIServiceFactory.swift */,
+				F22F54A105C3AF5BED311744 /* AIClipDurator.swift */,
 				2B00DF7B74AC9DF76123272F /* DirectorStudio/Services/PipelineProtocols.swift */,
 				17F1C29A646342F73AA8948E /* DirectorStudio/Services/VideoStitchingService.swift */,
 				BB8C3DDA9C41D713A328175F /* DirectorStudio/Services/VoiceoverGenerationService.swift */,
@@ -340,6 +348,10 @@
 				BBA19D6ADB6E69CD02BF0D67 /* MultiClipGenerationView.swift */,
 				F474C1F23AFC635C7DFACB1B /* SegmentEditorView.swift */,
 				0B0218374E973A139F793E87 /* MultiClipGenerationView.swift */,
+				F22F549E05C3AF5BED311741 /* PromptReviewView.swift */,
+				F22F549F05C3AF5BED311742 /* DurationSelectionView.swift */,
+				F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */,
+				F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */,
 			);
 			path = Prompt;
 			sourceTree = "<group>";
@@ -461,7 +473,6 @@
 				9B90AA882EAE3B940085A1AC /* FrameExtractor.swift in Sources */,
 				9B90AA892EAE3B940085A1AC /* SupabaseAPIKeyService.swift in Sources */,
 				B01234591234567890123456 /* PromptViewModel.swift in Sources */,
-				9B93114D2EAAF26B00A0660D /* DemoContent.swift in Sources */,
 				9B9311682EAB2AD200A0660D /* CreditsManager.swift in Sources */,
 				9B93116A2EAB2AD400A0660D /* StoreKitManager.swift in Sources */,
 				9B93114E2EAAF26B00A0660D /* OnboardingContent.swift in Sources */,
@@ -496,6 +507,11 @@
 				99943B4B90F399DCDF14B752 /* DirectorStudio/Services/CloudKitStorageService.swift in Sources */,
 				C0742592824C3D90BA02FF68 /* SegmentEditorView.swift in Sources */,
 				1B37008AFB32183B2F2F574F /* MultiClipGenerationView.swift in Sources */,
+				C07425A0824C3D90BA02FF69 /* PromptReviewView.swift in Sources */,
+				C07425A1824C3D90BA02FF6A /* DurationSelectionView.swift in Sources */,
+				C07425A2824C3D90BA02FF6B /* CostConfirmationView.swift in Sources */,
+				C07425A3824C3D90BA02FF6C /* AIClipDurator.swift in Sources */,
+				C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */,
 				A5D2C81BF065338A72401F17 /* MultiClipSegment.swift in Sources */,
 				03E41333D15C1DC713D41A5C /* EnhancedLibraryView.swift in Sources */,
 				B18E75D1884AD952EBB5BBE8 /* EnhancedClipCell.swift in Sources */,

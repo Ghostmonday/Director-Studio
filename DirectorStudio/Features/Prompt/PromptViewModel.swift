@@ -78,7 +78,7 @@ class PromptViewModel: ObservableObject {
     @Published var lastClipContinuityImage: UIImage? = nil
     @Published var showingStageHelp: PipelineStage? = nil
     @Published var generationError: Error? = nil
-    @Published var showingDemoAlert = false
+    // Demo mode removed
     @Published var showingCreditsAlert = false
     @Published var showingCostBreakdown = false
     @Published var showingPromptHelp = false
@@ -195,7 +195,7 @@ class PromptViewModel: ObservableObject {
         // Pre-flight credit check
         let cost = CreditsManager.shared.creditsNeeded(for: videoDuration, enabledStages: enabledStages)
         
-        // If not a featured demo and insufficient credits, show alert
+        // Check credits for all users
         if !useDefaultAdImage && !CreditsManager.shared.canGenerate(cost: cost) {
             generationError = CreditError.insufficientCredits(
                 needed: cost,
@@ -254,7 +254,6 @@ class PromptViewModel: ObservableObject {
                 clipName: clipName,
                 enabledStages: finalStages,
                 referenceImageData: imageData,
-                isFeaturedDemo: useDefaultAdImage,
                 duration: videoDuration
             )
             

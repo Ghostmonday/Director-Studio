@@ -15,6 +15,7 @@ struct PolishedSettingsView: View {
     @State private var tapCount = 0
     @State private var showingDevPasscode = false
     @State private var devPasscode = ""
+    @State private var showingLogs = false
     
     private let theme = DirectorStudioTheme.self
     
@@ -300,6 +301,14 @@ struct PolishedSettingsView: View {
                 subtitle: "Remove temporary files",
                 icon: "trash",
                 action: {}
+            )
+            
+            // View API logs
+            SettingsRow(
+                title: "View API Logs",
+                subtitle: "Show debug logs from API calls",
+                icon: "doc.text.magnifyingglass",
+                action: { showingLogs = true }
             )
         }
         .padding()

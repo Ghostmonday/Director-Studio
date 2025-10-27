@@ -23,7 +23,7 @@ public struct GeneratedClip: Identifiable, Codable {
     var duration: TimeInterval
     var projectID: UUID?
     var isGeneratedFromImage: Bool
-    var isFeaturedDemo: Bool
+    // Demo mode removed - all clips are real
     
     init(
         id: UUID = UUID(),
@@ -35,7 +35,6 @@ public struct GeneratedClip: Identifiable, Codable {
         duration: TimeInterval = 0,
         projectID: UUID? = nil,
         isGeneratedFromImage: Bool = false,
-        isFeaturedDemo: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -46,7 +45,6 @@ public struct GeneratedClip: Identifiable, Codable {
         self.duration = duration
         self.projectID = projectID
         self.isGeneratedFromImage = isGeneratedFromImage
-        self.isFeaturedDemo = isFeaturedDemo
     }
 }
 

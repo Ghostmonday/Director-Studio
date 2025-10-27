@@ -14,8 +14,7 @@ extension Notification.Name {
     /// Posted when user successfully purchases credits
     static let creditsPurchased = Notification.Name("creditsPurchased")
     
-    /// Posted when demo mode is activated
-    static let demoModeActivated = Notification.Name("demoModeActivated")
+    // Demo mode removed - all users have full access
 }
 
 /// Helper to extract credit info from notifications

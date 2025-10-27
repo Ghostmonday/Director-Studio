@@ -12,14 +12,9 @@ struct EnhancedStudioView: View {
     @State private var draggedClip: GeneratedClip?
     @State private var showingExportOptions = false
     @State private var animateIn = false
+    @State private var showingDebugConsole = false
     
-    var featuredClips: [GeneratedClip] {
-        coordinator.generatedClips.filter { $0.isFeaturedDemo }
-    }
-    
-    var regularClips: [GeneratedClip] {
-        coordinator.generatedClips.filter { !$0.isFeaturedDemo }
-    }
+    // All clips are regular clips now - no demo clips
     
     var body: some View {
         NavigationView {
@@ -32,17 +27,11 @@ struct EnhancedStudioView: View {
                         .offset(y: animateIn ? 0 : -20)
                         .animation(.easeOut(duration: 0.5), value: animateIn)
                     
-                    // Featured Demo Section
-                    if !featuredClips.isEmpty {
-                        FeaturedSection(clips: featuredClips, selectedClipID: $selectedClipID)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(.easeOut(duration: 0.5).delay(0.1), value: animateIn)
-                    }
+                    // Featured section removed - all clips are real
                     
                     // My Clips Section with drag-and-drop
                     MyClipsSection(
-                        clips: regularClips,
+                        clips: coordinator.generatedClips,
                         selectedClipID: $selectedClipID,
                         draggedClip: $draggedClip
                     )
@@ -62,6 +51,21 @@ struct EnhancedStudioView: View {
             .navigationTitle("Studio")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { showingDebugConsole = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "terminal")
+                            Text("Debug")
+                        }
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(6)
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: { showingExportOptions = true }) {
@@ -91,6 +95,10 @@ struct EnhancedStudioView: View {
         }
         .sheet(isPresented: $showingExportOptions) {
             ExportOptionsView()
+        }
+        .sheet(isPresented: $showingDebugConsole) {
+            Text("Debug Console - Check Xcode Console for logs")
+                .padding()
         }
     }
 }
@@ -182,7 +190,7 @@ struct FeaturedSection: View {
                     .font(.title2)
                     .foregroundColor(.yellow)
                 
-                Text("Featured Demo")
+                // Demo labels removed
                     .font(.title2)
                     .fontWeight(.bold)
             }

@@ -49,7 +49,7 @@ struct EnhancedLibraryView: View {
     
     enum FilterOption: String, CaseIterable {
         case all = "All Clips"
-        case demo = "Demo Clips"
+        // Demo filter removed
         case custom = "My Clips"
         case synced = "Synced"
         case local = "Local Only"
@@ -62,10 +62,10 @@ struct EnhancedLibraryView: View {
         switch filterOption {
         case .all:
             break
-        case .demo:
-            clips = clips.filter { $0.isFeaturedDemo }
+        // Demo filter removed
         case .custom:
-            clips = clips.filter { !$0.isFeaturedDemo }
+            // All clips are custom now
+            break
         case .synced:
             clips = clips.filter { $0.syncStatus == .synced }
         case .local:
@@ -306,8 +306,7 @@ struct EnhancedLibraryView: View {
                     .foregroundColor(.blue)
                     .font(.caption)
             }
-            .disabled(coordinator.isGuestMode)
-            .opacity(coordinator.isGuestMode ? 0.5 : 1)
+            // All users have full access
         }
     }
     

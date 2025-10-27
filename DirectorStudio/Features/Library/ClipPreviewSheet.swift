@@ -158,15 +158,7 @@ struct ClipPreviewSheet: View {
                             
                             // Metadata
                             HStack(spacing: 30) {
-                                if clip.isFeaturedDemo {
-                                    Label("Demo", systemImage: "star.fill")
-                                        .font(.caption)
-                                        .foregroundColor(.purple)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.purple.opacity(0.2))
-                                        .cornerRadius(6)
-                                }
+                                // Demo badges removed - all clips are real
                                 
                                 Label(formatDate(clip.createdAt), systemImage: "calendar")
                                     .font(.caption)

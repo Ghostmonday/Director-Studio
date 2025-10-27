@@ -182,14 +182,7 @@ public final class CreditsManager: ObservableObject {
         }
     }
     
-    /// Check if user should be in demo mode
-    public var shouldUseDemoMode: Bool {
-        // Dev mode never uses demo mode - always gets real API access
-        if isDevMode {
-            return false
-        }
-        return !hasPurchased && tokens == 0
-    }
+    // REMOVED: Demo mode no longer exists - all users get full access
     
     /// Set video quality preference
     public func setVideoQuality(_ quality: VideoQualityTier) {

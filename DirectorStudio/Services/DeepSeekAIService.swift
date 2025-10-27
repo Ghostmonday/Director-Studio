@@ -56,17 +56,50 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
+        // 🔍 DEBUG: Log the full request details
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📤 DEEPSEEK API REQUEST:")
+        print("   URL: \(url.absoluteString)")
+        print("   Method: POST")
+        print("   Headers:")
+        print("      Authorization: Bearer \(String(apiKey.prefix(15)))...")
+        print("      Content-Type: application/json")
+        print("   Body:")
+        print("      model: deepseek-chat")
+        print("      prompt: \(prompt)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw PipelineError.apiError("DeepSeek API request failed")
+        // 🔍 DEBUG: Log the response
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ Invalid HTTP response from DeepSeek")
+            throw PipelineError.apiError("Invalid HTTP response from DeepSeek")
+        }
+        
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📥 DEEPSEEK API RESPONSE:")
+        print("   Status Code: \(httpResponse.statusCode)")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("   Response Body: \(responseString)")
+        }
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
+        // ✅ Enhanced error handling
+        guard httpResponse.statusCode == 200 else {
+            let errorMessage = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? [String: Any]
+            let errorText = errorMessage?["message"] as? String ?? "Unknown error"
+            print("❌ DeepSeek API error - Status: \(httpResponse.statusCode), Message: \(errorText)")
+            throw PipelineError.apiError("DeepSeek API error: \(errorText)")
         }
         
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let choices = json?["choices"] as? [[String: Any]]
         let message = choices?.first?["message"] as? [String: Any]
-        return message?["content"] as? String ?? ""
+        let content = message?["content"] as? String ?? ""
+        
+        print("✅ DeepSeek response received: \(content.prefix(100))...")
+        return content
     }
     
     public func analyzeStory(text: String) async throws -> StoryAnalysisOutput {
@@ -96,26 +129,7 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
     
     public func enhancePrompt(prompt: String) async throws -> String {
         let style = VideoStyle.cinematic // Default style
-        // Check if we should use demo mode based on credits
-        if CreditsManager.shared.shouldUseDemoMode || apiKey == "demo-key" {
-            print("🎨 DEMO MODE: Simulating prompt enhancement...")
-            
-            // Simulate processing delay
-            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-            
-            // Return a cinematically enhanced version
-            return """
-            [CINEMATIC SHOT] \(prompt)
-            
-            Shot with professional cinematography:
-            - Dynamic camera movements with smooth tracking
-            - Dramatic lighting with deep shadows and highlights
-            - Depth of field focusing on key subjects
-            - Color grading: \(style == .cinematic ? "cinematic teal and orange palette" : "style-appropriate color scheme")
-            - Atmospheric effects: subtle haze and volumetric lighting
-            - Shot in 4K resolution with film grain
-            """
-        }
+        // Always use real API - demo mode has been removed
         
         let systemPrompt = """
         You are a video prompt enhancement expert. Take the user's prompt and enhance it with:

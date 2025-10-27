@@ -9,8 +9,6 @@
 APP_NAME = DirectorStudio
 APP_BUNDLE_ID = com.directorstudio.app
 
-// Demo Mode Configuration
-APP_DEMO_MODE = $(DEMO_MODE)
 
 // Dev Mode Configuration (DEBUG builds only)
 DEV_MODE = $(DEV_MODE)

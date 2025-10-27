@@ -26,7 +26,7 @@ class AppCoordinator: ObservableObject {
     @Published var currentProject: Project?
     @Published var generatedClips: [GeneratedClip] = []
     @Published var isAuthenticated: Bool = false
-    @Published var isGuestMode: Bool = false  // Changed to false for testing - allows text input without auth
+    // REMOVED: Guest mode no longer exists - all users have full access
     @Published var showingCreditsPurchase: Bool = false
     
     // MARK: - Services
@@ -61,8 +61,7 @@ class AppCoordinator: ObservableObject {
     @MainActor
     private func checkAuthentication() async {
         isAuthenticated = await authService.checkiCloudStatus()
-        // Always allow full access - no guest mode restrictions
-        isGuestMode = false
+        // All users have full access
     }
     
     /// Test API services configuration

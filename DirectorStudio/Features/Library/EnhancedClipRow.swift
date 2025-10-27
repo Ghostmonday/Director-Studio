@@ -56,15 +56,7 @@ struct EnhancedClipRow: View {
                         .fontWeight(.medium)
                         .lineLimit(1)
                     
-                    if clip.isFeaturedDemo {
-                        Label("Demo", systemImage: "star.fill")
-                            .font(.caption2)
-                            .foregroundColor(.purple)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.purple.opacity(0.15))
-                            .cornerRadius(4)
-                    }
+                    // Demo badges removed - all clips are real
                 }
                 
                 HStack(spacing: 12) {

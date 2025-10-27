@@ -53,7 +53,8 @@ struct PolishedStudioView: View {
             let weekAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
             clips = clips.filter { $0.createdAt > weekAgo }
         case .favorites:
-            clips = clips.filter { $0.isFeaturedDemo }
+            // Demo filter removed - all clips can be favorited
+            break
         }
         
         return clips.sorted { $0.createdAt > $1.createdAt }
@@ -365,17 +366,7 @@ struct EnhancedStudioClipCell: View {
                         
                         Spacer()
                         
-                        // Featured badge
-                        if clip.isFeaturedDemo {
-                            Text("DEMO")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 4)
-                                .background(theme.Colors.secondary)
-                                .clipShape(Capsule())
-                                .transition(.scale.combined(with: .opacity))
-                        }
+                        // Demo badges removed - all clips are real
                     }
                     .padding(theme.Spacing.small)
                     

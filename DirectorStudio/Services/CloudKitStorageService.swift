@@ -38,7 +38,7 @@ class CloudKitStorageService: StorageServiceProtocol {
         record["duration"] = clip.duration
         record["projectID"] = clip.projectID?.uuidString
         record["isGeneratedFromImage"] = clip.isGeneratedFromImage ? 1 : 0
-        record["isFeaturedDemo"] = clip.isFeaturedDemo ? 1 : 0
+        // Demo mode removed
         record["syncStatus"] = clip.syncStatus.rawValue
         
         // Upload video file if available
@@ -228,7 +228,7 @@ class CloudKitStorageService: StorageServiceProtocol {
         let id = UUID(uuidString: record.recordID.recordName) ?? UUID()
         let projectID = (record["projectID"] as? String).flatMap { UUID(uuidString: $0) }
         let isGeneratedFromImage = (record["isGeneratedFromImage"] as? Int) == 1
-        let isFeaturedDemo = (record["isFeaturedDemo"] as? Int) == 1
+        // Demo mode removed - all clips are real
         let syncStatus = SyncStatus(rawValue: record["syncStatus"] as? String ?? "") ?? .synced
         
         // Download video file if available
@@ -258,8 +258,7 @@ class CloudKitStorageService: StorageServiceProtocol {
             createdAt: createdAt,
             duration: duration,
             projectID: projectID,
-            isGeneratedFromImage: isGeneratedFromImage,
-            isFeaturedDemo: isFeaturedDemo
+            isGeneratedFromImage: isGeneratedFromImage
         )
     }
     

@@ -14,7 +14,8 @@ struct PromptView: View {
     @State private var showImagePicker = false
     @State private var showTemplates = false
     @State private var showSegmentEditor = false
-    @StateObject private var segmentCollection = MultiClipSegmentCollection()
+    @State private var showVideoGenerationScreen = false
+    @State private var scriptForGeneration = ""
     @State private var showingInsufficientCredits = false
     @State private var insufficientCreditsInfo: (needed: Int, have: Int) = (0, 0)
     @State private var showingPurchaseView = false
@@ -24,14 +25,7 @@ struct PromptView: View {
     @ViewBuilder
     private var quickActionButtons: some View {
         HStack(spacing: 12) {
-            Button(action: {
-                viewModel.loadDemoContent()
-            }) {
-                Label("Demo", systemImage: "play.circle.fill")
-                    .font(.subheadline)
-            }
-            .buttonStyle(.bordered)
-            .tint(.purple)
+            // Demo button removed - all users have full access
             
             Button(action: {
                 showTemplates = true
@@ -123,7 +117,6 @@ struct PromptView: View {
         TextField("Project Name", text: $viewModel.projectName)
             .textFieldStyle(.roundedBorder)
             .padding(.horizontal)
-            .disabled(coordinator.isGuestMode)
     }
     
     @ViewBuilder
@@ -154,7 +147,6 @@ struct PromptView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5), lineWidth: 1)
                     )
-                    .disabled(coordinator.isGuestMode)
                 
                 if viewModel.promptText.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -264,7 +256,6 @@ struct PromptView: View {
             .cornerRadius(10)
         }
         .padding(.horizontal)
-        .disabled(coordinator.isGuestMode)
     }
     
     @ViewBuilder
@@ -374,7 +365,6 @@ struct PromptView: View {
                     .foregroundColor(.gray)
                 
                 Slider(value: $viewModel.videoDuration, in: 3...20, step: 1)
-                    .disabled(coordinator.isGuestMode)
                 
                 Text("20s")
                     .font(.caption2)
@@ -472,7 +462,6 @@ struct PromptView: View {
                         }
                     }
                 }
-                .disabled(coordinator.isGuestMode)
                 .tint(.blue)
                 
                 Text(stage.description)
@@ -659,20 +648,20 @@ struct PromptView: View {
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(coordinator.isGuestMode || !hasEnoughCredits ? Color.gray : Color.blue)
+            .background(!hasEnoughCredits ? Color.gray : Color.blue)
             .foregroundColor(.white)
             .cornerRadius(10)
             .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
         }
-        .disabled(coordinator.isGuestMode || viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
+        .disabled(viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
         .opacity(viewModel.isGenerating ? 0.8 : 1.0)
     }
     
     @ViewBuilder
     private var multiClipButton: some View {
         Button(action: {
-            prepareSegments()
-            showSegmentEditor = true
+            scriptForGeneration = viewModel.promptText
+            showVideoGenerationScreen = true
         }) {
             HStack(spacing: 12) {
                 Image(systemName: "square.stack.3d.up.fill")
@@ -764,7 +753,7 @@ struct PromptView: View {
                     
                     generateSection
                     
-                    if coordinator.isGuestMode {
+                    if false { // Guest mode removed
                         Text("Sign in to iCloud to create content")
                             .font(.caption)
                             .foregroundColor(.orange)
@@ -794,14 +783,12 @@ struct PromptView: View {
             .sheet(isPresented: $viewModel.showingPromptHelp) {
                 PromptHelpSheet()
             }
-            .sheet(isPresented: $showSegmentEditor) {
-                SegmentEditorView(
-                    segmentCollection: segmentCollection,
-                    isPresented: $showSegmentEditor,
-                    onGenerate: { segments in
-                        // Will be handled by MultiClipGenerationView
-                    }
+            .fullScreenCover(isPresented: $showVideoGenerationScreen) {
+                VideoGenerationScreen(
+                    isPresented: $showVideoGenerationScreen,
+                    initialScript: scriptForGeneration
                 )
+                .environmentObject(coordinator)
             }
             .sheet(isPresented: $showingPurchaseView) {
                 EnhancedCreditsPurchaseView()
@@ -854,44 +841,6 @@ struct PromptView: View {
         }
     }
     
-    private func prepareSegments() {
-        // For multi-clip mode, prepare segments based on strategy
-        if viewModel.generationMode == .multiClip {
-            // Create segments based on the current script
-            let segments = MultiClipSegmentCollection.createSegments(
-                from: viewModel.promptText,
-                strategy: determineSegmentationStrategy()
-            )
-            
-            // Clear existing and add new segments
-            segmentCollection.segments.removeAll()
-            for var segment in segments {
-                // Apply duration based on strategy
-                switch viewModel.durationStrategy {
-                case .uniform(let duration):
-                    segment.duration = duration
-                case .custom:
-                    // Keep default duration, user will customize
-                    break
-                case .auto:
-                    // AI will determine, keep default for now
-                    break
-                }
-                segmentCollection.addSegment(segment)
-            }
-        } else {
-            // For single mode being converted to multi-clip
-            let segments = MultiClipSegmentCollection.createSegments(
-                from: viewModel.promptText,
-                strategy: determineSegmentationStrategy()
-            )
-            
-            segmentCollection.segments.removeAll()
-            for segment in segments {
-                segmentCollection.addSegment(segment)
-            }
-        }
-    }
     
     private func determineSegmentationStrategy() -> MultiClipSegmentationStrategy {
         let text = viewModel.promptText

@@ -52,16 +52,7 @@ struct EnhancedClipCell: View {
                 VStack {
                     // Top bar with badges
                     HStack {
-                        // Demo badge
-                        if clip.isFeaturedDemo {
-                            Label("Demo", systemImage: "star.fill")
-                                .font(.caption2)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.purple.opacity(0.9))
-                                .cornerRadius(6)
-                        }
+                        // Demo badges removed - all clips are real
                         
                         Spacer()
                         

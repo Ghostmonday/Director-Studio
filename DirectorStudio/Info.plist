@@ -89,8 +89,6 @@
     <string>$(API_CONFIG_DEEPSEEK_KEY)</string>
     <key>DEEPSEEK_API_ENDPOINT</key>
     <string>$(API_CONFIG_DEEPSEEK_ENDPOINT)</string>
-    <key>DEMO_MODE</key>
-    <string>$(APP_DEMO_MODE)</string>
     <key>DEV_MODE</key>
     <string>$(DEV_MODE)</string>
 </dict>

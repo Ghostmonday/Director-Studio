@@ -256,7 +256,6 @@ struct MultiClipGenerationView: View {
                     clipName: "Segment_\(index + 1)",
                     enabledStages: Set<PipelineStage>(),
                     referenceImageData: referenceImageData,
-                    isFeaturedDemo: false,
                     duration: segment.duration
                 )
                 

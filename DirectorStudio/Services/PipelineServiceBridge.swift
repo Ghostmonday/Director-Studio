@@ -38,7 +38,6 @@ class PipelineServiceBridge {
         clipName: String,
         enabledStages: Set<PipelineStage>,
         referenceImageData: Data? = nil,
-        isFeaturedDemo: Bool = false,
         duration: TimeInterval = 10.0,
         isFirstClip: Bool = false
     ) async throws -> GeneratedClip {
@@ -46,7 +45,6 @@ class PipelineServiceBridge {
         print("   Clip: \(clipName)")
         print("   Prompt: \(prompt)")
         print("   Image: \(referenceImageData != nil ? "Yes (\(referenceImageData!.count / 1024)KB)" : "No")")
-        print("   Featured: \(isFeaturedDemo)")
         
         // Initialize generation ID
         let generationId = UUID().uuidString
@@ -54,48 +52,16 @@ class PipelineServiceBridge {
         // Credit enforcement - calculate total cost
         let totalCost = CreditsManager.shared.creditsNeeded(for: duration, enabledStages: enabledStages)
         
-        // Check if we should use demo mode
-        let shouldUseDemoMode = CreditsManager.shared.shouldUseDemoMode && !isFeaturedDemo
-        
-        // Check credits for non-demo generation
-        if !isFeaturedDemo && !shouldUseDemoMode {
-            do {
-                try CreditsManager.shared.checkCreditsForGeneration(cost: totalCost)
-                print("✅ Credit check passed. Cost: \(totalCost), Available: \(CreditsManager.shared.credits)")
-            } catch let creditError as CreditError {
-                print("❌ Credit check failed: \(creditError.localizedDescription)")
-                throw PipelineError.configurationError(creditError.localizedDescription)
-            }
+        // Check credits for all users
+        do {
+            try CreditsManager.shared.checkCreditsForGeneration(cost: totalCost)
+            print("✅ Credit check passed. Cost: \(totalCost), Available: \(CreditsManager.shared.credits)")
+        } catch let creditError as CreditError {
+            print("❌ Credit check failed: \(creditError.localizedDescription)")
+            throw PipelineError.configurationError(creditError.localizedDescription)
         }
         
-        // Demo mode - return sample video without API calls
-        if shouldUseDemoMode {
-            print("🎮 DEMO MODE: Returning sample video (no API calls, no credits used)")
-            
-            let demoVideoURL = URL(string: "https://storage.googleapis.com/griptapevideos/output/demo_\(Int.random(in: 1...5)).mp4")!
-            let localVideoURL = try await downloadVideo(from: demoVideoURL, clipName: clipName)
-            
-            let demoClip = GeneratedClip(
-                id: UUID(),
-                name: clipName + " (Demo)",
-                localURL: localVideoURL,
-                thumbnailURL: nil,
-                syncStatus: .notUploaded,
-                createdAt: Date(),
-                duration: 10.0,
-                projectID: nil,
-                isGeneratedFromImage: referenceImageData != nil,
-                isFeaturedDemo: true
-            )
-            
-            try await storageService.saveClip(demoClip)
-            print("✅ Demo clip saved: \(clipName)")
-            
-            // Post demo mode notification
-            NotificationCenter.default.post(name: .demoModeActivated, object: nil)
-            
-            return demoClip
-        }
+        // Always use real API - demo mode has been removed
         
         print("🔄 Progress: Initializing pipeline... (0%)")
         
@@ -185,7 +151,6 @@ class PipelineServiceBridge {
             duration: duration,
             projectID: nil,
             isGeneratedFromImage: referenceImageData != nil,
-            isFeaturedDemo: isFeaturedDemo
         )
         
         // Save clip to storage
@@ -196,13 +161,11 @@ class PipelineServiceBridge {
         print("   Enabled stages: \(enabledStages.map { $0.rawValue }.joined(separator: ", "))")
         
         // Deduct credits for successful generation
-        if !isFeaturedDemo {
-            let deducted = CreditsManager.shared.useCredits(amount: totalCost)
-            if deducted {
-                print("💳 Deducted \(totalCost) credits. Remaining: \(CreditsManager.shared.credits)")
-            } else {
-                print("⚠️ Failed to deduct credits - this shouldn't happen after pre-check")
-            }
+        let deducted = CreditsManager.shared.useCredits(amount: totalCost)
+        if deducted {
+            print("💳 Deducted \(totalCost) credits. Remaining: \(CreditsManager.shared.credits)")
+        } else {
+            print("⚠️ Failed to deduct credits - this shouldn't happen after pre-check")
         }
         
         print("🔄 Progress: Complete! (100%)")
@@ -216,7 +179,6 @@ class PipelineServiceBridge {
         script: String,
         segmentationStrategy: SegmentationStrategy = .automatic,
         enabledStages: Set<PipelineStage> = Set(PipelineStage.allCases),
-        isFeaturedDemo: Bool = false
     ) async throws -> [GeneratedClip] {
         print("🎬 Starting multi-clip sequence generation...")
         
@@ -235,7 +197,6 @@ class PipelineServiceBridge {
                 clipName: segment.name,
                 enabledStages: enabledStages,
                 referenceImageData: nil,
-                isFeaturedDemo: isFeaturedDemo,
                 duration: segment.estimatedDuration,
                 isFirstClip: isFirst
             )
@@ -254,7 +215,6 @@ class PipelineServiceBridge {
         segmentationStrategy: SegmentationStrategy = .automatic,
         transitionStyle: TransitionStyle = .crossfade,
         exportQuality: ExportQuality = .high,
-        isFeaturedDemo: Bool = false
     ) async throws -> ProductionOutput {
         print("🎬 Starting complete production generation...")
         
@@ -262,7 +222,6 @@ class PipelineServiceBridge {
         let clips = try await generateMultiClipSequence(
             script: script,
             segmentationStrategy: segmentationStrategy,
-            isFeaturedDemo: isFeaturedDemo
         )
         
         // 2. Generate voiceover if requested
