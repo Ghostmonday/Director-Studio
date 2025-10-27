@@ -6,398 +6,210 @@
 //
 
 import Foundation
+import os.log
+
+// MARK: - Pollo API Models
+
+struct PolloInput: Codable {
+    let prompt: String
+    let resolution: String
+    let length: Int
+    let mode: String
+    
+    init(prompt: String, resolution: String, length: Int, mode: String = "basic") {
+        self.prompt = prompt
+        self.resolution = resolution
+        self.length = length
+        self.mode = mode
+    }
+}
+
+struct PolloRequest: Codable {
+    let input: PolloInput
+}
+
+struct PolloResponse: Codable {
+    struct Data: Codable {
+        let taskId: String
+        let status: String  // "waiting"
+    }
+    let code: String
+    let data: Data
+}
+
+struct StatusResponse: Codable {
+    struct Data: Codable {
+        let status: String  // "processing", "succeed", "failed"
+        let videoUrl: String?  // On "succeed"
+    }
+    let code: String
+    let data: Data
+}
+
+// MARK: - Pollo AI Service
 
 /// Pollo AI service implementation
 public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @unchecked Sendable {
-    private let apiKey: String
-    private let endpoint: String
-    private let session: URLSession
+    private let client: APIClientProtocol
+    private let logger = Logger(subsystem: "DirectorStudio.API", category: "Pollo")
     
-    /// Log to file for persistent debugging
-    private func logToFile(_ message: String) {
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let logPath = documentsPath.appendingPathComponent("pollo_api_log.txt")
-        
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
-        let logEntry = "[\(timestamp)] \(message)\n"
-        
-        if let data = logEntry.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath.path) {
-                if let fileHandle = try? FileHandle(forWritingTo: logPath) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
-                }
-            } else {
-                try? data.write(to: logPath)
-            }
-        }
-        
-        print("📝 Log written to: \(logPath.path)")
+    // Store API key fetched from Supabase
+    private var apiKey: String?
+    
+    public init(client: APIClientProtocol? = nil) {
+        self.client = client ?? APIClient()
     }
     
-    public init(apiKey: String? = nil, endpoint: String? = nil) {
-        // Get from Info.plist or use provided values
-        self.apiKey = apiKey ?? Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String ?? ""
-        self.endpoint = endpoint ?? Bundle.main.infoDictionary?["POLLO_API_ENDPOINT"] as? String ?? "https://api.pollo.ai/v1"
-        
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 300
-        self.session = URLSession(configuration: config)
+    public init() {
+        self.client = APIClient()
     }
     
     public var isAvailable: Bool {
-        return !apiKey.isEmpty
+        // Check if we have an API key (will be fetched dynamically)
+        return true // Always available, key fetched on demand
     }
     
-    public func processText(prompt: String, systemPrompt: String?) async throws -> String {
-        guard isAvailable else {
-            throw PipelineError.configurationError("Pollo API key not configured")
+    /// Fetch API key if needed
+    private func ensureAPIKey() async throws -> String {
+        if let key = apiKey, !key.isEmpty {
+            return key
         }
         
-        let url = URL(string: "\(endpoint)/generate")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        logger.debug("🔑 Fetching Pollo API key from Supabase...")
         
-        let body: [String: Any] = [
-            "prompt": prompt,
-            "system_prompt": systemPrompt ?? "You are a video generation assistant.",
-            "model": "pollo-v1",
-            "max_tokens": 2048
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw PipelineError.apiError("Pollo API request failed")
+        do {
+            let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
+            self.apiKey = fetchedKey
+            logger.debug("✅ Pollo API key fetched successfully")
+            return fetchedKey
+        } catch {
+            logger.error("❌ Failed to fetch Pollo API key: \(error.localizedDescription)")
+            throw APIError.authError("Failed to fetch Pollo API key: \(error.localizedDescription)")
         }
-        
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        return json?["result"] as? String ?? ""
     }
     
     public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
-        // COMPREHENSIVE DEBUG LOGGING
-        print("\n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀")
-        print("🚀 POLLO VIDEO GENERATION START")
-        print("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀")
-        print("📅 Timestamp: \(Date())")
-        print("📝 Prompt: \(prompt)")
-        print("⏱️ Duration: \(duration) seconds")
-        print("💰 Credits: \(CreditsManager.shared.tokens) tokens")
-        print("🔧 Dev Mode: \(CreditsManager.shared.isDevMode)")
-        // Demo mode removed - all users have full access
-        print("🔑 API Key Present: \(!apiKey.isEmpty)")
-        print("🌐 Endpoint: \(endpoint)")
-        print("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n")
+        logger.debug("🚀 Starting video generation - Prompt: '\(prompt)', Duration: \(duration)s")
         
-        // Log to file for persistence
-        logToFile("=== POLLO API REQUEST START ===\nPrompt: \(prompt)\nDuration: \(duration)\n")
+        // Ensure we have API key
+        let apiKey = try await ensureAPIKey()
         
-        // Always use real API - demo mode has been removed
+        // Apply test mode if enabled
+        let finalDuration = TestingMode.isEnabled ? 1.0 : duration
+        let finalResolution = TestingMode.isEnabled ? "480p" : "480p" // Already using 480p for cost
         
-        // Fetch API key from Supabase (secure)
-        let fetchedKey: String
-        if !apiKey.isEmpty {
-            // Use local key if available (for dev mode)
-            fetchedKey = apiKey
-            print("🔑 Using local Pollo key")
-        } else {
-            // Fetch from Supabase backend
-            fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
-            print("🔑 Using Supabase Pollo key")
-        }
+        logger.debug("📊 Final parameters - Duration: \(finalDuration)s, Resolution: \(finalResolution)")
         
-        // ✅ FIX 1: Correct endpoint
+        // Create request
         let url = URL(string: "https://pollo.ai/api/platform/generation/pollo/pollo-v1-6")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
-        // ✅ FIX 2: Correct header
-        request.setValue(fetchedKey, forHTTPHeaderField: "x-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")  // Case-sensitive!
         
-        // ✅ FIX 3: Correct payload structure
-        let body: [String: Any] = [
-            "input": [
-                "prompt": prompt,
-                "resolution": "480p",
-                "length": Int(duration)
-            ]
-        ]
+        let body = PolloRequest(input: PolloInput(
+            prompt: prompt,
+            resolution: finalResolution,
+            length: Int(finalDuration)
+        ))
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = try JSONEncoder().encode(body)
         
-        // 🔍 DEBUG: Log the full request details
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("📤 POLLO API REQUEST:")
-        print("   URL: \(url.absoluteString)")
-        print("   Method: POST")
-        print("   Headers:")
-        print("      x-api-key: \(String(fetchedKey.prefix(15)))...")
-        print("      Content-Type: application/json")
-        print("   Body:")
-        print("      input.prompt: \(prompt)")
-        print("      input.resolution: 480p")
-        print("      input.length: \(Int(duration))")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
-        let (data, response) = try await session.data(for: request)
-        
-        // 🔍 DEBUG: Log the response
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("❌ Invalid HTTP response")
-            throw PipelineError.apiError("Invalid HTTP response from Pollo")
+        // Log request details
+        logger.debug("📤 Request URL: \(url)")
+        logger.debug("📤 Request Headers: x-api-key: \(String(apiKey.prefix(8)))...")
+        if let bodyData = request.httpBody,
+           let bodyString = String(data: bodyData, encoding: .utf8) {
+            logger.debug("📤 Request Body: \(bodyString)")
         }
         
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("📥 POLLO API RESPONSE:")
-        print("   Status Code: \(httpResponse.statusCode)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("   Response Body: \(responseString)")
-        }
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        // Make request
+        let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
         
-        // ✅ FIX 5: Surface API errors properly
-        guard httpResponse.statusCode == 200 else {
-            let errorMessage = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String ?? "Unknown error"
-            print("❌ Pollo API error - Status: \(httpResponse.statusCode), Message: \(errorMessage)")
-            throw PipelineError.apiError("Pollo API error: \(errorMessage)")
+        guard response.code == "SUCCESS" else {
+            throw APIError.authError("Pollo API error: \(response.code)")
         }
         
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        
-        // ✅ FIX 4: Handle task-based response and poll for status
-        if let taskId = json?["data"] as? [String: Any],
-           let taskIdString = taskId["taskId"] as? String {
-            print("✅ Received taskId: \(taskIdString)")
-            print("🔄 Polling for task completion...")
-            
-            // Poll for task status
-            return try await pollTaskStatus(taskId: taskIdString, apiKey: fetchedKey)
+        guard response.data.status == "waiting" else {
+            throw APIError.authError("Unexpected init status: \(response.data.status)")
         }
         
-        // Fallback: try to get video URL directly
-        if let videoURLString = json?["video_url"] as? String,
-           let videoURL = URL(string: videoURLString) {
-            print("✅ Received video URL: \(videoURL.absoluteString)")
-            return videoURL
-        }
+        logger.debug("✅ Task created: \(response.data.taskId)")
         
-        print("❌ No valid taskId or video_url in response")
-        throw PipelineError.apiError("Invalid response from Pollo API")
+        // Poll for completion
+        return try await pollForVideo(taskId: response.data.taskId, apiKey: apiKey)
     }
     
-    /// ✅ FIX 4: Poll for task status until completion
-    private func pollTaskStatus(taskId: String, apiKey: String) async throws -> URL {
+    private func pollForVideo(taskId: String, apiKey: String) async throws -> URL {
         let statusURL = URL(string: "https://pollo.ai/api/platform/generation/task/status/\(taskId)")!
+        var request = URLRequest(url: statusURL)
+        request.httpMethod = "GET"
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        
+        let maxAttempts = 60 // 5 minutes max
         var attempts = 0
-        let maxAttempts = 60 // Maximum 60 checks (5 minutes for 5-second intervals)
         
         while attempts < maxAttempts {
             attempts += 1
+            logger.debug("🔄 Polling attempt \(attempts)/\(maxAttempts) for task: \(taskId)")
             
-            var request = URLRequest(url: statusURL)
-            request.httpMethod = "GET"
-            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let status: StatusResponse = try await client.performRequest(request, expectedType: StatusResponse.self)
             
-            print("🔄 Polling attempt \(attempts)/\(maxAttempts)...")
-            
-            let (data, response) = try await session.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw PipelineError.apiError("Invalid HTTP response from Pollo status check")
+            guard status.code == "SUCCESS" else {
+                throw APIError.authError("Status check failed: \(status.code)")
             }
             
-            guard httpResponse.statusCode == 200 else {
-                print("❌ Status check error: \(httpResponse.statusCode)")
-                throw PipelineError.apiError("Status check failed")
-            }
-            
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            
-            // Check status
-            if let status = json?["data"] as? [String: Any],
-               let taskStatus = status["status"] as? String {
-                
-                print("📊 Task status: \(taskStatus)")
-                
-                if taskStatus == "finished" || taskStatus == "completed" {
-                    // Get the video URL
-                    if let videoURLString = status["videoUrl"] as? String,
-                       let videoURL = URL(string: videoURLString) {
-                        print("✅ Video ready: \(videoURL.absoluteString)")
-                        return videoURL
-                    }
-                    
-                    // Try alternative field names
-                    if let videoURLString = status["url"] as? String,
-                       let videoURL = URL(string: videoURLString) {
-                        print("✅ Video ready: \(videoURL.absoluteString)")
-                        return videoURL
-                    }
-                    
-                    print("❌ Task completed but no video URL found")
-                    throw PipelineError.apiError("Task completed but no video URL")
+            switch status.data.status {
+            case "succeed":
+                guard let videoUrlString = status.data.videoUrl,
+                      let videoURL = URL(string: videoUrlString) else {
+                    throw APIError.invalidResponse(statusCode: 200)
                 }
+                logger.debug("✅ Video ready: \(videoURL)")
+                return videoURL
                 
-                if taskStatus == "failed" || taskStatus == "error" {
-                    let errorMessage = status["error"] as? String ?? "Task failed"
-                    print("❌ Task failed: \(errorMessage)")
-                    throw PipelineError.apiError("Video generation failed: \(errorMessage)")
-                }
+            case "failed":
+                throw APIError.authError("Video generation failed")
                 
-                // Still processing - wait and retry
-                print("⏳ Task still processing, waiting 5 seconds...")
-                try await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-                continue
+            case "processing", "waiting":
+                logger.debug("⏳ Still processing...")
+                try await Task.sleep(nanoseconds: 5_000_000_000)  // 5s delay
+                
+            default:
+                throw APIError.unknown(NSError(domain: "UnknownStatus", code: 0))
             }
-            
-            print("⚠️ Unexpected response format, retrying...")
-            try await Task.sleep(nanoseconds: 5_000_000_000)
         }
         
-        throw PipelineError.apiError("Video generation timed out after \(maxAttempts) attempts")
+        throw APIError.unknown(NSError(domain: "PollingTimeout", code: 0))
+    }
+    
+    /// Generate video from an image
+    /// - Parameters:
+    ///   - imageData: Image data to use as input
+    ///   - prompt: Text prompt for generation
+    ///   - duration: Duration of the video in seconds
+    /// - Returns: URL to the generated video
+    public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
+        // For now, just use text-based generation
+        // Image-to-video would require different endpoint/params
+        logger.warning("⚠️ Image-to-video not implemented, using text-only generation")
+        return try await generateVideo(prompt: prompt, duration: duration)
+    }
+    
+    // MARK: - Protocol Requirements
+    
+    public func processText(prompt: String, systemPrompt: String?) async throws -> String {
+        // Pollo doesn't process text - it's a video generation service
+        throw APIError.unknown(NSError(domain: "NotSupported", code: 0))
     }
     
     public func healthCheck() async -> Bool {
+        // Simple health check - try to ensure API key
         do {
-            _ = try await processText(prompt: "test", systemPrompt: nil)
+            _ = try await ensureAPIKey()
             return true
         } catch {
             return false
         }
-    }
-    
-    /// Generate video from an image with animation and motion
-    /// - Parameters:
-    ///   - imageData: The image data to animate
-    ///   - prompt: Description of the video/animation to generate
-    ///   - duration: Duration of the video in seconds
-    /// - Returns: URL to the generated video
-    public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
-        // Always use real API - demo mode has been removed
-        
-        // Fetch API key from Supabase (secure)
-        let fetchedKey: String
-        if !apiKey.isEmpty {
-            // Use local key if available (for dev mode)
-            fetchedKey = apiKey
-            print("🔑 Using local Pollo key")
-        } else {
-            // Fetch from Supabase backend
-            fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
-            print("🔑 Using Supabase Pollo key")
-        }
-        
-        // Convert image to base64
-        let base64Image = imageData.base64EncodedString()
-        
-        let url = URL(string: "\(endpoint)/video/image-to-video")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(fetchedKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 300 // 5 minutes for video generation
-        
-        let body: [String: Any] = [
-            "image": base64Image,
-            "prompt": prompt,
-            "duration": duration,
-            "resolution": "1920x1080",
-            "fps": 30,
-            "motion_strength": 0.8, // How much motion to add
-            "interpolate": true      // Smooth animation
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        print("📤 Sending image-to-video request to Pollo...")
-        print("   Prompt: \(prompt)")
-        print("   Duration: \(duration)s")
-        print("   Image size: \(imageData.count / 1024)KB")
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw PipelineError.apiError("Invalid response from Pollo")
-        }
-        
-        print("📥 Response status: \(httpResponse.statusCode)")
-        
-        guard httpResponse.statusCode == 200 else {
-            // Try to parse error message
-            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMessage = errorJson["error"] as? String {
-                throw PipelineError.apiError("Pollo error: \(errorMessage)")
-            }
-            throw PipelineError.apiError("Pollo video generation failed with status \(httpResponse.statusCode)")
-        }
-        
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        
-        // Handle both direct URL and polling-based responses
-        if let videoURLString = json?["video_url"] as? String,
-           let videoURL = URL(string: videoURLString) {
-            print("✅ Video generated: \(videoURLString)")
-            return videoURL
-        } else if let jobId = json?["job_id"] as? String {
-            // Poll for completion
-            print("⏳ Video generation in progress (job: \(jobId))...")
-            return try await pollForVideoCompletion(jobId: jobId)
-        } else {
-            throw PipelineError.apiError("Invalid response format from Pollo")
-        }
-    }
-    
-    /// Poll for video generation completion
-    private func pollForVideoCompletion(jobId: String, maxAttempts: Int = 60) async throws -> URL {
-        let pollURL = URL(string: "\(endpoint)/video/status/\(jobId)")!
-        
-        for attempt in 1...maxAttempts {
-            var request = URLRequest(url: pollURL)
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            
-            let (data, response) = try await session.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                throw PipelineError.apiError("Failed to check video status")
-            }
-            
-            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            let status = json?["status"] as? String
-            
-            switch status {
-            case "completed":
-                if let videoURLString = json?["video_url"] as? String,
-                   let videoURL = URL(string: videoURLString) {
-                    print("✅ Video generation completed after \(attempt * 5)s")
-                    return videoURL
-                }
-                throw PipelineError.apiError("Video completed but no URL provided")
-                
-            case "failed":
-                let error = json?["error"] as? String ?? "Unknown error"
-                throw PipelineError.apiError("Video generation failed: \(error)")
-                
-            case "processing", "queued":
-                print("⏳ Still processing... (\(attempt * 5)s elapsed)")
-                try await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-                continue
-                
-            default:
-                throw PipelineError.apiError("Unknown status: \(status ?? "nil")")
-            }
-        }
-        
-        throw PipelineError.apiError("Video generation timed out after \(maxAttempts * 5) seconds")
     }
 }
