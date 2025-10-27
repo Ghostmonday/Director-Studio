@@ -262,6 +262,13 @@ struct MultiClipGenerationView: View {
     }
     
     private func getSegmentState(at index: Int) -> SegmentProgressDot.State {
+        let segment = segments[index]
+        
+        // Check if segment is disabled
+        if !segment.isEnabled {
+            return .skipped
+        }
+        
         if index < currentSegmentIndex {
             return .completed
         } else if index == currentSegmentIndex {
@@ -288,36 +295,55 @@ struct MultiClipGenerationView: View {
         isGenerating = true
         hasError = false
         
-        for (index, segment) in segments.enumerated() {
-            currentSegmentIndex = index
-            overallProgress = Double(index) / Double(segments.count)
+        // Filter to only enabled segments
+        let enabledSegments = segments.filter { $0.isEnabled }
+        let totalEnabled = enabledSegments.count
+        
+        if totalEnabled == 0 {
+            // No segments selected
+            errorMessage = "No clips selected for generation"
+            hasError = true
+            isGenerating = false
+            return
+        }
+        
+        for (enabledIndex, segment) in enabledSegments.enumerated() {
+            // Find original index for UI display
+            let originalIndex = segments.firstIndex(where: { $0.id == segment.id }) ?? 0
+            currentSegmentIndex = originalIndex
+            overallProgress = Double(enabledIndex) / Double(totalEnabled)
             
             // Update segment state
             segmentCollection.updateSegmentState(id: segment.id, state: .generating)
             
             do {
                 // Get previous frame for continuity (only if enabled)
-                let previousFrame = continuityEnabled ? continuityFrames[segment.previousSegmentId ?? UUID()] : nil
+                // For continuity, check the last GENERATED segment, not just previous in array
+                let previousFrame: UIImage? = if continuityEnabled {
+                    findLastGeneratedFrame(before: segment)
+                } else {
+                    nil
+                }
                 let referenceImageData = previousFrame?.jpegData(compressionQuality: 0.8)
                 
                 // Build prompt with continuity
                 var prompt = segment.text
-                if index > 0 && continuityEnabled {
+                if previousFrame != nil && continuityEnabled {
                     prompt += "\n\n[CONTINUITY NOTE: This scene continues from the previous clip. Maintain visual consistency and flow.]"
                 }
                 
                 #if DEBUG
                 if continuityEnabled {
-                    print("🎬 [Continuity] Enabled for Segment \(index + 1) - Using previous frame: \(previousFrame != nil)")
+                    print("🎬 [Continuity] Enabled for Segment \(originalIndex + 1) - Using previous frame: \(previousFrame != nil ? "Yes" : "No")")
                 } else {
-                    print("🚫 [Continuity] Disabled for Segment \(index + 1)")
+                    print("🚫 [Continuity] Disabled for Segment \(originalIndex + 1)")
                 }
                 #endif
                 
                 // Generate the clip
                 let clip = try await pipelineService.generateClip(
                     prompt: prompt,
-                    clipName: "Segment_\(index + 1)",
+                    clipName: "Segment_\(originalIndex + 1)",
                     enabledStages: Set<PipelineStage>(),
                     referenceImageData: referenceImageData,
                     duration: segment.duration
@@ -332,13 +358,13 @@ struct MultiClipGenerationView: View {
                 if let videoURL = clip.localURL {
                     SimulatorExportHelper.copyToDesktop(
                         from: videoURL,
-                        clipName: "Segment_\(index + 1)_\(clip.id.uuidString.prefix(8))"
+                        clipName: "Segment_\(originalIndex + 1)_\(clip.id.uuidString.prefix(8))"
                     )
                 }
                 #endif
                 
                 // Extract last frame for next segment's continuity (only if enabled)
-                if index < segments.count - 1 && continuityEnabled {
+                if originalIndex < segments.count - 1 && continuityEnabled {
                     segmentCollection.updateSegmentState(id: segment.id, state: .extractingFrame)
                     
                     if let videoURL = clip.localURL {
@@ -352,7 +378,7 @@ struct MultiClipGenerationView: View {
                                 data: lastFrame.jpegData(compressionQuality: 0.8) ?? Data()
                             )
                             #if DEBUG
-                            print("✅ [Continuity] Extracted frame from Segment \(index + 1) for next clip")
+                            print("✅ [Continuity] Extracted frame from Segment \(originalIndex + 1) for next clip")
                             #endif
                         }
                     }
@@ -373,6 +399,23 @@ struct MultiClipGenerationView: View {
         currentSegmentIndex = segments.count
         overallProgress = 1.0
         isGenerating = false
+    }
+    
+    private func findLastGeneratedFrame(before segment: MultiClipSegment) -> UIImage? {
+        // Find the most recent enabled segment before this one that has a frame
+        if let segmentIndex = segments.firstIndex(where: { $0.id == segment.id }) {
+            // Look backwards from current position
+            for i in (0..<segmentIndex).reversed() {
+                let prevSegment = segments[i]
+                if prevSegment.isEnabled {
+                    let frameId = prevSegment.id
+                    if let frame = continuityFrames[frameId] {
+                        return frame
+                    }
+                }
+            }
+        }
+        return nil
     }
     
     private func extractFrame(from videoURL: URL, at time: CMTime) async throws -> UIImage? {
@@ -512,11 +555,12 @@ struct CurrentSegmentCard: View {
 
 struct SegmentProgressDot: View {
     enum State {
-        case pending, active, completed, error
+        case pending, active, completed, error, skipped
     }
     
     let state: State
     let hasContinuity: Bool
+    let isEnabled: Bool = true
     
     var body: some View {
         HStack(spacing: 4) {
@@ -544,6 +588,10 @@ struct SegmentProgressDot: View {
                             Image(systemName: "xmark")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
+                        case .skipped:
+                            Image(systemName: "minus.circle")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
                         default:
                             EmptyView()
                         }
@@ -564,6 +612,8 @@ struct SegmentProgressDot: View {
             return .green
         case .error:
             return .red
+        case .skipped:
+            return .orange.opacity(0.6)
         }
     }
 }

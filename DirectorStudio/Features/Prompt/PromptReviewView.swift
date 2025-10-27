@@ -56,6 +56,14 @@ struct PromptReviewView: View {
                                             }
                                         }
                                     ),
+                                    isEnabled: Binding(
+                                        get: { segment.isEnabled },
+                                        set: { newValue in
+                                            if let idx = segmentCollection.segments.firstIndex(where: { $0.id == segment.id }) {
+                                                segmentCollection.segments[idx].isEnabled = newValue
+                                            }
+                                        }
+                                    ),
                                     isEditing: editingSegmentId == segment.id,
                                     onEdit: { editingSegmentId = segment.id },
                                     onDone: { editingSegmentId = nil }
@@ -105,19 +113,53 @@ struct PromptReviewView: View {
             Text("Review and Edit Your Clip Prompts")
                 .font(.headline)
             
-            Text("Each prompt will generate a separate video clip. Edit them to ensure they flow together naturally.")
+            Text("Select which clips to generate. Unselected clips will be skipped to save credits.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
-            HStack(spacing: 24) {
-                Label("\(segmentCollection.segments.count) Clips", systemImage: "film.stack")
-                    .font(.caption)
-                    .foregroundColor(.blue)
+            // Selection controls
+            let enabledCount = segmentCollection.segments.filter { $0.isEnabled }.count
+            let totalCount = segmentCollection.segments.count
+            
+            HStack {
+                // Stats
+                HStack(spacing: 16) {
+                    Label("\(totalCount) Total", systemImage: "film.stack")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    
+                    Label("\(enabledCount) Selected", systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    
+                    if enabledCount < totalCount {
+                        Label("\(totalCount - enabledCount) Skipped", systemImage: "xmark.circle")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
                 
-                Label("Tap to Edit", systemImage: "pencil.circle")
-                    .font(.caption)
-                    .foregroundColor(.orange)
+                Spacer()
+                
+                // Select all/none button
+                Button(action: {
+                    withAnimation(.spring()) {
+                        let shouldSelectAll = enabledCount < totalCount
+                        for index in segmentCollection.segments.indices {
+                            segmentCollection.segments[index].isEnabled = shouldSelectAll
+                        }
+                    }
+                }) {
+                    Text(enabledCount == totalCount ? "Deselect All" : "Select All")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(10)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -240,6 +282,7 @@ struct PromptEditCard: View {
     let segment: MultiClipSegment
     let clipNumber: Int
     @Binding var text: String
+    @Binding var isEnabled: Bool
     let isEditing: Bool
     let onEdit: () -> Void
     let onDone: () -> Void
@@ -248,26 +291,39 @@ struct PromptEditCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
+                // Checkbox for selection
+                Button(action: {
+                    withAnimation(.spring(response: 0.3)) {
+                        isEnabled.toggle()
+                    }
+                }) {
+                    Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundColor(isEnabled ? .green : .gray)
+                }
+                
                 Label("Clip \(clipNumber)", systemImage: "film")
                     .font(.headline)
-                    .foregroundColor(.blue)
+                    .foregroundColor(isEnabled ? .blue : .gray)
                 
                 Spacer()
                 
-                if isEditing {
-                    Button("Done") {
-                        onDone()
+                if isEnabled {
+                    if isEditing {
+                        Button("Done") {
+                            onDone()
+                        }
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.green)
+                    } else {
+                        Button(action: onEdit) {
+                            Label("Edit", systemImage: "pencil")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.green)
-                } else {
-                    Button(action: onEdit) {
-                        Label("Edit", systemImage: "pencil")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
                 }
             }
             
@@ -296,9 +352,16 @@ struct PromptEditCard: View {
                     }
             }
             
-            // Character count
+            // Character count and status
             HStack {
+                if !isEnabled {
+                    Label("Will be skipped", systemImage: "xmark.circle")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                
                 Spacer()
+                
                 Text("\(text.count) characters")
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -308,5 +371,10 @@ struct PromptEditCard: View {
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        .opacity(isEnabled ? 1.0 : 0.6)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isEnabled ? Color.clear : Color.gray.opacity(0.3), lineWidth: 2)
+        )
     }
 }

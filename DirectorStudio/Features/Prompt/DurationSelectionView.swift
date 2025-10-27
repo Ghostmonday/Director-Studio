@@ -1,31 +1,51 @@
 // MODULE: DurationSelectionView
-// VERSION: 1.0.0
-// PURPOSE: Select clip durations - fixed or AI auto-detect
+// VERSION: 2.0.0
+// PURPOSE: Select clip durations - 5/10 seconds with AI auto-selection
 
 import SwiftUI
 
 struct DurationSelectionView: View {
     @ObservedObject var segmentCollection: MultiClipSegmentCollection
     @Binding var isPresented: Bool
-    @State private var durationType: DurationType = .fixed
-    @State private var fixedDuration: Double = 3.0
-    @State private var isAutoDetecting = false
-    @State private var autoDetectError: String?
-    @State private var detectedDurations: [UUID: Double] = [:]
+    @State private var durationType: DurationType = .aiAutoSelect
+    @State private var uniformDuration: Double = 10.0 // Only 5 or 10
+    @State private var isAnalyzing = false
+    @State private var analysisError: String?
+    @State private var showDurationOverrides = false
     
     let onContinue: () -> Void
     
-    enum DurationType {
-        case fixed
-        case autoDetect
+    enum DurationType: String, CaseIterable {
+        case aiAutoSelect = "AI Auto-Select"
+        case uniform5s = "All 5 seconds"
+        case uniform10s = "All 10 seconds"
+        case manual = "Manual Override"
+        
+        var icon: String {
+            switch self {
+            case .aiAutoSelect: return "sparkles"
+            case .uniform5s: return "5.circle.fill"
+            case .uniform10s: return "10.circle.fill"
+            case .manual: return "slider.horizontal.3"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .aiAutoSelect: return "AI analyzes content and chooses 5 or 10 seconds per clip"
+            case .uniform5s: return "All clips will be 5 seconds (fast-paced)"
+            case .uniform10s: return "All clips will be 10 seconds (standard pace)"
+            case .manual: return "Override AI suggestions for specific clips"
+            }
+        }
     }
     
     var totalDuration: Double {
-        if durationType == .fixed {
-            return Double(segmentCollection.segments.count) * fixedDuration
-        } else {
-            return detectedDurations.values.reduce(0, +)
-        }
+        segmentCollection.segments.reduce(0) { $0 + $1.duration }
+    }
+    
+    var totalCost: Int {
+        CreditsManager.shared.creditsNeeded(for: totalDuration, enabledStages: [])
     }
     
     /// Guardrail: Ensure prompts are ready
@@ -35,11 +55,7 @@ struct DurationSelectionView: View {
     
     /// Guardrail: Ensure durations are set
     var durationsAreSet: Bool {
-        if durationType == .fixed {
-            return segmentCollection.segments.count > 0 && fixedDuration > 0
-        } else {
-            return !detectedDurations.isEmpty && detectedDurations.count == segmentCollection.segments.count
-        }
+        segmentCollection.segments.allSatisfy { $0.duration == 5.0 || $0.duration == 10.0 }
     }
     
     var body: some View {
@@ -54,27 +70,6 @@ struct DurationSelectionView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Guardrail warning if prompts not ready
-                    if !promptsAreReady {
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("No prompts available")
-                                    .font(.headline)
-                                    .foregroundColor(.orange)
-                                Text("Please go back and complete prompt review first")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                    }
-                    
                     // Header
                     headerView
                         .padding()
@@ -85,17 +80,18 @@ struct DurationSelectionView: View {
                             // Duration type selector
                             durationTypeSelector
                             
-                            // Duration configuration
-                            if durationType == .fixed {
-                                fixedDurationConfig
-                            } else {
-                                autoDetectConfig
+                            // AI Analysis or preview based on selection
+                            switch durationType {
+                            case .aiAutoSelect:
+                                aiAutoSelectView
+                            case .uniform5s, .uniform10s:
+                                uniformDurationPreview
+                            case .manual:
+                                manualOverrideView
                             }
                             
-                            // Preview
-                            if !detectedDurations.isEmpty || durationType == .fixed {
-                                durationPreview
-                            }
+                            // Cost summary
+                            costSummaryView
                         }
                         .padding()
                     }
@@ -106,369 +102,463 @@ struct DurationSelectionView: View {
                         .background(.regularMaterial)
                 }
             }
-            .navigationTitle("Clip Durations")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Back") {
-                        isPresented = false
-                    }
+            .navigationBarHidden(true)
+            .alert("Error", isPresented: .constant(analysisError != nil)) {
+                Button("OK") {
+                    analysisError = nil
                 }
+            } message: {
+                Text(analysisError ?? "")
             }
         }
         .onAppear {
-            // Set initial fixed duration for all segments
-            applyFixedDuration()
+            // Auto-run AI analysis if selected
+            if durationType == .aiAutoSelect && !durationsAreSet {
+                Task {
+                    await runAIAnalysis()
+                }
+            }
         }
     }
     
+    @ViewBuilder
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("How long should each clip be?")
-                .font(.headline)
-            
-            Text("Choose between a fixed duration for all clips or let AI analyze your script to suggest optimal durations.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    
-    private var durationTypeSelector: some View {
-        VStack(spacing: 16) {
-            // Fixed duration option
-            Button(action: {
-                withAnimation(.spring()) {
-                    durationType = .fixed
-                    applyFixedDuration()
-                }
-            }) {
-                HStack(spacing: 16) {
-                    Image(systemName: durationType == .fixed ? "checkmark.circle.fill" : "circle")
-                        .font(.title2)
-                        .foregroundColor(durationType == .fixed ? .blue : .gray)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Same duration per clip")
-                            .font(.headline)
-                        Text("All clips will have the same length")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(durationType == .fixed ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(durationType == .fixed ? Color.blue : Color.clear, lineWidth: 2)
-                )
-            }
-            .buttonStyle(.plain)
-            
-            // Auto-detect option
-            Button(action: {
-                withAnimation(.spring()) {
-                    durationType = .autoDetect
-                    if detectedDurations.isEmpty {
-                        autoDetectDurations()
-                    }
-                }
-            }) {
-                HStack(spacing: 16) {
-                    Image(systemName: durationType == .autoDetect ? "checkmark.circle.fill" : "circle")
-                        .font(.title2)
-                        .foregroundColor(durationType == .autoDetect ? .purple : .gray)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Auto-detect durations using AI")
-                            .font(.headline)
-                        Text("AI analyzes each prompt to suggest optimal timing")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(durationType == .autoDetect ? Color.purple.opacity(0.1) : Color(.systemGray6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(durationType == .autoDetect ? Color.purple : Color.clear, lineWidth: 2)
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-    
-    private var fixedDurationConfig: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Duration per clip")
-                .font(.headline)
-            
-            HStack(spacing: 16) {
-                Slider(value: $fixedDuration, in: 1...10, step: 0.5) { editing in
-                    if !editing {
-                        applyFixedDuration()
-                    }
-                }
-                
-                Text("\(fixedDuration, specifier: "%.1f")s")
-                    .font(.title3)
-                    .fontWeight(.medium)
-                    .frame(width: 60)
-                    .padding(8)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-            }
-            
-            HStack(spacing: 12) {
-                ForEach([1.0, 3.0, 5.0, 10.0], id: \.self) { duration in
-                    Button(action: {
-                        fixedDuration = duration
-                        applyFixedDuration()
-                    }) {
-                        Text("\(Int(duration))s")
-                            .font(.caption)
-                            .fontWeight(fixedDuration == duration ? .bold : .regular)
-                            .foregroundColor(fixedDuration == duration ? .white : .primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(fixedDuration == duration ? Color.blue : Color(.systemGray5))
-                            .cornerRadius(8)
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-    }
-    
-    private var autoDetectConfig: some View {
-        VStack(spacing: 16) {
-            if isAutoDetecting {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                    Text("Analyzing prompts with AI...")
-                        .font(.headline)
-                    Text("This may take a moment")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(40)
-                .background(Color(.systemBackground))
-                .cornerRadius(16)
-            } else if let error = autoDetectError {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                    
-                    Text("Failed to auto-detect durations")
-                        .font(.headline)
-                    
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    
-                    Button("Try Again") {
-                        autoDetectDurations()
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(16)
-            } else if !detectedDurations.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "wand.and.stars")
-                            .foregroundColor(.purple)
-                        Text("AI-Suggested Durations")
-                            .font(.headline)
-                    }
-                    
-                    Text("Based on content analysis and pacing")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Color.purple.opacity(0.1))
-                .cornerRadius(16)
-            } else {
-                Button(action: autoDetectDurations) {
-                    Label("Analyze Prompts", systemImage: "wand.and.stars")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.purple)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                }
-            }
-        }
-    }
-    
-    private var durationPreview: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 8) {
             HStack {
-                Text("Preview")
-                    .font(.headline)
+                Button(action: {
+                    isPresented = false
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(.primary)
+                }
                 
                 Spacer()
                 
-                Text("Total: \(formatDuration(totalDuration))")
-                    .font(.subheadline)
+                Text("Step 3 of 4")
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
             
-            VStack(spacing: 8) {
-                ForEach(Array(segmentCollection.segments.enumerated()), id: \.element.id) { index, segment in
-                    HStack {
-                        Text("Clip \(index + 1)")
-                            .font(.subheadline)
+            Text("Set Clip Durations")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            Text("Choose 5 or 10 seconds per clip")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    @ViewBuilder
+    private var durationTypeSelector: some View {
+        VStack(spacing: 12) {
+            ForEach(DurationType.allCases, id: \.self) { type in
+                Button(action: {
+                    withAnimation(.spring()) {
+                        durationType = type
+                        applyDurationType(type)
+                    }
+                }) {
+                    HStack(spacing: 16) {
+                        Image(systemName: type.icon)
+                            .font(.title2)
+                            .foregroundColor(durationType == type ? .white : .blue)
+                            .frame(width: 30)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(type.rawValue)
+                                .font(.headline)
+                                .foregroundColor(durationType == type ? .white : .primary)
+                            
+                            Text(type.description)
+                                .font(.caption)
+                                .foregroundColor(durationType == type ? .white.opacity(0.8) : .secondary)
+                                .multilineTextAlignment(.leading)
+                        }
                         
                         Spacer()
                         
-                        Text("\(segment.duration, specifier: "%.1f")s")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.blue)
+                        if durationType == type {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.white)
+                        }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(durationType == type ? Color.blue : Color(.systemGray6))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var aiAutoSelectView: some View {
+        VStack(spacing: 16) {
+            // AI Analysis status
+            if isAnalyzing {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("AI is analyzing your clips...")
+                        .font(.headline)
+                    Text("Determining optimal duration for each scene")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(12)
+            } else if durationsAreSet {
+                // Show results
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("AI Analysis Complete")
+                            .font(.headline)
+                        Spacer()
+                        Button("Re-analyze") {
+                            Task {
+                                await runAIAnalysis()
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    
+                    // Summary stats
+                    HStack(spacing: 24) {
+                        VStack {
+                            Text("\(segmentCollection.segments.filter { $0.duration == 5.0 }.count)")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            Text("5 sec clips")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        VStack {
+                            Text("\(segmentCollection.segments.filter { $0.duration == 10.0 }.count)")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            Text("10 sec clips")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        VStack {
+                            Text(formatDuration(totalDuration))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+                            Text("Total")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                    .cornerRadius(12)
+                }
+                
+                // Clip list with durations
+                clipDurationList
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var uniformDurationPreview: some View {
+        VStack(spacing: 16) {
+            // Summary
+            VStack(spacing: 8) {
+                Image(systemName: durationType == .uniform5s ? "hare.fill" : "tortoise.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(durationType == .uniform5s ? .orange : .blue)
+                
+                Text(durationType == .uniform5s ? "Fast-Paced Mode" : "Standard Mode")
+                    .font(.headline)
+                
+                Text("All \(segmentCollection.segments.count) clips will be \(durationType == .uniform5s ? "5" : "10") seconds")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Text("Total duration: \(formatDuration(totalDuration))")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .padding(.top, 8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            
+            // Preview list
+            clipDurationList
+        }
+    }
+    
+    @ViewBuilder
+    private var manualOverrideView: some View {
+        VStack(spacing: 16) {
+            Text("Tap any clip to toggle between 5 and 10 seconds")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            // Interactive clip list
+            LazyVStack(spacing: 8) {
+                ForEach(Array(segmentCollection.segments.enumerated()), id: \.element.id) { index, segment in
+                    Button(action: {
+                        // Toggle between 5 and 10
+                        let newDuration: Double = segment.duration == 5.0 ? 10.0 : 5.0
+                        segmentCollection.segments[index].duration = newDuration
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Clip \(index + 1)")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                                
+                                Text(segment.text)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                            }
+                            
+                            Spacer()
+                            
+                            // Duration toggle button
+                            Text("\(Int(segment.duration))s")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .frame(width: 50, height: 50)
+                                .background(
+                                    Circle()
+                                        .fill(segment.duration == 5.0 ? Color.orange : Color.blue)
+                                )
+                                .overlay(
+                                    Image(systemName: "arrow.left.arrow.right")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .offset(y: 18)
+                                )
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
     }
     
-    private var continueButton: some View {
-        let canContinue = promptsAreReady && durationsAreSet && totalDuration > 0
-        
-        return Button(action: {
-            if canContinue {
-                onContinue()
-            }
-        }) {
-            VStack(spacing: 8) {
-                HStack(spacing: 12) {
-                    Image(systemName: canContinue ? "arrow.right.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(.system(size: 20))
-                    
-                    Text(canContinue ? "Continue to Cost Confirmation" : "Set durations for all clips")
-                        .font(.headline)
+    @ViewBuilder
+    private var clipDurationList: some View {
+        LazyVStack(spacing: 8) {
+            ForEach(Array(segmentCollection.segments.enumerated()), id: \.element.id) { index, segment in
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Clip \(index + 1)")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Text(segment.text)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
                     
                     Spacer()
                     
-                    if canContinue {
-                        Text(formatDuration(totalDuration))
-                            .font(.subheadline)
-                            .opacity(0.8)
+                    // Duration badge
+                    HStack(spacing: 4) {
+                        Image(systemName: segment.duration == 5.0 ? "hare.fill" : "tortoise.fill")
+                            .font(.caption)
+                        Text("\(Int(segment.duration))s")
+                            .fontWeight(.semibold)
                     }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(segment.duration == 5.0 ? Color.orange : Color.blue)
+                    )
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var costSummaryView: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Label("Cost Summary", systemImage: "dollarsign.circle.fill")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Total Duration")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(formatDuration(totalDuration))
+                        .font(.title3)
+                        .fontWeight(.semibold)
                 }
                 
-                // Debug info in development
-                #if DEBUG
-                if !canContinue {
-                    Text("Clips: \(segmentCollection.segments.count) • Durations: \(durationsAreSet ? "✓" : "✗")")
-                        .font(.caption2)
-                        .opacity(0.7)
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Credits Required")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(totalCost)")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
                 }
-                #endif
             }
-            .foregroundColor(.white)
             .padding()
-            .frame(maxWidth: .infinity)
-            .background(
-                LinearGradient(
-                    colors: canContinue ? [.blue, .purple] : [.gray],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .cornerRadius(16)
-            .shadow(color: canContinue ? .blue.opacity(0.3) : .clear, radius: 10, y: 5)
-        }
-        .disabled(!canContinue)
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        return String(format: "%d:%02d", minutes, seconds)
-    }
-    
-    private func applyFixedDuration() {
-        for index in segmentCollection.segments.indices {
-            segmentCollection.segments[index].duration = fixedDuration
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
         }
     }
     
-    private func autoDetectDurations() {
-        isAutoDetecting = true
-        autoDetectError = nil
-        
-        Task {
-            do {
-                // Validate token limits before calling AI
-                var tokenWarnings: [String] = []
-                for (index, segment) in segmentCollection.segments.enumerated() {
-                    let tokenCount = TokenEstimator.shared.estimate(segment.text)
-                    if tokenCount > 180 {  // Leave buffer for API
-                        tokenWarnings.append("Segment \(index + 1) has \(tokenCount) tokens (limit: 180)")
-                        #if DEBUG
-                        print("⚠️ Token limit warning: Segment \(index + 1) has \(tokenCount) tokens")
-                        #endif
-                    }
+    @ViewBuilder
+    private var continueButton: some View {
+        VStack(spacing: 12) {
+            // Guardrail check
+            if !promptsAreReady {
+                Text("⚠️ Please complete prompt review first")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            } else if !durationsAreSet {
+                Text("⚠️ Please set durations for all clips")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+            
+            Button(action: {
+                #if DEBUG
+                print("🎬 [DurationSelection] Continuing with durations:")
+                for (i, segment) in segmentCollection.segments.enumerated() {
+                    let preview = String(segment.text.prefix(30))
+                    print("   Clip \(i+1): \(Int(segment.duration))s - \(preview)...")
                 }
-                
-                if !tokenWarnings.isEmpty {
-                    await MainActor.run {
-                        autoDetectError = "Some segments exceed token limits:\n" + tokenWarnings.joined(separator: "\n")
-                    }
+                print("   Total: \(Int(totalDuration))s, Cost: \(totalCost) credits")
+                #endif
+                onContinue()
+            }) {
+                HStack {
+                    Text("Continue to Cost Confirmation")
+                        .fontWeight(.semibold)
+                    Image(systemName: "arrow.right.circle.fill")
                 }
-                
-                // Call AI service to analyze prompts
-                let durations = try await AIClipDurator.shared.detectDurations(
-                    for: segmentCollection.segments.map { $0.text }
-                )
-                
-                await MainActor.run {
-                    // Apply detected durations
-                    for (index, segment) in segmentCollection.segments.enumerated() {
-                        if index < durations.count {
-                            segmentCollection.segments[index].duration = Double(durations[index])
-                            detectedDurations[segment.id] = Double(durations[index])
-                        }
-                    }
-                    isAutoDetecting = false
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(durationsAreSet ? Color.blue : Color.gray)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .disabled(!durationsAreSet || !promptsAreReady)
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func applyDurationType(_ type: DurationType) {
+        switch type {
+        case .aiAutoSelect:
+            // Run AI analysis
+            Task {
+                await runAIAnalysis()
+            }
+        case .uniform5s:
+            // Apply 5s duration to all segments
+            for i in segmentCollection.segments.indices {
+                segmentCollection.segments[i].duration = 5.0
+            }
+            segmentCollection.objectWillChange.send()
+        case .uniform10s:
+            // Apply 10s duration to all segments
+            for i in segmentCollection.segments.indices {
+                segmentCollection.segments[i].duration = 10.0
+            }
+            segmentCollection.objectWillChange.send()
+        case .manual:
+            // If not already set, default to 10s
+            if !durationsAreSet {
+                for i in segmentCollection.segments.indices {
+                    segmentCollection.segments[i].duration = 10.0
                 }
-            } catch {
-                await MainActor.run {
-                    autoDetectError = error.localizedDescription
-                    isAutoDetecting = false
-                    // Fall back to fixed duration
-                    durationType = .fixed
-                    applyFixedDuration()
-                }
+                segmentCollection.objectWillChange.send()
             }
         }
+    }
+    
+    private func runAIAnalysis() async {
+        isAnalyzing = true
+        analysisError = nil
+        
+        do {
+            // For now, use simple heuristics based on text length
+            // Short segments (< 50 words) = 5s, longer = 10s
+            for i in segmentCollection.segments.indices {
+                let wordCount = segmentCollection.segments[i].text.split(separator: " ").count
+                segmentCollection.segments[i].duration = wordCount < 50 ? 5.0 : 10.0
+            }
+            segmentCollection.objectWillChange.send()
+            
+            // Simulate AI analysis delay
+            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            
+            isAnalyzing = false
+        } catch {
+            isAnalyzing = false
+            analysisError = "AI analysis failed: \(error.localizedDescription)"
+            // Default to 10s on error
+            for i in segmentCollection.segments.indices {
+                segmentCollection.segments[i].duration = 10.0
+            }
+            segmentCollection.objectWillChange.send()
+        }
+    }
+    
+    private func formatDuration(_ seconds: TimeInterval) -> String {
+        let minutes = Int(seconds) / 60
+        let remainingSeconds = Int(seconds) % 60
+        
+        if minutes > 0 {
+            return "\(minutes)m \(remainingSeconds)s"
+        } else {
+            return "\(remainingSeconds)s"
+        }
+    }
+}
+
+// MARK: - Preview
+
+struct DurationSelectionView_Previews: PreviewProvider {
+    static var previews: some View {
+        DurationSelectionView(
+            segmentCollection: MultiClipSegmentCollection(),
+            isPresented: .constant(true),
+            onContinue: {}
+        )
     }
 }

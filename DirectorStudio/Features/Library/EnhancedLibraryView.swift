@@ -1,11 +1,11 @@
-// MODULE: EnhancedLibraryView
+// MODULE: LibraryView
 // VERSION: 2.0.0
 // PURPOSE: Beautiful, responsive library with grid/list views, animations, and filtering
 
 import SwiftUI
 import AVKit
 
-struct EnhancedLibraryView: View {
+struct LibraryView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @StateObject private var viewModel = LibraryViewModel()
     @State private var viewMode: ViewMode = .grid
@@ -165,7 +165,7 @@ struct EnhancedLibraryView: View {
                         .frame(width: 80)
                         
                         // Settings
-                        NavigationLink(destination: PolishedSettingsView()) {
+                        NavigationLink(destination: SettingsView()) {
                             Image(systemName: "gear")
                         }
                     }
@@ -485,9 +485,9 @@ extension StorageLocation {
 
 // MARK: - Preview
 
-struct EnhancedLibraryView_Previews: PreviewProvider {
+struct LibraryView_Previews: PreviewProvider {
     static var previews: some View {
-        EnhancedLibraryView()
+        LibraryView()
             .environmentObject(AppCoordinator())
     }
 }

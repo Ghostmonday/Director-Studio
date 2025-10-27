@@ -1,11 +1,11 @@
-// MODULE: PolishedSettingsView
+// MODULE: SettingsView
 // VERSION: 2.0.0
 // PURPOSE: Refined settings view with enhanced organization and visual polish
 
 import SwiftUI
 import StoreKit
 
-struct PolishedSettingsView: View {
+struct SettingsView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var creditsManager = CreditsManager.shared
@@ -78,7 +78,7 @@ struct PolishedSettingsView: View {
             }
         }
         .sheet(isPresented: $showingCreditsPurchase) {
-            EnhancedCreditsPurchaseView()
+            CreditsPurchaseView()
         }
         .sheet(isPresented: $showingAbout) {
             AboutView()

@@ -9,6 +9,11 @@ struct DirectorStudioApp: App {
     @StateObject private var coordinator = AppCoordinator()
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "HasCompletedOnboarding")
     
+    init() {
+        // Clear API key cache on app launch to ensure fresh keys
+        SupabaseAPIKeyService.shared.clearCache()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -26,40 +31,47 @@ struct ContentView: View {
     @State private var showingSettings = false
     
     var body: some View {
-        TabView(selection: $coordinator.selectedTab) {
-            PromptView()
-                .tabItem {
-                    Label("Create", systemImage: "wand.and.stars")
-                }
-                .tag(AppTab.prompt)
+        ZStack {
+            // Cinema grey background
+            DirectorStudioTheme.Colors.cinemaGrey
+                .ignoresSafeArea()
             
-            PolishedStudioView()
-                .tabItem {
-                    Label("Studio", systemImage: "film.stack")
-                }
-                .tag(AppTab.studio)
-            
-            EnhancedLibraryView()
-                .tabItem {
-                    Label("Library", systemImage: "photo.stack")
-                }
-                .tag(AppTab.library)
+            TabView(selection: $coordinator.selectedTab) {
+                PromptView()
+                    .tabItem {
+                        Label("Create", systemImage: "wand.and.stars")
+                    }
+                    .tag(AppTab.prompt)
+                
+                StudioView()
+                    .tabItem {
+                        Label("Studio", systemImage: "film.stack")
+                    }
+                    .tag(AppTab.studio)
+                
+                LibraryView()
+                    .tabItem {
+                        Label("Library", systemImage: "photo.stack")
+                    }
+                    .tag(AppTab.library)
+            }
+            .preferredColorScheme(.dark)
         }
         .overlay(alignment: .topTrailing) {
             // Settings button
             Button(action: { showingSettings = true }) {
                 Image(systemName: "gearshape.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(DirectorStudioTheme.Colors.primary)
                     .padding()
-                    .background(Circle().fill(Color(UIColor.systemBackground)))
-                    .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
+                    .background(Circle().fill(DirectorStudioTheme.Colors.stainlessSteel))
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
             }
             .padding()
             .padding(.top, 40) // Account for status bar
         }
         .sheet(isPresented: $showingSettings) {
-            PolishedSettingsView()
+            SettingsView()
                 .environmentObject(coordinator)
         }
         .onAppear {

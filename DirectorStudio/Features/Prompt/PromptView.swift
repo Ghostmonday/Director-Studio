@@ -70,13 +70,15 @@ struct PromptView: View {
     private var howItWorksSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "film.circle.fill")
+                Image(systemName: viewModel.generationMode == .single ? "film.circle.fill" : "film.stack.fill")
                     .font(.title2)
                     .foregroundColor(.blue)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Script to Screen")
+                    Text(viewModel.generationMode == .single ? "Script to Screen" : "Script to Film")
                         .font(.headline)
-                    Text("Write your scene. Watch it render.")
+                    Text(viewModel.generationMode == .single ? 
+                         "Write your scene. Watch it render." : 
+                         "Write your story. We'll break it into scenes.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -126,20 +128,22 @@ struct PromptView: View {
     
     @ViewBuilder
     private var promptTextSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Script Your Scene", systemImage: "doc.text.magnifyingglass")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                Label(viewModel.generationMode == .single ? "Script Your Scene" : "Write Your Story", 
+                      systemImage: viewModel.generationMode == .single ? "doc.text.magnifyingglass" : "doc.text.fill")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(DirectorStudioTheme.Colors.primary)
                 Spacer()
                 
                 // Expand/Collapse button (only show when collapsed)
                 if !isPromptExpanded && !viewModel.promptText.isEmpty {
                     Button(action: {
-                        withAnimation(.spring(response: 0.3)) {
+                        withAnimation(DirectorStudioTheme.Animation.smooth) {
                             isPromptExpanded = true
                         }
                         isPromptFocused = true
+                        HapticFeedback.impact(.light)
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
@@ -147,16 +151,33 @@ struct PromptView: View {
                             Text("Expand")
                                 .font(.caption)
                         }
-                        .foregroundColor(.blue)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color(.tertiarySystemBackground))
+                        )
+                        .foregroundColor(DirectorStudioTheme.Colors.primary)
                     }
                 }
                 
                 Button(action: {
                     showTemplates = true
+                    HapticFeedback.impact(.light)
                 }) {
-                    Text("Use Template")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.caption)
+                        Text("Use Template")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(DirectorStudioTheme.Colors.primaryGradient)
+                    )
+                    .foregroundColor(.white)
                 }
             }
             .padding(.horizontal)
@@ -198,15 +219,21 @@ struct PromptView: View {
                 
                 if viewModel.promptText.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Describe your scene:")
+                        Text(viewModel.generationMode == .single ? "Describe your scene:" : "Tell your story:")
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.gray)
                         
                         if isPromptExpanded {
-                            Text("• Who's in the shot and what they're doing\n• Location, time of day, lighting\n• Camera movement and framing\n• Mood and atmosphere")
-                                .font(.caption2)
-                                .foregroundColor(.gray.opacity(0.8))
+                            if viewModel.generationMode == .single {
+                                Text("• Who's in the shot and what they're doing\n• Location, time of day, lighting\n• Camera movement and framing\n• Mood and atmosphere")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray.opacity(0.8))
+                            } else {
+                                Text("• Write your complete narrative\n• Include scene transitions\n• Character development\n• AI will intelligently segment into scenes")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
                         }
                     }
                     .padding(12)
@@ -323,83 +350,89 @@ struct PromptView: View {
     private var durationStrategySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Clip Duration Strategy")
+                Label("Clip Duration Strategy", systemImage: "timer")
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
             }
             .padding(.horizontal)
             
-            VStack(spacing: 8) {
-                // Uniform duration option
-                HStack {
-                    Image(systemName: viewModel.durationStrategy == .uniform(viewModel.uniformDuration) ? "circle.fill" : "circle")
+            Text("AI will analyze each scene and choose 5 or 10 seconds")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+            
+            HStack(spacing: 12) {
+                // AI Auto-select info
+                VStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.title2)
                         .foregroundColor(.blue)
-                        .onTapGesture {
-                            viewModel.durationStrategy = .uniform(viewModel.uniformDuration)
+                    Text("AI Auto-Select")
+                        .font(.headline)
+                    Text("Optimal duration per scene")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.blue, lineWidth: 2)
+                        )
+                )
+                
+                // Duration options info
+                VStack(spacing: 8) {
+                    HStack(spacing: 16) {
+                        VStack {
+                            Image(systemName: "5.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.orange)
+                            Text("Quick")
+                                .font(.caption2)
                         }
-                    
-                    Text("All clips same length")
-                        .font(.subheadline)
-                    
-                    Spacer()
-                    
-                    if case .uniform = viewModel.durationStrategy {
-                        HStack {
-                            Text("\(Int(viewModel.uniformDuration))s")
-                                .font(.caption)
+                        
+                        VStack {
+                            Image(systemName: "10.circle.fill")
+                                .font(.title3)
                                 .foregroundColor(.blue)
-                            Stepper("", value: $viewModel.uniformDuration, in: 3...30, step: 1)
-                                .labelsHidden()
+                            Text("Standard")
+                                .font(.caption2)
                         }
                     }
+                    Text("5 or 10 seconds")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("Based on content")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .padding(.horizontal)
-                
-                // Custom duration option
-                HStack {
-                    Image(systemName: viewModel.durationStrategy == .custom ? "circle.fill" : "circle")
-                        .foregroundColor(.blue)
-                        .onTapGesture {
-                            viewModel.durationStrategy = .custom
-                        }
-                    
-                    Text("Custom per clip")
-                        .font(.subheadline)
-                    
-                    Spacer()
-                    
-                    if case .custom = viewModel.durationStrategy {
-                        Text("Set in editor")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-                .padding(.horizontal)
-                
-                // Auto duration option
-                HStack {
-                    Image(systemName: viewModel.durationStrategy == .auto ? "circle.fill" : "circle")
-                        .foregroundColor(.blue)
-                        .onTapGesture {
-                            viewModel.durationStrategy = .auto
-                        }
-                    
-                    Text("Auto-detect from content")
-                        .font(.subheadline)
-                    
-                    Spacer()
-                    
-                    if case .auto = viewModel.durationStrategy {
-                        Text("AI decides")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-                .padding(.horizontal)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.systemGray6))
+                )
             }
+            .padding(.horizontal)
+            
+            // Info note
+            HStack {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.blue)
+                Text("You can override AI choices in the duration selection step")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal)
             .padding(.vertical, 8)
-            .background(Color.gray.opacity(0.05))
+            .background(Color.blue.opacity(0.05))
             .cornerRadius(8)
             .padding(.horizontal)
         }
@@ -413,23 +446,57 @@ struct PromptView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
-                Text("\(Int(viewModel.videoDuration))s")
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-                    .fontWeight(.semibold)
             }
             .padding(.horizontal)
             
             HStack(spacing: 12) {
-                Text("3s")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
+                // 5 second option
+                Button(action: {
+                    viewModel.videoDuration = 5.0
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "hare.fill")
+                            .font(.title2)
+                        Text("5 seconds")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("Quick & snappy")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(viewModel.videoDuration == 5.0 ? Color.orange : Color(.systemGray6))
+                    )
+                    .foregroundColor(viewModel.videoDuration == 5.0 ? .white : .primary)
+                }
+                .buttonStyle(.plain)
                 
-                Slider(value: $viewModel.videoDuration, in: 3...20, step: 1)
-                
-                Text("20s")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
+                // 10 second option
+                Button(action: {
+                    viewModel.videoDuration = 10.0
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "tortoise.fill")
+                            .font(.title2)
+                        Text("10 seconds")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("Standard pace")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(viewModel.videoDuration == 10.0 ? Color.blue : Color(.systemGray6))
+                    )
+                    .foregroundColor(viewModel.videoDuration == 10.0 ? .white : .primary)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal)
         }
@@ -594,7 +661,7 @@ struct PromptView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
-            NavigationLink(destination: EnhancedCreditsPurchaseView()) {
+            NavigationLink(destination: CreditsPurchaseView()) {
                 Text("Get Credits")
                     .font(.caption)
                     .fontWeight(.semibold)
@@ -772,7 +839,7 @@ struct PromptView: View {
             return nil
         }()
         
-        return Button(action: {
+        Button(action: {
             // Guardrail: Check if prompt exists
             guard promptReady else {
                 #if DEBUG
@@ -939,10 +1006,15 @@ struct PromptView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Testing mode banner
-                    if let bannerText = TestingMode.bannerText {
+            ZStack {
+                // Cinema grey background
+                DirectorStudioTheme.Colors.backgroundBase
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: DirectorStudioTheme.Spacing.small) {
+                        // Testing mode banner
+                        if let bannerText = TestingMode.bannerText {
                         HStack(spacing: 12) {
                             Image(systemName: "flask.fill")
                                 .foregroundColor(.orange)
@@ -958,6 +1030,12 @@ struct PromptView: View {
                         .padding(.horizontal)
                     }
                     
+                    // API Test Button (DEBUG only)
+                    #if DEBUG
+                    apiTestButton
+                    devModeButton
+                    #endif
+                    
                     quickActionButtons
                     
                     generationModeSelector
@@ -968,15 +1046,15 @@ struct PromptView: View {
                     
                     promptTextSection
                     
-                    imageReferenceSection
-                    
+                    // Only show these sections for single clip mode
                     if viewModel.generationMode == .single {
+                        imageReferenceSection
                         videoDurationControl
+                        pipelineStageToggles
                     } else {
+                        // Multi-clip mode only shows duration strategy
                         durationStrategySection
                     }
-                    
-                    pipelineStageToggles
                     
                     Spacer()
                     
@@ -995,6 +1073,7 @@ struct PromptView: View {
                             .foregroundColor(.orange)
                             .padding(.bottom)
                     }
+                }
                 }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -1027,7 +1106,7 @@ struct PromptView: View {
                 .environmentObject(coordinator)
             }
             .sheet(isPresented: $showingPurchaseView) {
-                EnhancedCreditsPurchaseView()
+                CreditsPurchaseView()
             }
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(selectedImage: $viewModel.selectedImage, useDefaultAd: $viewModel.useDefaultAdImage)
@@ -1089,6 +1168,101 @@ struct PromptView: View {
             return .byDuration(5.0) // 5 second segments
         } else {
             return .byParagraphs
+        }
+    }
+    
+    // MARK: - API Test Button (DEBUG ONLY)
+    
+    @ViewBuilder
+    private var apiTestButton: some View {
+        VStack(spacing: 8) {
+            Button(action: {
+                Task {
+                    await testAPIs()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Test API Connection")
+                    Spacer()
+                    if testingAPIs {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .padding()
+                .background(Color.green.opacity(0.2))
+                .foregroundColor(.green)
+                .cornerRadius(8)
+            }
+            .disabled(testingAPIs)
+            
+            if let result = apiTestResult {
+                Text(result)
+                    .font(.caption)
+                    .foregroundColor(result.contains("✅") ? .green : .red)
+                    .padding(.horizontal)
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    @State private var testingAPIs = false
+    @State private var apiTestResult: String?
+    
+    @ViewBuilder
+    private var devModeButton: some View {
+        Button(action: {
+            #if DEBUG
+            _ = CreditsManager.shared.enableDevMode(passcode: "DIRECTOR2025")
+            #endif
+        }) {
+            HStack {
+                Image(systemName: "crown.fill")
+                Text("Enable Unlimited Credits (Dev Mode)")
+                Spacer()
+            }
+            .padding()
+            .background(Color.purple.opacity(0.2))
+            .foregroundColor(.purple)
+            .cornerRadius(8)
+        }
+        .padding(.horizontal)
+    }
+    
+    private func testAPIs() async {
+        testingAPIs = true
+        apiTestResult = "Testing..."
+        
+        var results: [String] = []
+        
+        // Test DeepSeek
+        do {
+            let deepSeekKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
+            if !deepSeekKey.isEmpty {
+                results.append("✅ DeepSeek: Key found (\(deepSeekKey.prefix(8))...)")
+            } else {
+                results.append("❌ DeepSeek: Key is empty")
+            }
+        } catch {
+            results.append("❌ DeepSeek: \(error.localizedDescription)")
+        }
+        
+        // Test Pollo
+        do {
+            let polloKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
+            if !polloKey.isEmpty {
+                results.append("✅ Pollo: Key found (\(polloKey.prefix(8))...)")
+            } else {
+                results.append("❌ Pollo: Key is empty")
+            }
+        } catch {
+            results.append("❌ Pollo: \(error.localizedDescription)")
+        }
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
         }
     }
 }

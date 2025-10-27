@@ -1,11 +1,11 @@
-// MODULE: EnhancedCreditsPurchaseView
+// MODULE: CreditsPurchaseView
 // VERSION: 2.0.0
 // PURPOSE: Beautiful credit purchase screen with packs, plans, and special offers
 
 import SwiftUI
 import StoreKit
 
-struct EnhancedCreditsPurchaseView: View {
+struct CreditsPurchaseView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var creditsManager = CreditsManager.shared
     @StateObject private var storeManager = StoreKitManager.shared
@@ -375,7 +375,7 @@ struct EnhancedCreditsPurchaseView: View {
 // MARK: - Purchase Option Card
 
 struct PurchaseOptionCard: View {
-    let option: EnhancedCreditsPurchaseView.PurchaseOption
+    let option: CreditsPurchaseView.PurchaseOption
     let isSelected: Bool
     let onTap: () -> Void
     

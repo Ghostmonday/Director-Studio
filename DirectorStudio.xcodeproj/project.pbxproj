@@ -80,6 +80,8 @@
 		C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311747 /* TestingMode.swift */; };
 		C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311748 /* SegmentingModule.swift */; };
 		C07425A7824C3D90BA02FF71 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A505C3AF5BED311749 /* DebugLogger.swift */; };
+		C07425A7824C3D90BA02FF72 /* ShimmerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F474C1F23AFC635C7DFACB1C /* ShimmerView.swift */; };
+		C07425A7824C3D90BA02FF73 /* AnimatedCreditDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F474C1F23AFC635C7DFACB1D /* AnimatedCreditDisplay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -159,9 +161,11 @@
 		F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimulatorExportHelper.swift; sourceTree = "<group>"; };
 		F22F54A305C3AF5BED311751 /* APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Services/APIClient.swift"; sourceTree = SOURCE_ROOT; };
 		F22F54A405C3AF5BED311747 /* TestingMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Configuration/TestingMode.swift"; sourceTree = SOURCE_ROOT; };
-		F22F54A405C3AF5BED311748 /* SegmentingModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentingModule.swift; sourceTree = "<group>"; };
-		F22F54A505C3AF5BED311749 /* DebugLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
+		F22F54A405C3AF5BED311748 /* SegmentingModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Services/SegmentingModule.swift"; sourceTree = SOURCE_ROOT; };
+		F22F54A505C3AF5BED311749 /* DebugLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Utils/DebugLogger.swift"; sourceTree = SOURCE_ROOT; };
 		F474C1F23AFC635C7DFACB1B /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
+		F474C1F23AFC635C7DFACB1C /* ShimmerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Components/ShimmerView.swift"; sourceTree = SOURCE_ROOT; };
+		F474C1F23AFC635C7DFACB1D /* AnimatedCreditDisplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Components/AnimatedCreditDisplay.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -190,6 +194,8 @@
 				9B93113F2EAAF20100A0660D /* LoadingView.swift */,
 				9B9311402EAAF20100A0660D /* TooltipView.swift */,
 				61335CCF3B3E77DFC84EA7D3 /* InsufficientCreditsOverlay.swift */,
+				F474C1F23AFC635C7DFACB1C /* ShimmerView.swift */,
+				F474C1F23AFC635C7DFACB1D /* AnimatedCreditDisplay.swift */,
 			);
 			name = Components;
 			path = DirectorStudio/Components;
@@ -527,9 +533,12 @@
 				C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */,
 				C07425A4824C3D90BA02FF72 /* SegmentationConfigView.swift in Sources */,
 				C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */,
+				C07425A5824C3D90BA02FF73 /* APIClient.swift in Sources */,
 				C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */,
 				C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */,
 				C07425A7824C3D90BA02FF71 /* DebugLogger.swift in Sources */,
+				C07425A7824C3D90BA02FF72 /* ShimmerView.swift in Sources */,
+				C07425A7824C3D90BA02FF73 /* AnimatedCreditDisplay.swift in Sources */,
 				A5D2C81BF065338A72401F17 /* MultiClipSegment.swift in Sources */,
 				03E41333D15C1DC713D41A5C /* EnhancedLibraryView.swift in Sources */,
 				B18E75D1884AD952EBB5BBE8 /* EnhancedClipCell.swift in Sources */,

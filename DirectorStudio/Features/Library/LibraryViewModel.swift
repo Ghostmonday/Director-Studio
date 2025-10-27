@@ -49,30 +49,25 @@ class LibraryViewModel: ObservableObject {
     /// Delete a clip from storage
     func deleteClip(_ clip: GeneratedClip) {
         Task {
-            do {
-                // Delete from file system if local URL exists
-                if let localURL = clip.localURL {
-                    try? FileManager.default.removeItem(at: localURL)
-                    print("✅ Deleted local file: \(localURL.lastPathComponent)")
+            // Delete from file system if local URL exists
+            if let localURL = clip.localURL {
+                try? FileManager.default.removeItem(at: localURL)
+                print("✅ Deleted local file: \(localURL.lastPathComponent)")
+            }
+            
+            // Delete from iCloud if synced
+            if clip.syncStatus == .synced {
+                // TODO: Implement CloudKit deletion
+                print("🗑️ Deleted from iCloud")
+            }
+            
+            // Remove from clips array
+            await MainActor.run {
+                if let index = clips.firstIndex(where: { $0.id == clip.id }) {
+                    clips.remove(at: index)
+                    updateStorageInfo()
+                    print("✅ Clip deleted successfully")
                 }
-                
-                // Delete from iCloud if synced
-                if clip.syncStatus == .synced {
-                    // TODO: Implement CloudKit deletion
-                    print("🗑️ Deleted from iCloud")
-                }
-                
-                // Remove from clips array
-                await MainActor.run {
-                    if let index = clips.firstIndex(where: { $0.id == clip.id }) {
-                        clips.remove(at: index)
-                        updateStorageInfo()
-                        print("✅ Clip deleted successfully")
-                    }
-                }
-                
-            } catch {
-                print("❌ Failed to delete clip: \(error.localizedDescription)")
             }
         }
     }

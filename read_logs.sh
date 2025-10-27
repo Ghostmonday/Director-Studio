@@ -13,13 +13,16 @@ if [ -z "$DATA_DIR" ]; then
 fi
 
 # Try all log files
+LOG_FILE0="$DATA_DIR/Documents/api_key_error.txt"
 LOG_FILE1="$DATA_DIR/Documents/segmentation_debug.txt"
 LOG_FILE2="$DATA_DIR/Documents/debug_logs.txt"
 LOG_FILE3="$DATA_DIR/Documents/segmentation_error.txt"
 LOG_FILE4="$DATA_DIR/Documents/test_log.txt"
 
 LOG_FILE=""
-if [ -f "$LOG_FILE3" ]; then
+if [ -f "$LOG_FILE0" ]; then
+    LOG_FILE="$LOG_FILE0"  # API key error takes highest priority
+elif [ -f "$LOG_FILE3" ]; then
     LOG_FILE="$LOG_FILE3"  # Error log takes priority
 elif [ -f "$LOG_FILE1" ]; then
     LOG_FILE="$LOG_FILE1"

@@ -76,7 +76,7 @@ enum SegmentationMode: String, CaseIterable {
 struct SegmentationConstraints {
     var maxSegments: Int = 20
     var maxTokensPerSegment: Int = 200
-    var maxDuration: Double = 10.0          // seconds
+    var maxDuration: Double = 20.0          // seconds
     var minDuration: Double = 1.0           // seconds
     var targetDuration: Double = 3.0        // preferred duration
     var enforceStrictLimits: Bool = true
@@ -98,12 +98,12 @@ struct SegmentationConstraints {
 
 struct LLMConfiguration {
     var provider: LLMProvider = .deepseek
-    var model: String = "deepseek-ai/DeepSeek-V3"  // Full model ID for DeepSeek V3
+    var model: String = "deepseek-chat"  // Correct model name for DeepSeek API
     var apiKey: String
     var endpoint: String = "https://api.deepseek.com/v1/chat/completions"
     var temperature: Double = 0.3           // Lower for more consistent segmentation
     var maxRetries: Int = 3
-    var timeoutSeconds: Double = 30.0
+    var timeoutSeconds: Double = 120.0  // 2 minutes for complex scripts
     var maxTokens: Int = 4096               // High token limit for complex segmentation
     
     // Semantic Expansion Configuration
@@ -796,7 +796,7 @@ final class SegmentingModule: SegmentingModuleProtocol {
         \(script)
 
         INSTRUCTIONS:
-        1. Identify natural cinematic boundaries based on:
+        1. Process the entire script and identify natural cinematic boundaries based on:
            - Scene changes (location, time, action)
            - Pacing shifts (slow to fast, calm to tense)
            - Narrative beats (introduction, conflict, resolution)
@@ -808,9 +808,19 @@ final class SegmentingModule: SegmentingModuleProtocol {
            - Confidence in the boundary (0.0-1.0)
            - Taxonomy hints: camera angle, scene type, emotion, pacing, visual complexity, transition type
 
-        3. Ensure segments respect token and duration constraints
-        4. Maintain chronological flow
-        5. Mark ambiguous boundaries
+        3. Resolve ambiguous boundaries with arc-aligned creative fills:
+           - When boundaries are unclear, choose splits that maintain narrative coherence
+           - Consider the overall story arc and character development
+           - Prefer emotional completeness over rigid structural rules
+           - Ensure coherence within 128k token context window
+
+        4. Ensure segments respect constraints:
+           - Max duration: 20 seconds per segment
+           - Token limits per segment
+           - Total duration limits
+        
+        5. Maintain chronological flow while ensuring narrative completeness
+        6. Mark ambiguous boundaries with confidence < 0.8
 
         OUTPUT FORMAT (valid JSON):
         {
@@ -1176,7 +1186,13 @@ final class LLMClient {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // Create URLSession with proper timeout configuration
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.timeoutIntervalForRequest = config.timeoutSeconds
+        sessionConfig.timeoutIntervalForResource = config.timeoutSeconds * 2
+        let session = URLSession(configuration: sessionConfig)
+        
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SegmentationError.llmConnectionFailed("Invalid response")

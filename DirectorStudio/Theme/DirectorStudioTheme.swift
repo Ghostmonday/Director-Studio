@@ -7,23 +7,49 @@ import SwiftUI
 // MARK: - Theme Definition
 
 struct DirectorStudioTheme {
+    // MARK: - Cinema Depth System
+    
+    enum CinemaDepth {
+        case card      // Level 1
+        case button    // Level 2
+        case modal     // Level 3
+        
+        var shadow: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+            switch self {
+            case .card:
+                return (.black.opacity(0.1), 4, 0, 2)
+            case .button:
+                return (.black.opacity(0.2), 8, 0, 4)
+            case .modal:
+                return (.black.opacity(0.3), 12, 0, 6)
+            }
+        }
+    }
+    
     // MARK: - Colors
     
     struct Colors {
-        // Primary brand colors
-        static let primary = Color.blue
-        static let secondary = Color.purple
-        static let accent = Color.orange
+        // Primary brand colors - Premium feel
+        static let primary = Color(red: 0, green: 102/255, blue: 255/255)  // #0066FF - Deeper blue
+        static let secondary = Color(red: 142/255, green: 68/255, blue: 173/255)  // #8E44AD - Richer purple
+        static let accent = Color(red: 255/255, green: 149/255, blue: 0/255)  // #FF9500 - Warmer orange
         
-        // Gradient definitions
+        // Gradient definitions with better color stops
         static let primaryGradient = LinearGradient(
-            colors: [primary, secondary],
-            startPoint: .leading,
-            endPoint: .trailing
+            colors: [primary, primary.opacity(0.9), secondary.opacity(0.8)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
         )
         
+        // LensDepth Cinema Theme (from design system)
+        static let backgroundBase = Color(red: 25/255, green: 25/255, blue: 25/255)     // #191919
+        static let surfacePanel = Color(red: 38/255, green: 38/255, blue: 38/255)       // #262626
+        static let cinemaGrey = backgroundBase  // Alias for compatibility
+        static let stainlessSteel = surfacePanel  // Alias for compatibility
+        static let darkSurface = surfacePanel  // Alias for compatibility
+        
         static let backgroundGradient = LinearGradient(
-            colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
+            colors: [cinemaGrey, stainlessSteel.opacity(0.8)],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -67,14 +93,15 @@ struct DirectorStudioTheme {
     // MARK: - Spacing
     
     struct Spacing {
+        // 8pt grid system for better visual rhythm
         static let xxSmall: CGFloat = 4
         static let xSmall: CGFloat = 8
-        static let small: CGFloat = 12
-        static let medium: CGFloat = 16
-        static let large: CGFloat = 20
-        static let xLarge: CGFloat = 24
-        static let xxLarge: CGFloat = 32
-        static let xxxLarge: CGFloat = 40
+        static let small: CGFloat = 16   // Better rhythm
+        static let medium: CGFloat = 24   // More breathing room
+        static let large: CGFloat = 32    // Clear sections
+        static let xLarge: CGFloat = 40   // Major spacing
+        static let xxLarge: CGFloat = 48  // Section breaks
+        static let xxxLarge: CGFloat = 56 // Hero spacing
     }
     
     // MARK: - Corner Radius
@@ -101,10 +128,15 @@ struct DirectorStudioTheme {
     // MARK: - Shadows
     
     struct Shadow {
-        static let small = (color: Color.black.opacity(0.05), radius: 3.0, y: 2.0)
-        static let medium = (color: Color.black.opacity(0.1), radius: 5.0, y: 3.0)
-        static let large = (color: Color.black.opacity(0.15), radius: 10.0, y: 5.0)
-        static let xlarge = (color: Color.black.opacity(0.2), radius: 20.0, y: 10.0)
+        // More sophisticated shadows with blur for depth
+        static let small = (color: Color.black.opacity(0.08), radius: 4.0, x: 0.0, y: 2.0)
+        static let medium = (color: Color.black.opacity(0.12), radius: 8.0, x: 0.0, y: 4.0)
+        static let large = (color: Color.black.opacity(0.16), radius: 16.0, x: 0.0, y: 8.0)
+        static let xlarge = (color: Color.black.opacity(0.20), radius: 24.0, x: 0.0, y: 12.0)
+        
+        // Colored shadows for primary elements
+        static let primaryGlow = (color: Colors.primary.opacity(0.3), radius: 16.0, x: 0.0, y: 8.0)
+        static let secondaryGlow = (color: Colors.secondary.opacity(0.3), radius: 16.0, x: 0.0, y: 8.0)
     }
 }
 
@@ -115,11 +147,12 @@ struct CardStyle: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .background(Color(.systemBackground))
+            .background(DirectorStudioTheme.Colors.darkSurface)
             .cornerRadius(DirectorStudioTheme.CornerRadius.large)
             .shadow(
-                color: DirectorStudioTheme.Shadow.medium.color,
+                color: Color.black.opacity(0.3),
                 radius: DirectorStudioTheme.Shadow.medium.radius,
+                x: DirectorStudioTheme.Shadow.medium.x,
                 y: DirectorStudioTheme.Shadow.medium.y
             )
             .overlay(
@@ -134,21 +167,44 @@ struct PrimaryButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .font(.system(size: 17, weight: .semibold, design: .rounded))
             .foregroundColor(.white)
             .padding(.horizontal, DirectorStudioTheme.Spacing.large)
-            .padding(.vertical, DirectorStudioTheme.Spacing.medium)
+            .padding(.vertical, DirectorStudioTheme.Spacing.small)
             .background(
-                isEnabled ? DirectorStudioTheme.Colors.primaryGradient : 
-                LinearGradient(colors: [Color.gray], startPoint: .leading, endPoint: .trailing)
+                ZStack {
+                    // Base gradient
+                    if isEnabled {
+                        DirectorStudioTheme.Colors.primaryGradient
+                    } else {
+                        LinearGradient(colors: [Color.gray.opacity(0.6), Color.gray.opacity(0.4)], 
+                                     startPoint: .topLeading, 
+                                     endPoint: .bottomTrailing)
+                    }
+                    
+                    // Inner shadow for depth when pressed
+                    if configuration.isPressed && isEnabled {
+                        RoundedRectangle(cornerRadius: DirectorStudioTheme.CornerRadius.large)
+                            .fill(Color.black.opacity(0.2))
+                            .blur(radius: 4)
+                            .offset(y: 2)
+                    }
+                }
             )
             .cornerRadius(DirectorStudioTheme.CornerRadius.large)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(DirectorStudioTheme.Animation.quick, value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(DirectorStudioTheme.Animation.smooth, value: configuration.isPressed)
             .shadow(
-                color: isEnabled ? DirectorStudioTheme.Colors.primary.opacity(0.3) : .clear,
-                radius: 10,
-                y: 5
+                color: isEnabled ? DirectorStudioTheme.Shadow.primaryGlow.color : Color.clear,
+                radius: configuration.isPressed ? 8 : DirectorStudioTheme.Shadow.primaryGlow.radius,
+                x: 0,
+                y: configuration.isPressed ? 4 : DirectorStudioTheme.Shadow.primaryGlow.y
             )
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed {
+                    HapticFeedback.impact(.light)
+                }
+            }
     }
 }
 
@@ -164,6 +220,51 @@ struct SecondaryButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(DirectorStudioTheme.Animation.quick, value: configuration.isPressed)
+    }
+}
+
+// MARK: - Additional Styles
+
+struct FloatingLabelTextFieldStyle: ViewModifier {
+    let title: String
+    @Binding var text: String
+    @FocusState var isFocused: Bool
+    
+    var shouldFloat: Bool {
+        !text.isEmpty || isFocused
+    }
+    
+    func body(content: Content) -> some View {
+        ZStack(alignment: .leading) {
+            // Floating label
+            Text(title)
+                .font(shouldFloat ? .caption : .body)
+                .foregroundColor(shouldFloat ? DirectorStudioTheme.Colors.primary : Color(.placeholderText))
+                .offset(y: shouldFloat ? -20 : 0)
+                .scaleEffect(shouldFloat ? 0.8 : 1, anchor: .leading)
+                .animation(DirectorStudioTheme.Animation.smooth, value: shouldFloat)
+            
+            content
+                .font(.body)
+                .focused($isFocused)
+        }
+        .padding(.top, 20)
+        .overlay(
+            Rectangle()
+                .frame(height: 2)
+                .foregroundColor(isFocused ? DirectorStudioTheme.Colors.primary : Color(.separator))
+                .animation(DirectorStudioTheme.Animation.quick, value: isFocused),
+            alignment: .bottom
+        )
+    }
+}
+
+// MARK: - Cinema Background Style
+
+struct CinemaBackgroundStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(DirectorStudioTheme.Colors.backgroundGradient)
     }
 }
 
@@ -194,6 +295,23 @@ extension View {
         self
             .transition(.opacity)
             .animation(.easeOut(duration: 0.4).delay(delay), value: UUID())
+    }
+    
+    func floatingLabel(_ title: String, text: Binding<String>, isFocused: FocusState<Bool>) -> some View {
+        modifier(FloatingLabelTextFieldStyle(title: title, text: text, isFocused: isFocused))
+    }
+    
+    func cinemaBackground() -> some View {
+        modifier(CinemaBackgroundStyle())
+    }
+    
+    func cinemaDepth(_ level: Int) -> some View {
+        self.shadow(
+            color: .black.opacity(0.1 * Double(level)),
+            radius: CGFloat(level * 4),
+            x: 0,
+            y: CGFloat(level * 2)
+        )
     }
 }
 

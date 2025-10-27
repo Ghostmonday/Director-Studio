@@ -77,7 +77,7 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
         logger.debug("🔑 Fetching DeepSeek API key from Supabase...")
         
         do {
-            let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "deepseek")
+            let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
             self.apiKey = fetchedKey
             logger.debug("✅ DeepSeek API key fetched successfully")
             return fetchedKey

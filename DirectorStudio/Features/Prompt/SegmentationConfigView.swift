@@ -111,7 +111,7 @@ struct SegmentationConfigView: View {
                                 Text("\(Int(targetDuration))s")
                                     .foregroundColor(.secondary)
                             }
-                            Slider(value: $targetDuration, in: 1...10, step: 1)
+                            Slider(value: $targetDuration, in: 1...20, step: 1)
                         }
                     }
                     .padding()

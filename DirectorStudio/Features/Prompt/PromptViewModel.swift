@@ -6,6 +6,64 @@ import Foundation
 import SwiftUI
 import Combine
 
+// MARK: - User Expertise Tracking
+
+enum UserExpertiseLevel: String, CaseIterable {
+    case beginner = "Just Starting"
+    case regular = "Getting Comfortable" 
+    case power = "Power User"
+    
+    var maxVisibleOptions: Int {
+        switch self {
+        case .beginner: return 3
+        case .regular: return 6
+        case .power: return 100
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .beginner: return "Show essential features only"
+        case .regular: return "Show common features"
+        case .power: return "Show all advanced features"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .beginner: return "star"
+        case .regular: return "star.fill"
+        case .power: return "star.circle.fill"
+        }
+    }
+}
+
+/// Creative context states for context-aware UI
+public enum CreativeContext {
+    case ideation      // Just opened app
+    case scripting     // Typing in prompt
+    case reviewing     // Confirmed prompt
+    case generating    // Video generating
+    
+    var headerMessage: String {
+        switch self {
+        case .ideation: return "What story will you tell today?"
+        case .scripting: return "Crafting your vision..."
+        case .reviewing: return "Review your masterpiece"
+        case .generating: return "Bringing your story to life..."
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .ideation: return "sparkles"
+        case .scripting: return "pencil.circle.fill"
+        case .reviewing: return "eye.fill"
+        case .generating: return "wand.and.stars"
+        }
+    }
+}
+
 /// Generation mode for single video vs multi-clip film
 public enum GenerationMode: String, CaseIterable {
     case single = "Single Video"
@@ -90,6 +148,15 @@ class PromptViewModel: ObservableObject {
     @Published var durationStrategy: DurationStrategy = .uniform(10.0)
     @Published var uniformDuration: TimeInterval = 10.0
     
+    // Context-aware UI state
+    @Published var currentContext: CreativeContext = .ideation
+    
+    // Progressive disclosure
+    @AppStorage("userExpertiseLevel") var expertiseLevel: UserExpertiseLevel = .beginner
+    @AppStorage("videosGenerated") var videosGenerated: Int = 0
+    @Published var showExpertiseUpgrade = false
+    @Published var dismissedExpertiseUpgrade = false
+    
     private let pipelineService = PipelineServiceBridge()
     private var cancellables = Set<AnyCancellable>()
     
@@ -149,6 +216,61 @@ class PromptViewModel: ObservableObject {
                 UserDefaults.standard.set(name, forKey: "draftProject")
             }
             .store(in: &cancellables)
+    }
+    
+    // MARK: - Progressive Disclosure
+    
+    /// Check if user should be upgraded to next expertise level
+    func checkExpertiseUpgrade() {
+        if videosGenerated >= 10 && expertiseLevel == .beginner && !dismissedExpertiseUpgrade {
+            expertiseLevel = .regular
+            showExpertiseUpgrade = true
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } else if videosGenerated >= 50 && expertiseLevel == .regular && !dismissedExpertiseUpgrade {
+            expertiseLevel = .power
+            showExpertiseUpgrade = true
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+    }
+    
+    /// Get filtered stages based on expertise level
+    var filteredAvailableStages: [PipelineStage] {
+        let stages = availableStages
+        
+        switch expertiseLevel {
+        case .beginner:
+            // Show only essential stages
+            return stages.filter { 
+                [.enhancement, .lighting].contains($0)
+            }
+        case .regular:
+            // Show common stages
+            return stages.filter {
+                [.enhancement, .lighting, .cameraDirection].contains($0)
+            }
+        case .power:
+            // Show all stages
+            return stages
+        }
+    }
+    
+    /// Get filtered prompt templates based on expertise
+    var filteredPromptTemplates: [PromptTemplate] {
+        let allTemplates = Self.promptTemplates
+        
+        switch expertiseLevel {
+        case .beginner:
+            return Array(allTemplates.prefix(3))
+        case .regular:
+            return Array(allTemplates.prefix(5))
+        case .power:
+            return allTemplates
+        }
+    }
+    
+    /// Should show advanced features
+    var shouldShowAdvancedFeatures: Bool {
+        expertiseLevel != .beginner
     }
     
     /// Load demo content for quick testing
@@ -272,6 +394,10 @@ class PromptViewModel: ObservableObject {
             
             // Update project clip count
             coordinator.currentProject?.clipCount += 1
+            
+            // Update videos generated count and check expertise
+            videosGenerated += 1
+            checkExpertiseUpgrade()
             
             // Navigate to Studio
             coordinator.navigateTo(.studio)

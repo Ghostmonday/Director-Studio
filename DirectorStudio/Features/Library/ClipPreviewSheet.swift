@@ -131,7 +131,7 @@ struct ClipPreviewSheet: View {
                                 .disabled(exportProgress != nil)
                                 
                                 // Edit in Studio
-                                NavigationLink(destination: PolishedStudioView()) {
+                                NavigationLink(destination: StudioView()) {
                                     VStack {
                                         Image(systemName: "wand.and.stars")
                                             .font(.title2)

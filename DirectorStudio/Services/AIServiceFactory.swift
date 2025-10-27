@@ -21,10 +21,10 @@ public final class AIServiceFactory {
             return MockAIService()
             
         case .pollo:
-            return PolloAIService(apiKey: apiKey)
+            return PolloAIService()
             
         case .deepseek:
-            return DeepSeekAIService(apiKey: apiKey)
+            return DeepSeekAIService()
             
         case .openai:
             // TODO: Implement OpenAI service
@@ -38,19 +38,8 @@ public final class AIServiceFactory {
     
     public static func createFromEnvironment() -> AIServiceProtocol {
         // Check which API keys are available
-        if let polloKey = Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String,
-           !polloKey.isEmpty, !polloKey.contains("YOUR_") {
-            return PolloAIService(apiKey: polloKey)
-        }
-        
-        if let deepseekKey = Bundle.main.infoDictionary?["DEEPSEEK_API_KEY"] as? String,
-           !deepseekKey.isEmpty, !deepseekKey.contains("YOUR_") {
-            return DeepSeekAIService(apiKey: deepseekKey)
-        }
-        
-        // Fallback to mock
-        print("⚠️ No valid API keys found in configuration. Using mock AI service.")
-        return MockAIService()
+        // Services now fetch keys dynamically from Supabase
+        return PolloAIService()
     }
     
     // MARK: - Specialized Service Creation
@@ -79,16 +68,8 @@ public final class AIServiceFactory {
     /// Create a text enhancement service based on available providers
     public static func createTextService() -> TextEnhancementProtocol {
         // Check for DeepSeek first (optimized for text)
-        if let deepseekKey = Bundle.main.infoDictionary?["DEEPSEEK_API_KEY"] as? String,
-           !deepseekKey.isEmpty, !deepseekKey.contains("YOUR_") {
-            return DeepSeekAIService(apiKey: deepseekKey)
-        }
-        
-        // TODO: Check for OpenAI/Anthropic as alternatives
-        
-        // Fallback to mock
-        print("⚠️ No text enhancement API keys found. Using mock text service.")
-        return MockTextService()
+        // Services now fetch keys dynamically from Supabase
+        return DeepSeekAIService()
     }
     
     /// Select optimal service based on task requirements

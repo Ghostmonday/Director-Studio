@@ -3,8 +3,8 @@
 ## Hosted Instance Configuration
 
 Your app is now configured to use:
-- **URL**: `https://xduwbxbulphvuqqfjrec.supabase.co`
-- **Anon Key**: Embedded in `SupabaseAPIKeyService.swift`
+- **URL**: `https://carkncjucvtbggqrilwj.supabase.co`
+- **Anon Key**: Embedded in `SupabaseAPIKeyService.swift` (needs to be updated)
 
 ## Database Setup Required
 

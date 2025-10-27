@@ -94,11 +94,22 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         // Ensure we have API key
         let apiKey = try await ensureAPIKey()
         
-        // Apply test mode if enabled
-        let finalDuration = TestingMode.isEnabled ? 1.0 : duration
+        // Pollo API only accepts 5 or 10 seconds
+        // Enforce strict validation
+        let validDuration: Int
+        if duration == 5.0 {
+            validDuration = 5
+        } else if duration == 10.0 {
+            validDuration = 10
+        } else {
+            // Default to 10 seconds if not exactly 5 or 10
+            logger.warning("⚠️ Invalid duration \(duration)s requested, defaulting to 10s")
+            validDuration = 10
+        }
+        
         let finalResolution = TestingMode.isEnabled ? "480p" : "480p" // Already using 480p for cost
         
-        logger.debug("📊 Final parameters - Duration: \(finalDuration)s, Resolution: \(finalResolution)")
+        logger.debug("📊 Final parameters - Duration: \(validDuration)s (requested: \(duration)s), Resolution: \(finalResolution)")
         
         // Create request
         let url = URL(string: "https://pollo.ai/api/platform/generation/pollo/pollo-v1-6")!
@@ -110,7 +121,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         let body = PolloRequest(input: PolloInput(
             prompt: prompt,
             resolution: finalResolution,
-            length: Int(finalDuration)
+            length: validDuration
         ))
         
         request.httpBody = try JSONEncoder().encode(body)
@@ -124,13 +135,31 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         }
         
         // Make request
-        let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
+        logger.debug("🔄 Making Pollo API request...")
         
-        guard response.code == "SUCCESS" else {
-            throw APIError.authError("Pollo API error: \(response.code)")
+        do {
+            let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
+            
+            guard response.code == "SUCCESS" else {
+                logger.error("❌ Pollo API returned code: \(response.code)")
+                throw APIError.authError("Pollo API error: \(response.code)")
+            }
+            
+            return try await continueWithValidResponse(response, apiKey: apiKey)
+        } catch let error as APIError {
+            // Re-throw with more context
+            logger.error("❌ Pollo API Error: \(error.localizedDescription)")
+            throw error
+        } catch {
+            logger.error("❌ Unexpected error: \(error)")
+            throw error
         }
+    }
+    
+    private func continueWithValidResponse(_ response: PolloResponse, apiKey: String) async throws -> URL {
         
         guard response.data.status == "waiting" else {
+            logger.error("❌ Unexpected init status: \(response.data.status)")
             throw APIError.authError("Unexpected init status: \(response.data.status)")
         }
         

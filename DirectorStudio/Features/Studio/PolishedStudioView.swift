@@ -1,10 +1,10 @@
-// MODULE: PolishedStudioView
+// MODULE: StudioView
 // VERSION: 2.0.0
 // PURPOSE: Refined studio view with enhanced organization and visual polish
 
 import SwiftUI
 
-struct PolishedStudioView: View {
+struct StudioView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @State private var selectedClips: Set<UUID> = []
     @State private var showingExportOptions = false

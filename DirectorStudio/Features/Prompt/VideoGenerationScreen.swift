@@ -262,7 +262,7 @@ struct SegmentingView: View {
                 var constraints = SegmentationConstraints.default
                 constraints.maxSegments = 100
                 constraints.maxTokensPerSegment = 180
-                constraints.maxDuration = 10.0
+                constraints.maxDuration = 20.0
                 constraints.targetDuration = 3.0
                 
                 // Use user-selected configuration or defaults
@@ -286,7 +286,7 @@ struct SegmentingView: View {
                     #endif
                     
                     do {
-                        let apiKey = try await SupabaseAPIKeyService.shared.fetchAPIKey(for: "deepseek")
+                        let apiKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
                         
                         if !apiKey.isEmpty {
                             llmConfig = LLMConfiguration(apiKey: apiKey)
@@ -307,6 +307,10 @@ struct SegmentingView: View {
                         #if DEBUG
                         print("❌ Failed to fetch DeepSeek API key: \(error)")
                         print("⚠️ Falling back to duration-based segmentation")
+                        
+                        // Log to file for debugging
+                        let logPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("api_key_error.txt")
+                        try? "API Key Fetch Error: \(error)\nTime: \(Date())\n".write(to: logPath, atomically: true, encoding: .utf8)
                         #endif
                     }
                 }

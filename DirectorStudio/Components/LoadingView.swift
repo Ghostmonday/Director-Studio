@@ -114,6 +114,86 @@ struct DirectorLoadingMessages {
     static let processing = "Working on your scene..."
 }
 
+/// Cinematic loading phrases for narrative progress
+struct CinematicLoadingPhrases {
+    static let phrases = [
+        "Setting up the scene...",
+        "Adjusting the lighting...",
+        "Directing the talent...",
+        "Rolling camera...",
+        "Capturing the magic..."
+    ]
+}
+
+/// Cinematic loading view with film reel animation
+struct CinematicLoadingView: View {
+    @State private var currentPhrase = 0
+    @State private var rotation: Double = 0
+    @State private var isTyping = false
+    
+    let phrases = CinematicLoadingPhrases.phrases
+    
+    var body: some View {
+        VStack(spacing: 32) {
+            // Film reel animation
+            ZStack {
+                ForEach(0..<8) { index in
+                    Rectangle()
+                        .fill(DirectorStudioTheme.Colors.accent.opacity(0.7))
+                        .frame(width: 4, height: 40)
+                        .offset(y: -20)
+                        .rotationEffect(.degrees(rotation + Double(index) * 45))
+                }
+                
+                // Center dot
+                Circle()
+                    .fill(DirectorStudioTheme.Colors.accent)
+                    .frame(width: 16, height: 16)
+            }
+            .frame(width: 80, height: 80)
+            .rotationEffect(.degrees(rotation))
+            .onAppear {
+                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                    rotation = 360
+                }
+            }
+            
+            // Animated text
+            Text(phrases[currentPhrase])
+                .font(.headline)
+                .foregroundColor(.primary)
+                .animation(.easeInOut, value: currentPhrase)
+            
+            // Progress dots
+            HStack(spacing: 8) {
+                ForEach(0..<phrases.count, id: \.self) { index in
+                    Circle()
+                        .fill(index <= currentPhrase ? DirectorStudioTheme.Colors.accent : Color.gray)
+                        .frame(width: 8, height: 8)
+                        .animation(.spring(), value: currentPhrase)
+                }
+            }
+        }
+        .padding(40)
+        .background(DirectorStudioTheme.Colors.surfacePanel)
+        .cornerRadius(20)
+        .shadow(color: DirectorStudioTheme.Shadow.medium.color, radius: DirectorStudioTheme.Shadow.medium.radius)
+        .onAppear {
+            startPhraseRotation()
+        }
+    }
+    
+    private func startPhraseRotation() {
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { timer in
+            if currentPhrase < phrases.count - 1 {
+                currentPhrase += 1
+            } else {
+                currentPhrase = 0
+            }
+        }
+    }
+}
+
 /// Success animation view
 struct SuccessAnimationView: View {
     @State private var scale: CGFloat = 0.5
@@ -157,6 +237,7 @@ struct LoadingView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 40) {
             LoadingView(message: "Creating your vision...", progress: 0.65)
+            CinematicLoadingView()
             InlineLoadingView(message: "Working on your scene")
             SuccessAnimationView()
         }
