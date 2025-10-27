@@ -281,19 +281,32 @@ struct SegmentingView: View {
                 // Fetch DeepSeek API key if AI mode is selected
                 var llmConfig: LLMConfiguration?
                 if userConfig.mode.requiresLLM {
-                    let apiKey = try? await SupabaseAPIKeyService.shared.fetchAPIKey(for: "deepseek")
+                    #if DEBUG
+                    print("🔑 [API] Attempting to fetch DeepSeek API key...")
+                    #endif
                     
-                    if let key = apiKey, !key.isEmpty {
-                        llmConfig = LLMConfiguration(apiKey: key)
-                        llmConfig?.enableSemanticExpansion = userConfig.enableSemanticExpansion
-                        llmConfig?.expansionConfig.expansionStyle = userConfig.expansionStyle
+                    do {
+                        let apiKey = try await SupabaseAPIKeyService.shared.fetchAPIKey(for: "deepseek")
                         
+                        if !apiKey.isEmpty {
+                            llmConfig = LLMConfiguration(apiKey: apiKey)
+                            llmConfig?.enableSemanticExpansion = userConfig.enableSemanticExpansion
+                            llmConfig?.expansionConfig.expansionStyle = userConfig.expansionStyle
+                            
+                            #if DEBUG
+                            print("✅ DeepSeek API key found: \(apiKey.prefix(10))...")
+                            print("✅ Using \(userConfig.mode.displayName) segmentation")
+                            print("✅ Semantic expansion: \(userConfig.enableSemanticExpansion)")
+                            #endif
+                        } else {
+                            #if DEBUG
+                            print("⚠️ DeepSeek API key is empty")
+                            #endif
+                        }
+                    } catch {
                         #if DEBUG
-                        print("✅ DeepSeek API key found, using \(userConfig.mode.displayName)")
-                        #endif
-                    } else {
-                        #if DEBUG
-                        print("⚠️ No DeepSeek API key, falling back to duration-based")
+                        print("❌ Failed to fetch DeepSeek API key: \(error)")
+                        print("⚠️ Falling back to duration-based segmentation")
                         #endif
                     }
                 }

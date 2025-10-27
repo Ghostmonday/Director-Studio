@@ -98,12 +98,13 @@ struct SegmentationConstraints {
 
 struct LLMConfiguration {
     var provider: LLMProvider = .deepseek
-    var model: String = "deepseek-chat"
+    var model: String = "deepseek-ai/DeepSeek-V3"  // Full model ID for DeepSeek V3
     var apiKey: String
     var endpoint: String = "https://api.deepseek.com/v1/chat/completions"
     var temperature: Double = 0.3           // Lower for more consistent segmentation
     var maxRetries: Int = 3
     var timeoutSeconds: Double = 30.0
+    var maxTokens: Int = 4096               // High token limit for complex segmentation
     
     // Semantic Expansion Configuration
     var enableSemanticExpansion: Bool = false
@@ -1164,10 +1165,13 @@ final class LLMClient {
         let body: [String: Any] = [
             "model": config.model,
             "messages": [
+                ["role": "system", "content": "You are an expert film editor analyzing scripts for optimal scene segmentation."],
                 ["role": "user", "content": prompt]
             ],
             "temperature": config.temperature,
-            "max_tokens": 4000
+            "max_tokens": config.maxTokens,
+            "top_p": 0.9,
+            "stream": false
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
