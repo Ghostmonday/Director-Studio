@@ -802,6 +802,17 @@ struct PromptView: View {
             } else {
                 // Multi-clip generation - launch VideoGenerationScreen
                 scriptForGeneration = viewModel.promptText
+                
+                #if DEBUG
+                print("🎬 [PromptView] Launching VideoGenerationScreen")
+                print("   Script length: \(viewModel.promptText.count)")
+                print("   Script preview: \(viewModel.promptText.prefix(100))")
+                
+                // Also log to file
+                let debugPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("prompt_view_debug.txt")
+                try? "Script passed: '\(viewModel.promptText)'\nLength: \(viewModel.promptText.count)".write(to: debugPath, atomically: true, encoding: .utf8)
+                #endif
+                
                 showVideoGenerationScreen = true
             }
         }) {
@@ -1011,7 +1022,7 @@ struct PromptView: View {
             .fullScreenCover(isPresented: $showVideoGenerationScreen) {
                 VideoGenerationScreen(
                     isPresented: $showVideoGenerationScreen,
-                    initialScript: scriptForGeneration
+                    initialScript: viewModel.promptText  // Pass directly from viewModel
                 )
                 .environmentObject(coordinator)
             }

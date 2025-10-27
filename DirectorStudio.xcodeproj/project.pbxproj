@@ -74,6 +74,7 @@
 		C07425A2824C3D90BA02FF6B /* CostConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */; };
 		C07425A3824C3D90BA02FF6C /* AIClipDurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A105C3AF5BED311744 /* AIClipDurator.swift */; };
 		C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */; };
+		C07425A4824C3D90BA02FF72 /* SegmentationConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A205C3AF5BED311750 /* SegmentationConfigView.swift */; };
 		C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */; };
 		C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311747 /* TestingMode.swift */; };
 		C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311748 /* SegmentingModule.swift */; };
@@ -153,6 +154,7 @@
 		F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CostConfirmationView.swift; sourceTree = "<group>"; };
 		F22F54A105C3AF5BED311744 /* AIClipDurator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIClipDurator.swift; sourceTree = "<group>"; };
 		F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VideoGenerationScreen.swift; sourceTree = "<group>"; };
+		F22F54A205C3AF5BED311750 /* SegmentationConfigView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentationConfigView.swift; sourceTree = "<group>"; };
 		F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimulatorExportHelper.swift; sourceTree = "<group>"; };
 		F22F54A405C3AF5BED311747 /* TestingMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Configuration/TestingMode.swift"; sourceTree = SOURCE_ROOT; };
 		F22F54A405C3AF5BED311748 /* SegmentingModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentingModule.swift; sourceTree = "<group>"; };
@@ -363,6 +365,7 @@
 				F22F549F05C3AF5BED311742 /* DurationSelectionView.swift */,
 				F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */,
 				F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */,
+				F22F54A205C3AF5BED311750 /* SegmentationConfigView.swift */,
 			);
 			path = Prompt;
 			sourceTree = "<group>";
@@ -523,6 +526,7 @@
 				C07425A2824C3D90BA02FF6B /* CostConfirmationView.swift in Sources */,
 				C07425A3824C3D90BA02FF6C /* AIClipDurator.swift in Sources */,
 				C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */,
+				C07425A4824C3D90BA02FF72 /* SegmentationConfigView.swift in Sources */,
 				C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */,
 				C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */,
 				C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */,

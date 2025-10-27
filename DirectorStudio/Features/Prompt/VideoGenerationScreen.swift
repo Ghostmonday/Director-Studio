@@ -6,6 +6,7 @@ import SwiftUI
 
 /// Generation flow state machine
 enum GenerationStep {
+    case configureSegmentation
     case segmenting
     case reviewPrompts
     case selectDurations
@@ -16,7 +17,8 @@ enum GenerationStep {
 struct VideoGenerationScreen: View {
     @StateObject private var segmentCollection = MultiClipSegmentCollection()
     @EnvironmentObject var coordinator: AppCoordinator
-    @State private var currentStep: GenerationStep = .segmenting
+    @State private var currentStep: GenerationStep = .configureSegmentation
+    @State private var segmentationConfig: SegmentationConfig?
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var segmentationWarnings: [SegmentationWarning] = []
@@ -28,6 +30,18 @@ struct VideoGenerationScreen: View {
     var body: some View {
         ZStack {
             switch currentStep {
+            case .configureSegmentation:
+                SegmentationConfigView(
+                    isPresented: $isPresented,
+                    scriptLength: initialScript.count,
+                    onStart: { config in
+                        segmentationConfig = config
+                        withAnimation(.spring()) {
+                            currentStep = .segmenting
+                        }
+                    }
+                )
+                
             case .segmenting:
                 #if DEBUG
                 let _ = print("🎬 [VideoGenerationScreen] Current step: segmenting")
@@ -35,6 +49,7 @@ struct VideoGenerationScreen: View {
                 #endif
                 SegmentingView(
                     script: initialScript,
+                    config: segmentationConfig,
                     onComplete: { segments, warnings, metadata in
                         #if DEBUG
                         print("🎬 [VideoGeneration] Segmentation complete:")
@@ -147,6 +162,7 @@ struct VideoGenerationScreen: View {
 /// View shown during initial segmentation
 struct SegmentingView: View {
     let script: String
+    let config: SegmentationConfig?
     let onComplete: ([MultiClipSegment], [SegmentationWarning], SegmentationMetadata?) -> Void
     let onCancel: () -> Void
     
@@ -235,6 +251,10 @@ struct SegmentingView: View {
         
         // Perform actual segmentation
         Task {
+            // Write a test log to confirm we're here
+            let testLogPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("test_log.txt")
+            try? "Segmentation started at \(Date())\nScript: \(script)\n".write(to: testLogPath, atomically: true, encoding: .utf8)
+            
             do {
                 let module = SegmentingModule()
                 
@@ -245,11 +265,44 @@ struct SegmentingView: View {
                 constraints.maxDuration = 10.0
                 constraints.targetDuration = 3.0
                 
+                // Use user-selected configuration or defaults
+                let userConfig = config ?? SegmentationConfig(
+                    mode: .hybrid,
+                    enableSemanticExpansion: false,
+                    expansionStyle: .vivid,
+                    maxSegments: 100,
+                    targetDuration: 3.0
+                )
+                
+                // Apply user constraints
+                constraints.maxSegments = userConfig.maxSegments
+                constraints.targetDuration = userConfig.targetDuration
+                
+                // Fetch DeepSeek API key if AI mode is selected
+                var llmConfig: LLMConfiguration?
+                if userConfig.mode.requiresLLM {
+                    let apiKey = try? await SupabaseAPIKeyService.shared.fetchAPIKey(for: "deepseek")
+                    
+                    if let key = apiKey, !key.isEmpty {
+                        llmConfig = LLMConfiguration(apiKey: key)
+                        llmConfig?.enableSemanticExpansion = userConfig.enableSemanticExpansion
+                        llmConfig?.expansionConfig.expansionStyle = userConfig.expansionStyle
+                        
+                        #if DEBUG
+                        print("✅ DeepSeek API key found, using \(userConfig.mode.displayName)")
+                        #endif
+                    } else {
+                        #if DEBUG
+                        print("⚠️ No DeepSeek API key, falling back to duration-based")
+                        #endif
+                    }
+                }
+                
                 let result = try await module.segment(
                     script: script,
-                    mode: .duration,  // Use duration-based (no LLM needed)
+                    mode: userConfig.mode,
                     constraints: constraints,
-                    llmConfig: nil
+                    llmConfig: llmConfig
                 )
                 
                 // Convert CinematicSegments to MultiClipSegments
@@ -275,7 +328,20 @@ struct SegmentingView: View {
             } catch {
                 #if DEBUG
                 print("❌ Segmentation failed: \(error)")
+                
+                // Log error to file so we can read it
+                let errorLogPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("segmentation_error.txt")
+                let errorMessage = """
+                ❌ SEGMENTATION ERROR
+                Time: \(Date())
+                Error: \(error)
+                Error Description: \(error.localizedDescription)
+                Script Length: \(script.count) characters
+                Script Preview: \(script.prefix(200))
+                """
+                try? errorMessage.write(to: errorLogPath, atomically: true, encoding: .utf8)
                 #endif
+                
                 await MainActor.run {
                     onComplete([], [], nil)
                 }

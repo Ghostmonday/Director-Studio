@@ -12,11 +12,31 @@ if [ -z "$DATA_DIR" ]; then
     exit 1
 fi
 
-LOG_FILE="$DATA_DIR/Documents/debug_logs.txt"
+# Try all log files
+LOG_FILE1="$DATA_DIR/Documents/segmentation_debug.txt"
+LOG_FILE2="$DATA_DIR/Documents/debug_logs.txt"
+LOG_FILE3="$DATA_DIR/Documents/segmentation_error.txt"
+LOG_FILE4="$DATA_DIR/Documents/test_log.txt"
 
-if [ ! -f "$LOG_FILE" ]; then
-    echo "❌ Log file not found at: $LOG_FILE"
-    echo "💡 Try running the app first to generate logs"
+LOG_FILE=""
+if [ -f "$LOG_FILE3" ]; then
+    LOG_FILE="$LOG_FILE3"  # Error log takes priority
+elif [ -f "$LOG_FILE1" ]; then
+    LOG_FILE="$LOG_FILE1"
+elif [ -f "$LOG_FILE2" ]; then
+    LOG_FILE="$LOG_FILE2"
+elif [ -f "$LOG_FILE4" ]; then
+    LOG_FILE="$LOG_FILE4"
+fi
+
+if [ -z "$LOG_FILE" ]; then
+    echo "❌ No log files found in: $DATA_DIR/Documents/"
+    echo "💡 Looking for:"
+    echo "   - segmentation_debug.txt"
+    echo "   - debug_logs.txt"
+    echo ""
+    echo "📁 Files in Documents:"
+    ls -la "$DATA_DIR/Documents/" 2>/dev/null || echo "   (empty)"
     exit 1
 fi
 
