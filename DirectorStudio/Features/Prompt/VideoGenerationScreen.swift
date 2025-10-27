@@ -19,6 +19,8 @@ struct VideoGenerationScreen: View {
     @State private var currentStep: GenerationStep = .segmenting
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var segmentationWarnings: [SegmentationWarning] = []
+    @State private var segmentationMetadata: SegmentationMetadata?
     @Binding var isPresented: Bool
     
     let initialScript: String
@@ -29,7 +31,7 @@ struct VideoGenerationScreen: View {
             case .segmenting:
                 SegmentingView(
                     script: initialScript,
-                    onComplete: { segments in
+                    onComplete: { segments, warnings, metadata in
                         #if DEBUG
                         print("🎬 [VideoGeneration] Segmentation complete:")
                         print("   - Generated \(segments.count) segments")
@@ -38,6 +40,8 @@ struct VideoGenerationScreen: View {
                         }
                         #endif
                         segmentCollection.segments = segments
+                        segmentationWarnings = warnings
+                        segmentationMetadata = metadata
                         withAnimation(.spring()) {
                             currentStep = .reviewPrompts
                         }
@@ -50,6 +54,7 @@ struct VideoGenerationScreen: View {
             case .reviewPrompts:
                 PromptReviewView(
                     segmentCollection: segmentCollection,
+                    segmentationWarnings: segmentationWarnings,
                     isPresented: Binding(
                         get: { currentStep == .reviewPrompts },
                         set: { if !$0 { currentStep = .segmenting } }
@@ -100,6 +105,7 @@ struct VideoGenerationScreen: View {
             case .costConfirmation:
                 CostConfirmationView(
                     segmentCollection: segmentCollection,
+                    segmentationMetadata: segmentationMetadata,
                     isPresented: Binding(
                         get: { currentStep == .costConfirmation },
                         set: { if !$0 { currentStep = .selectDurations } }
@@ -137,7 +143,7 @@ struct VideoGenerationScreen: View {
 /// View shown during initial segmentation
 struct SegmentingView: View {
     let script: String
-    let onComplete: ([MultiClipSegment]) -> Void
+    let onComplete: ([MultiClipSegment], [SegmentationWarning], SegmentationMetadata?) -> Void
     let onCancel: () -> Void
     
     @State private var isProcessing = true
@@ -219,27 +225,50 @@ struct SegmentingView: View {
         }
         
         // Perform actual segmentation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            #if DEBUG
-            print("🎬 [VideoGeneration] Starting segmentation")
-            print("   - Script length: \(script.count) characters")
-            print("   - Strategy: byScenes")
-            #endif
-            
-            let segments = MultiClipSegmentCollection.createSegments(
-                from: script,
-                strategy: .byScenes
-            )
-            
-            #if DEBUG
-            print("🎬 [VideoGeneration] Segmentation complete:")
-            print("   - Generated \(segments.count) segments")
-            for (i, seg) in segments.enumerated() {
-                print("   - Segment \(i+1): \(seg.text.prefix(50))... (\(seg.duration)s)")
+        Task {
+            do {
+                let module = SegmentingModule()
+                let result = try await module.segment(
+                    script: script,
+                    strategy: .hybrid,  // Use hybrid for best results
+                    constraints: .directorStudioDefaults
+                )
+                
+                // Check for warnings
+                if !result.warnings.isEmpty {
+                    #if DEBUG
+                    print("⚠️ Segmentation warnings:")
+                    result.warnings.forEach { print("  - \($0.message)") }
+                    #endif
+                }
+                
+                // Use the segments
+                let segments = result.segments
+                
+                #if DEBUG
+                print("🎬 [VideoGeneration] Segmentation complete:")
+                print("   - Strategy: \(result.metadata.strategy.displayName)")
+                print("   - Confidence: \(Int(result.metadata.confidence * 100))%")
+                print("   - Generated \(segments.count) segments")
+                for (i, seg) in segments.enumerated() {
+                    print("   - Segment \(i+1): \(seg.text.prefix(50))... (\(seg.duration)s)")
+                }
+                #endif
+                
+                await MainActor.run {
+                    onComplete(segments, result.warnings, result.metadata)
+                }
+                
+            } catch {
+                #if DEBUG
+                print("❌ Segmentation failed: \(error.localizedDescription)")
+                #endif
+                // Show error or use fallback
+                await MainActor.run {
+                    // For now, show empty segments to trigger error state
+                    onComplete([], [], nil)
+                }
             }
-            #endif
-            
-            onComplete(segments)
         }
     }
 }

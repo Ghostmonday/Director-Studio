@@ -427,6 +427,24 @@ struct DurationSelectionView: View {
         
         Task {
             do {
+                // Validate token limits before calling AI
+                var tokenWarnings: [String] = []
+                for (index, segment) in segmentCollection.segments.enumerated() {
+                    let tokenCount = TokenEstimator.shared.estimate(segment.text)
+                    if tokenCount > 180 {  // Leave buffer for API
+                        tokenWarnings.append("Segment \(index + 1) has \(tokenCount) tokens (limit: 180)")
+                        #if DEBUG
+                        print("⚠️ Token limit warning: Segment \(index + 1) has \(tokenCount) tokens")
+                        #endif
+                    }
+                }
+                
+                if !tokenWarnings.isEmpty {
+                    await MainActor.run {
+                        autoDetectError = "Some segments exceed token limits:\n" + tokenWarnings.joined(separator: "\n")
+                    }
+                }
+                
                 // Call AI service to analyze prompts
                 let durations = try await AIClipDurator.shared.detectDurations(
                     for: segmentCollection.segments.map { $0.text }

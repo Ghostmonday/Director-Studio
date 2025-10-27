@@ -6,6 +6,7 @@ import SwiftUI
 
 struct CostConfirmationView: View {
     @ObservedObject var segmentCollection: MultiClipSegmentCollection
+    let segmentationMetadata: SegmentationMetadata?
     @ObservedObject var creditsManager = CreditsManager.shared
     @Binding var isPresented: Bool
     @State private var showingInsufficientCredits = false
@@ -77,6 +78,11 @@ struct CostConfirmationView: View {
                         VStack(spacing: 24) {
                             // Summary header
                             summaryHeader
+                            
+                            // Segmentation metadata
+                            if let metadata = segmentationMetadata {
+                                metadataCard(metadata)
+                            }
                             
                             // Clip breakdown
                             clipBreakdown
@@ -374,5 +380,61 @@ struct CostConfirmationView: View {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    private func metadataCard(_ metadata: SegmentationMetadata) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.blue)
+                Text("Segmentation Details")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Strategy:")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(metadata.strategy.displayName)
+                        .fontWeight(.medium)
+                }
+                
+                HStack {
+                    Text("Confidence:")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Text("\(Int(metadata.confidence * 100))%")
+                            .fontWeight(.medium)
+                            .foregroundColor(metadata.confidence > 0.7 ? .green : metadata.confidence > 0.5 ? .orange : .red)
+                        
+                        if metadata.confidence < 0.7 {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                }
+                
+                if !metadata.fallbacksUsed.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Notes:")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        ForEach(metadata.fallbacksUsed, id: \.self) { fallback in
+                            Text("• \(fallback)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .font(.subheadline)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
 }

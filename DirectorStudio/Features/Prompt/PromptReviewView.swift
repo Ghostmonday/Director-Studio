@@ -6,6 +6,7 @@ import SwiftUI
 
 struct PromptReviewView: View {
     @ObservedObject var segmentCollection: MultiClipSegmentCollection
+    let segmentationWarnings: [SegmentationWarning]
     @Binding var isPresented: Bool
     @State private var editingSegmentId: UUID?
     @State private var animateIntro = false
@@ -32,6 +33,13 @@ struct PromptReviewView: View {
                         headerView
                             .padding()
                             .background(.regularMaterial)
+                        
+                        // Warnings
+                        if !segmentationWarnings.isEmpty {
+                            warningView
+                                .padding()
+                                .background(.regularMaterial)
+                        }
                         
                         // Prompts list
                         ScrollView {
@@ -112,6 +120,39 @@ struct PromptReviewView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var warningView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.title3)
+                
+                Text("Segmentation Notes")
+                    .font(.headline)
+                
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(segmentationWarnings.enumerated()), id: \.offset) { _, warning in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .foregroundColor(.orange)
+                        Text(warning.message)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.1))
+        )
     }
     
     private var emptyStateView: some View {
