@@ -20,6 +20,10 @@ struct PromptView: View {
     @State private var insufficientCreditsInfo: (needed: Int, have: Int) = (0, 0)
     @State private var showingPurchaseView = false
     
+    // UX State
+    @State private var isPromptExpanded = true
+    @FocusState private var isPromptFocused: Bool
+    
     // MARK: - Computed Views
     
     @ViewBuilder
@@ -127,6 +131,25 @@ struct PromptView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
+                
+                // Expand/Collapse button (only show when collapsed)
+                if !isPromptExpanded && !viewModel.promptText.isEmpty {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            isPromptExpanded = true
+                        }
+                        isPromptFocused = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.caption)
+                            Text("Expand")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.blue)
+                    }
+                }
+                
                 Button(action: {
                     showTemplates = true
                 }) {
@@ -139,14 +162,29 @@ struct PromptView: View {
             
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $viewModel.promptText)
-                    .frame(minHeight: 150)
+                    .frame(minHeight: isPromptExpanded ? 150 : 60)
+                    .frame(maxHeight: isPromptExpanded ? .infinity : 60)
                     .padding(8)
                     .scrollContentBackground(.hidden)
                     .background(Color(.systemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5), lineWidth: 1)
+                            .stroke(isPromptFocused ? Color.blue : (viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5)), lineWidth: isPromptFocused ? 2 : 1)
                     )
+                    .focused($isPromptFocused)
+                    .onChange(of: isPromptFocused) { _, isFocused in
+                        if !isFocused && !viewModel.promptText.isEmpty {
+                            // Auto-collapse when focus is lost
+                            withAnimation(.spring(response: 0.3)) {
+                                isPromptExpanded = false
+                            }
+                        } else if isFocused {
+                            // Auto-expand when focused
+                            withAnimation(.spring(response: 0.3)) {
+                                isPromptExpanded = true
+                            }
+                        }
+                    }
                 
                 if viewModel.promptText.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -155,15 +193,28 @@ struct PromptView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.gray)
                         
-                        Text("• Who's in the shot and what they're doing\n• Location, time of day, lighting\n• Camera movement and framing\n• Mood and atmosphere")
-                            .font(.caption2)
-                            .foregroundColor(.gray.opacity(0.8))
+                        if isPromptExpanded {
+                            Text("• Who's in the shot and what they're doing\n• Location, time of day, lighting\n• Camera movement and framing\n• Mood and atmosphere")
+                                .font(.caption2)
+                                .foregroundColor(.gray.opacity(0.8))
+                        }
                     }
                     .padding(12)
                     .allowsHitTesting(false)
                 }
+                
+                // Show truncated text when collapsed
+                if !isPromptExpanded && !viewModel.promptText.isEmpty {
+                    Text(viewModel.promptText)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
             }
             .padding(.horizontal)
+            .animation(.spring(response: 0.3), value: isPromptExpanded)
         }
     }
     
@@ -498,8 +549,18 @@ struct PromptView: View {
         VStack(spacing: 8) {
             currentCreditsRow
             
-            if !viewModel.promptText.isEmpty {
+            // Only show cost for single-clip mode (multi-clip shows cost in its own flow)
+            if !viewModel.promptText.isEmpty && viewModel.generationMode == .single {
                 costEstimationRow
+            } else if viewModel.generationMode == .multiClip && !viewModel.promptText.isEmpty {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.blue)
+                    Text("Cost will be calculated after you review prompts and set durations")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
             }
         }
         .padding(.horizontal)
@@ -573,11 +634,6 @@ struct PromptView: View {
             
             generateButton(creditCost: creditCost, hasEnoughCredits: hasEnoughCredits)
             
-            // Show multi-clip button only in single mode with long prompt
-            if viewModel.generationMode == .single && viewModel.promptText.count > 200 {
-                multiClipButton
-            }
-            
             if creditsManager.shouldPromptPurchase && !viewModel.useDefaultAdImage {
                 purchasePromptButton
             }
@@ -624,36 +680,70 @@ struct PromptView: View {
     
     @ViewBuilder
     private func generateButton(creditCost: Int, hasEnoughCredits: Bool) -> some View {
-        Button(action: {
-            if !creditsManager.canGenerate(cost: creditCost) {
-                insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
-                showingInsufficientCredits = true
-            } else {
-                Task {
-                    await viewModel.generateClip(coordinator: coordinator)
+        let canGenerate = !viewModel.promptText.isEmpty && hasEnoughCredits
+        
+        return Button(action: {
+            // Guardrail: Check if prompt exists
+            guard !viewModel.promptText.isEmpty else {
+                #if DEBUG
+                print("⚠️ [Generate] Blocked: No prompt text")
+                #endif
+                return
+            }
+            
+            if viewModel.generationMode == .single {
+                // Single clip generation
+                if !creditsManager.canGenerate(cost: creditCost) {
+                    insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
+                    showingInsufficientCredits = true
+                } else {
+                    Task {
+                        await viewModel.generateClip(coordinator: coordinator)
+                    }
                 }
+            } else {
+                // Multi-clip generation - launch VideoGenerationScreen
+                scriptForGeneration = viewModel.promptText
+                showVideoGenerationScreen = true
             }
         }) {
-            HStack {
+            HStack(spacing: 12) {
                 if viewModel.isGenerating {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(0.8)
                 } else {
-                    Image(systemName: viewModel.generationMode == .single ? "wand.and.stars" : "film.stack")
+                    Image(systemName: viewModel.generationMode == .single ? "wand.and.stars" : "film.stack.fill")
+                        .font(.system(size: 20))
                 }
-                Text(viewModel.isGenerating ? "Generating..." : hasEnoughCredits ? 
-                     (viewModel.generationMode == .single ? "Generate Video" : "Create Film") : 
-                     "Insufficient Credits")
+                
+                VStack(spacing: 2) {
+                    Text(viewModel.isGenerating ? "Generating..." : 
+                         (viewModel.generationMode == .single ? "Generate Video" : "Generate Multiple Clips"))
+                        .font(.headline)
+                    
+                    if !viewModel.isGenerating && viewModel.generationMode == .multiClip {
+                        Text("Review prompts, set durations, confirm cost")
+                            .font(.caption)
+                            .opacity(0.8)
+                    }
+                }
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(!hasEnoughCredits ? Color.gray : Color.blue)
+            .background(
+                LinearGradient(
+                    colors: !canGenerate ? [.gray] : (viewModel.generationMode == .single ? [.blue, .cyan] : [.purple, .pink]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
             .foregroundColor(.white)
-            .cornerRadius(10)
+            .cornerRadius(12)
+            .shadow(color: canGenerate ? (viewModel.generationMode == .single ? .blue.opacity(0.3) : .purple.opacity(0.3)) : .clear, radius: 8, y: 4)
             .animation(.easeInOut(duration: 0.2), value: viewModel.isGenerating)
         }
-        .disabled(viewModel.isGenerating || viewModel.promptText.isEmpty || !hasEnoughCredits)
+        .disabled(viewModel.isGenerating || !canGenerate)
         .opacity(viewModel.isGenerating ? 0.8 : 1.0)
     }
     
@@ -727,6 +817,23 @@ struct PromptView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Testing mode banner
+                    if let bannerText = TestingMode.bannerText {
+                        HStack(spacing: 12) {
+                            Image(systemName: "flask.fill")
+                                .foregroundColor(.orange)
+                            Text(bannerText)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.orange)
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                    
                     quickActionButtons
                     
                     generationModeSelector
