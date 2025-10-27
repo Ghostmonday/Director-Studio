@@ -77,6 +77,7 @@
 		C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */; };
 		C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311747 /* TestingMode.swift */; };
 		C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311748 /* SegmentingModule.swift */; };
+		C07425A7824C3D90BA02FF71 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A505C3AF5BED311749 /* DebugLogger.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -155,6 +156,7 @@
 		F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimulatorExportHelper.swift; sourceTree = "<group>"; };
 		F22F54A405C3AF5BED311747 /* TestingMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Configuration/TestingMode.swift"; sourceTree = SOURCE_ROOT; };
 		F22F54A405C3AF5BED311748 /* SegmentingModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentingModule.swift; sourceTree = "<group>"; };
+		F22F54A505C3AF5BED311749 /* DebugLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 		F474C1F23AFC635C7DFACB1B /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -343,6 +345,7 @@
 				B01234751234567890123455 /* CrashReporter.swift */,
 				721BC5701783F8C36C50BA44 /* Notifications+Credits.swift */,
 				F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */,
+				F22F54A505C3AF5BED311749 /* DebugLogger.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -523,6 +526,7 @@
 				C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */,
 				C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */,
 				C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */,
+				C07425A7824C3D90BA02FF71 /* DebugLogger.swift in Sources */,
 				A5D2C81BF065338A72401F17 /* MultiClipSegment.swift in Sources */,
 				03E41333D15C1DC713D41A5C /* EnhancedLibraryView.swift in Sources */,
 				B18E75D1884AD952EBB5BBE8 /* EnhancedClipCell.swift in Sources */,

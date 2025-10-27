@@ -415,20 +415,20 @@ final class SegmentingModule: SegmentingModuleProtocol {
         }
         
         #if DEBUG
-        print("\n" + String(repeating: "=", count: 60))
-        print("🎬 [SegmentingModule] SEGMENTATION STARTED")
-        print(String(repeating: "=", count: 60))
-        print("📝 Script Length: \(script.count) characters")
-        print("📝 Script Preview: \(script.prefix(200))...")
-        print("🎯 Mode: \(mode.displayName)")
-        print("⚙️  Constraints:")
-        print("   - Max Segments: \(constraints.maxSegments)")
-        print("   - Max Tokens/Segment: \(constraints.maxTokensPerSegment)")
-        print("   - Max Duration: \(constraints.maxDuration)s")
-        print("   - Target Duration: \(constraints.targetDuration)s")
-        print("   - Enforce Strict Limits: \(constraints.enforceStrictLimits)")
-        print("🔑 LLM Config: \(llmConfig != nil ? "Provided" : "None")")
-        print(String(repeating: "=", count: 60) + "\n")
+        LOG("\n" + String(repeating: "=", count: 60))
+        LOG("🎬 [SegmentingModule] SEGMENTATION STARTED")
+        LOG(String(repeating: "=", count: 60))
+        LOG("📝 Script Length: \(script.count) characters")
+        LOG("📝 Script Preview: \(script.prefix(200))...")
+        LOG("🎯 Mode: \(mode.displayName)")
+        LOG("⚙️  Constraints:")
+        LOG("   - Max Segments: \(constraints.maxSegments)")
+        LOG("   - Max Tokens/Segment: \(constraints.maxTokensPerSegment)")
+        LOG("   - Max Duration: \(constraints.maxDuration)s")
+        LOG("   - Target Duration: \(constraints.targetDuration)s")
+        LOG("   - Enforce Strict Limits: \(constraints.enforceStrictLimits)")
+        LOG("🔑 LLM Config: \(llmConfig != nil ? "Provided" : "None")")
+        LOG(String(repeating: "=", count: 60) + "\n")
         #endif
         
         var warnings: [SegmentationWarning] = []
@@ -443,20 +443,20 @@ final class SegmentingModule: SegmentingModuleProtocol {
         switch mode {
         case .ai:
             #if DEBUG
-            print("🤖 [AI Mode] Starting LLM-based segmentation...")
+            LOG("🤖 [AI Mode] Starting LLM-based segmentation...")
             #endif
             
             // Primary LLM-based segmentation
             guard let config = llmConfig else {
                 #if DEBUG
-                print("❌ [AI Mode] FAILED: No LLM configuration provided")
-                print("💡 User must provide API key for AI mode")
+                LOG("❌ [AI Mode] FAILED: No LLM configuration provided")
+                LOG("💡 User must provide API key for AI mode")
                 #endif
                 throw SegmentationError.llmConnectionFailed("LLM configuration required for AI mode")
             }
             
             #if DEBUG
-            print("✅ [AI Mode] LLM config found, calling API...")
+            LOG("✅ [AI Mode] LLM config found, calling API...")
             #endif
             
             do {
@@ -471,7 +471,7 @@ final class SegmentingModule: SegmentingModuleProtocol {
                 warnings.append(contentsOf: result.warnings)
                 
                 #if DEBUG
-                print("✅ [AI Mode] Success: Generated \(segments.count) segments")
+                LOG("✅ [AI Mode] Success: Generated \(segments.count) segments")
                 #endif
                 
             } catch {
@@ -480,13 +480,13 @@ final class SegmentingModule: SegmentingModuleProtocol {
             
         case .hybrid:
             #if DEBUG
-            print("🔀 [Hybrid Mode] Attempting AI with duration fallback...")
+            LOG("🔀 [Hybrid Mode] Attempting AI with duration fallback...")
             #endif
             
             // Try LLM, fallback to duration on failure
             if let config = llmConfig {
                 #if DEBUG
-                print("✅ [Hybrid Mode] LLM config available, trying AI first...")
+                LOG("✅ [Hybrid Mode] LLM config available, trying AI first...")
                 #endif
                 
                 do {
@@ -501,13 +501,13 @@ final class SegmentingModule: SegmentingModuleProtocol {
                     warnings.append(contentsOf: result.warnings)
                     
                     #if DEBUG
-                    print("✅ [Hybrid Mode] AI succeeded: \(segments.count) segments")
+                    LOG("✅ [Hybrid Mode] AI succeeded: \(segments.count) segments")
                     #endif
                     
                 } catch {
                     #if DEBUG
-                    print("⚠️ [Hybrid Mode] AI failed: \(error.localizedDescription)")
-                    print("🔄 [Hybrid Mode] Falling back to duration-based segmentation...")
+                    LOG("⚠️ [Hybrid Mode] AI failed: \(error.localizedDescription)")
+                    LOG("🔄 [Hybrid Mode] Falling back to duration-based segmentation...")
                     #endif
                     
                     warnings.append(.llmFailed(reason: error.localizedDescription))
@@ -516,12 +516,12 @@ final class SegmentingModule: SegmentingModuleProtocol {
                     segments = segmentByDuration(script: script, constraints: constraints)
                     
                     #if DEBUG
-                    print("✅ [Hybrid Mode] Fallback succeeded: \(segments.count) segments")
+                    LOG("✅ [Hybrid Mode] Fallback succeeded: \(segments.count) segments")
                     #endif
                 }
             } else {
                 #if DEBUG
-                print("⚠️ [Hybrid Mode] No LLM config, using duration-based directly...")
+                LOG("⚠️ [Hybrid Mode] No LLM config, using duration-based directly...")
                 #endif
                 
                 warnings.append(.fallbackUsed(from: "AI", to: "Duration"))
@@ -529,36 +529,36 @@ final class SegmentingModule: SegmentingModuleProtocol {
                 segments = segmentByDuration(script: script, constraints: constraints)
                 
                 #if DEBUG
-                print("✅ [Hybrid Mode] Duration-based: \(segments.count) segments")
+                LOG("✅ [Hybrid Mode] Duration-based: \(segments.count) segments")
                 #endif
             }
             
         case .duration:
             #if DEBUG
-            print("⏱️  [Duration Mode] Starting duration-based segmentation...")
+            LOG("⏱️  [Duration Mode] Starting duration-based segmentation...")
             #endif
             
             segments = segmentByDuration(script: script, constraints: constraints)
             
             #if DEBUG
-            print("✅ [Duration Mode] Generated \(segments.count) segments")
+            LOG("✅ [Duration Mode] Generated \(segments.count) segments")
             #endif
             
         case .evenSplit:
             #if DEBUG
-            print("📊 [Even Split Mode] Starting even token distribution...")
+            LOG("📊 [Even Split Mode] Starting even token distribution...")
             #endif
             
             segments = segmentEvenly(script: script, constraints: constraints)
             
             #if DEBUG
-            print("✅ [Even Split Mode] Generated \(segments.count) segments")
+            LOG("✅ [Even Split Mode] Generated \(segments.count) segments")
             #endif
         }
         
         // Validate and enforce constraints
         #if DEBUG
-        print("\n🔍 [Validation] Enforcing constraints on \(segments.count) segments...")
+        LOG("\n🔍 [Validation] Enforcing constraints on \(segments.count) segments...")
         #endif
         
         segments = try enforceConstraints(
@@ -569,20 +569,20 @@ final class SegmentingModule: SegmentingModuleProtocol {
         )
         
         #if DEBUG
-        print("✅ [Validation] After enforcement: \(segments.count) segments")
+        LOG("✅ [Validation] After enforcement: \(segments.count) segments")
         if !constraintsViolated.isEmpty {
-            print("⚠️ [Validation] Constraints violated:")
-            constraintsViolated.forEach { print("   - \($0)") }
+            LOG("⚠️ [Validation] Constraints violated:")
+            constraintsViolated.forEach { LOG("   - \($0)") }
         }
         #endif
         
         guard !segments.isEmpty else {
             #if DEBUG
-            print("❌ [Validation] FATAL: No valid segments after enforcement!")
-            print("💡 This usually means:")
-            print("   - Script is too short for constraints")
-            print("   - Token limits are too restrictive")
-            print("   - Duration constraints can't be met")
+            LOG("❌ [Validation] FATAL: No valid segments after enforcement!")
+            LOG("💡 This usually means:")
+            LOG("   - Script is too short for constraints")
+            LOG("   - Token limits are too restrictive")
+            LOG("   - Duration constraints can't be met")
             #endif
             throw SegmentationError.noValidSegments
         }
@@ -591,7 +591,7 @@ final class SegmentingModule: SegmentingModuleProtocol {
         var expansionStats: ExpansionStats?
         if let config = llmConfig, config.enableSemanticExpansion {
             #if DEBUG
-            print("🎨 [SemanticExpansion] Starting expansion pass")
+            LOG("🎨 [SemanticExpansion] Starting expansion pass")
             #endif
             
             let expansionStartTime = Date()
@@ -621,10 +621,10 @@ final class SegmentingModule: SegmentingModuleProtocol {
             llmCallCount += expandedCount  // Count expansion LLM calls
             
             #if DEBUG
-            print("✨ [SemanticExpansion] Complete")
-            print("   Expanded: \(expandedCount) segments")
-            print("   Added Tokens: \(totalExpansionTokens)")
-            print("   Time: \(String(format: "%.2f", expansionTime))s")
+            LOG("✨ [SemanticExpansion] Complete")
+            LOG("   Expanded: \(expandedCount) segments")
+            LOG("   Added Tokens: \(totalExpansionTokens)")
+            LOG("   Time: \(String(format: "%.2f", expansionTime))s")
             #endif
         }
         
@@ -646,34 +646,34 @@ final class SegmentingModule: SegmentingModuleProtocol {
         )
         
         #if DEBUG
-        print("\n" + String(repeating: "=", count: 60))
-        print("✅ [SegmentingModule] SEGMENTATION COMPLETE")
+        LOG("\n" + String(repeating: "=", count: 60))
+        LOG("✅ [SegmentingModule] SEGMENTATION COMPLETE")
         print(String(repeating: "=", count: 60))
-        print("📊 Results:")
-        print("   - Total Segments: \(segments.count)")
-        print("   - Total Tokens: \(metadata.totalTokens)")
-        print("   - Total Duration: \(String(format: "%.1f", metadata.totalDuration))s")
-        print("   - Avg Confidence: \(Int(avgConfidence * 100))%")
-        print("   - Execution Time: \(String(format: "%.2f", executionTime))s")
-        print("   - LLM Calls: \(llmCallCount)")
-        print("   - Fallback Used: \(fallbackUsed)")
+        LOG("📊 Results:")
+        LOG("   - Total Segments: \(segments.count)")
+        LOG("   - Total Tokens: \(metadata.totalTokens)")
+        LOG("   - Total Duration: \(String(format: "%.1f", metadata.totalDuration))s")
+        LOG("   - Avg Confidence: \(Int(avgConfidence * 100))%")
+        LOG("   - Execution Time: \(String(format: "%.2f", executionTime))s")
+        LOG("   - LLM Calls: \(llmCallCount)")
+        LOG("   - Fallback Used: \(fallbackUsed)")
         
         if !warnings.isEmpty {
-            print("\n⚠️  Warnings (\(warnings.count)):")
-            warnings.forEach { print("   - \($0.message)") }
+            LOG("\n⚠️  Warnings (\(warnings.count)):")
+            warnings.forEach { LOG("   - \($0.message)") }
         }
         
         if !constraintsViolated.isEmpty {
-            print("\n🚨 Constraints Violated (\(constraintsViolated.count)):")
-            constraintsViolated.forEach { print("   - \($0)") }
+            LOG("\n🚨 Constraints Violated (\(constraintsViolated.count)):")
+            constraintsViolated.forEach { LOG("   - \($0)") }
         }
         
-        print("\n📝 Segment Preview:")
+        LOG("\n📝 Segment Preview:")
         for (i, segment) in segments.prefix(3).enumerated() {
-            print("   [\(i+1)] \(segment.text.prefix(60))... (\(segment.estimatedTokens)t, \(String(format: "%.1f", segment.estimatedDuration))s)")
+            LOG("   [\(i+1)] \(segment.text.prefix(60))... (\(segment.estimatedTokens)t, \(String(format: "%.1f", segment.estimatedDuration))s)")
         }
         if segments.count > 3 {
-            print("   ... and \(segments.count - 3) more segments")
+            LOG("   ... and \(segments.count - 3) more segments")
         }
         
         print(String(repeating: "=", count: 60) + "\n")
@@ -698,7 +698,7 @@ final class SegmentingModule: SegmentingModuleProtocol {
         let prompt = buildLLMPrompt(script: script, constraints: constraints)
         
         #if DEBUG
-        print("🤖 [LLM] Sending segmentation request to \(config.provider.rawValue)")
+        LOG("🤖 [LLM] Sending segmentation request to \(config.provider.rawValue)")
         #endif
         
         let response = try await llmClient.complete(prompt: prompt, config: config)
@@ -813,8 +813,8 @@ final class SegmentingModule: SegmentingModuleProtocol {
     
     private func segmentByDuration(script: String, constraints: SegmentationConstraints) -> [CinematicSegment] {
         #if DEBUG
-        print("⏱️  [segmentByDuration] Starting...")
-        print("   - Target duration per segment: \(constraints.targetDuration)s")
+        LOG("⏱️  [segmentByDuration] Starting...")
+        LOG("   - Target duration per segment: \(constraints.targetDuration)s")
         #endif
         
         // ~150 words per minute of speech = ~2.5 words per second
@@ -822,15 +822,15 @@ final class SegmentingModule: SegmentingModuleProtocol {
         let targetWords = Int(constraints.targetDuration * wordsPerSecond)
         
         #if DEBUG
-        print("   - Target words per segment: \(targetWords)")
+        LOG("   - Target words per segment: \(targetWords)")
         #endif
         
         let words = script.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
         
         #if DEBUG
-        print("   - Total words in script: \(words.count)")
-        print("   - Estimated segments: ~\(words.count / max(targetWords, 1))")
+        LOG("   - Total words in script: \(words.count)")
+        LOG("   - Estimated segments: ~\(words.count / max(targetWords, 1))")
         #endif
         
         var segments: [CinematicSegment] = []
@@ -848,7 +848,7 @@ final class SegmentingModule: SegmentingModuleProtocol {
                 
                 #if DEBUG
                 if segmentIndex < 3 {
-                    print("   [Segment \(segmentIndex + 1)] \(currentChunk.count) words, \(tokens) tokens, \(String(format: "%.1f", duration))s")
+                    LOG("   [Segment \(segmentIndex + 1)] \(currentChunk.count) words, \(tokens) tokens, \(String(format: "%.1f", duration))s")
                 }
                 #endif
                 
@@ -874,7 +874,7 @@ final class SegmentingModule: SegmentingModuleProtocol {
         }
         
         #if DEBUG
-        print("✅ [segmentByDuration] Created \(segments.count) segments")
+        LOG("✅ [segmentByDuration] Created \(segments.count) segments")
         #endif
         
         return segments
@@ -1231,7 +1231,7 @@ final class SemanticExpansionProcessor {
         )
         
         #if DEBUG
-        print("   Expansion candidates: \(candidates.count)")
+        LOG("   Expansion candidates: \(candidates.count)")
         #endif
         
         // Limit expansions for cost control
