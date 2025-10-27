@@ -29,6 +29,10 @@ struct VideoGenerationScreen: View {
         ZStack {
             switch currentStep {
             case .segmenting:
+                #if DEBUG
+                let _ = print("🎬 [VideoGenerationScreen] Current step: segmenting")
+                let _ = print("📝 [VideoGenerationScreen] Script to segment: \(initialScript.prefix(100))...")
+                #endif
                 SegmentingView(
                     script: initialScript,
                     onComplete: { segments, warnings, metadata in
@@ -219,6 +223,11 @@ struct SegmentingView: View {
     }
     
     private func performSegmentation() {
+        #if DEBUG
+        print("🎬 [SegmentingView] performSegmentation called")
+        print("📝 [SegmentingView] Script length: \(script.count) characters")
+        #endif
+        
         // Simulate progress
         withAnimation(.linear(duration: 1.5)) {
             progress = 1.0
@@ -228,30 +237,34 @@ struct SegmentingView: View {
         Task {
             do {
                 let module = SegmentingModule()
+                
+                // Configure constraints for 125-minute max (7500 seconds total)
+                var constraints = SegmentationConstraints.default
+                constraints.maxSegments = 100
+                constraints.maxTokensPerSegment = 180
+                constraints.maxDuration = 10.0
+                constraints.targetDuration = 3.0
+                
                 let result = try await module.segment(
                     script: script,
-                    strategy: .hybrid,  // Use hybrid for best results
-                    constraints: .directorStudioDefaults
+                    mode: .duration,  // Use duration-based (no LLM needed)
+                    constraints: constraints,
+                    llmConfig: nil
                 )
                 
-                // Check for warnings
-                if !result.warnings.isEmpty {
-                    #if DEBUG
-                    print("⚠️ Segmentation warnings:")
-                    result.warnings.forEach { print("  - \($0.message)") }
-                    #endif
+                // Convert CinematicSegments to MultiClipSegments
+                let segments = result.segments.map { seg -> MultiClipSegment in
+                    MultiClipSegment(
+                        text: seg.text,
+                        order: seg.segmentIndex,
+                        duration: seg.estimatedDuration
+                    )
                 }
                 
-                // Use the segments
-                let segments = result.segments
-                
                 #if DEBUG
-                print("🎬 [VideoGeneration] Segmentation complete:")
-                print("   - Strategy: \(result.metadata.strategy.displayName)")
-                print("   - Confidence: \(Int(result.metadata.confidence * 100))%")
-                print("   - Generated \(segments.count) segments")
-                for (i, seg) in segments.enumerated() {
-                    print("   - Segment \(i+1): \(seg.text.prefix(50))... (\(seg.duration)s)")
+                print("✅ Segmentation complete: \(segments.count) segments")
+                if !result.warnings.isEmpty {
+                    print("⚠️ Warnings: \(result.warnings.count)")
                 }
                 #endif
                 
@@ -261,11 +274,9 @@ struct SegmentingView: View {
                 
             } catch {
                 #if DEBUG
-                print("❌ Segmentation failed: \(error.localizedDescription)")
+                print("❌ Segmentation failed: \(error)")
                 #endif
-                // Show error or use fallback
                 await MainActor.run {
-                    // For now, show empty segments to trigger error state
                     onComplete([], [], nil)
                 }
             }

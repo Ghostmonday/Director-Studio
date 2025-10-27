@@ -10,6 +10,7 @@ struct CostConfirmationView: View {
     @ObservedObject var creditsManager = CreditsManager.shared
     @Binding var isPresented: Bool
     @State private var showingInsufficientCredits = false
+    @State private var showingExpensiveConfirmation = false
     
     let onGenerate: () -> Void
     
@@ -39,6 +40,19 @@ struct CostConfirmationView: View {
     
     var canAfford: Bool {
         creditsManager.isDevMode || creditsManager.credits >= totalTokens
+    }
+    
+    var isHighCostGeneration: Bool {
+        totalPriceCents >= 10000 // $100 or more
+    }
+    
+    var costWarningMessage: String? {
+        if totalPriceCents >= 50000 { // $500+
+            return "🎬 Premium Film Generation - This will create a professional-length video worth \(MonetizationConfig.formatPrice(totalPriceCents))"
+        } else if totalPriceCents >= 10000 { // $100+
+            return "⚡ High-Value Generation - Please review your settings before proceeding"
+        }
+        return nil
     }
     
     var body: some View {
@@ -76,6 +90,27 @@ struct CostConfirmationView: View {
                     
                     ScrollView {
                         VStack(spacing: 24) {
+                            // High cost warning
+                            if let warning = costWarningMessage {
+                                HStack(spacing: 12) {
+                                    Image(systemName: isHighCostGeneration ? "star.circle.fill" : "info.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(isHighCostGeneration ? .yellow : .blue)
+                                    
+                                    Text(warning)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(isHighCostGeneration ? Color.yellow.opacity(0.1) : Color.blue.opacity(0.1))
+                                )
+                            }
+                            
                             // Summary header
                             summaryHeader
                             
@@ -121,6 +156,14 @@ struct CostConfirmationView: View {
                     // Handle purchase
                 }
             )
+        }
+        .alert("Premium Generation", isPresented: $showingExpensiveConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Generate (\(MonetizationConfig.formatPrice(totalPriceCents)))", role: .destructive) {
+                onGenerate()
+            }
+        } message: {
+            Text("This will generate \(enabledSegments.count) clips for a total of \(MonetizationConfig.formatPrice(totalPriceCents)). This is a premium film-length generation. Do you want to proceed?")
         }
     }
     
@@ -329,7 +372,11 @@ struct CostConfirmationView: View {
     private var generateButton: some View {
         Button(action: {
             if canAfford {
-                onGenerate()
+                if totalPriceCents >= 25000 { // $250+ requires confirmation
+                    showingExpensiveConfirmation = true
+                } else {
+                    onGenerate()
+                }
             } else {
                 showingInsufficientCredits = true
             }
@@ -397,7 +444,7 @@ struct CostConfirmationView: View {
                     Text("Strategy:")
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text(metadata.strategy.displayName)
+                    Text(metadata.mode)
                         .fontWeight(.medium)
                 }
                 
@@ -406,11 +453,11 @@ struct CostConfirmationView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                     HStack(spacing: 4) {
-                        Text("\(Int(metadata.confidence * 100))%")
+                        Text("\(Int(metadata.averageConfidence * 100))%")
                             .fontWeight(.medium)
-                            .foregroundColor(metadata.confidence > 0.7 ? .green : metadata.confidence > 0.5 ? .orange : .red)
+                            .foregroundColor(metadata.averageConfidence > 0.7 ? .green : metadata.averageConfidence > 0.5 ? .orange : .red)
                         
-                        if metadata.confidence < 0.7 {
+                        if metadata.averageConfidence < 0.7 {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.caption)
                                 .foregroundColor(.orange)
@@ -418,15 +465,26 @@ struct CostConfirmationView: View {
                     }
                 }
                 
-                if !metadata.fallbacksUsed.isEmpty {
+                if metadata.fallbackUsed {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Notes:")
                             .foregroundColor(.secondary)
                             .font(.caption)
-                        ForEach(metadata.fallbacksUsed, id: \.self) { fallback in
-                            Text("• \(fallback)")
+                        Text("• Fallback segmentation used")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if !metadata.constraintsViolated.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Warnings:")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        ForEach(metadata.constraintsViolated, id: \.self) { constraint in
+                            Text("• \(constraint)")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.orange)
                         }
                     }
                 }

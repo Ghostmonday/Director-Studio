@@ -7,6 +7,7 @@ import StoreKit
 
 struct PolishedSettingsView: View {
     @EnvironmentObject var coordinator: AppCoordinator
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var creditsManager = CreditsManager.shared
     @State private var showingCreditsPurchase = false
     @State private var showingAbout = false
@@ -70,7 +71,7 @@ struct PolishedSettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
-                        // Dismiss settings
+                        dismiss()
                     }
                     .foregroundColor(theme.Colors.primary)
                 }
@@ -228,14 +229,6 @@ struct PolishedSettingsView: View {
     private var preferencesSection: some View {
         VStack(spacing: theme.Spacing.medium) {
             SettingsSectionHeader(title: "Preferences", icon: "gearshape")
-            
-            // Export quality
-            SettingsRow(
-                title: "Export Quality",
-                subtitle: "1080p HD",
-                icon: "video",
-                action: {}
-            )
             
             // Auto-save
             SettingsToggle(
