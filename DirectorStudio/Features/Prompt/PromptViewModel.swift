@@ -260,6 +260,16 @@ class PromptViewModel: ObservableObject {
             // Add to coordinator
             coordinator.addClip(clip)
             
+            // 🖥️ SIMULATOR EXPORT: Auto-save to Desktop during development
+            #if DEBUG
+            if let videoURL = clip.localURL {
+                SimulatorExportHelper.copyToDesktop(
+                    from: videoURL,
+                    clipName: "\(clipName)_\(clip.id.uuidString.prefix(8))"
+                )
+            }
+            #endif
+            
             // Update project clip count
             coordinator.currentProject?.clipCount += 1
             

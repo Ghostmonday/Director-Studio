@@ -263,6 +263,16 @@ struct MultiClipGenerationView: View {
                 try await storageService.saveClip(clip)
                 generatedClips.append(clip)
                 
+                // 🖥️ SIMULATOR EXPORT: Auto-save to Desktop during development
+                #if DEBUG
+                if let videoURL = clip.localURL {
+                    SimulatorExportHelper.copyToDesktop(
+                        from: videoURL,
+                        clipName: "Segment_\(index + 1)_\(clip.id.uuidString.prefix(8))"
+                    )
+                }
+                #endif
+                
                 // Extract last frame for next segment's continuity
                 if index < segments.count - 1 {
                     segmentCollection.updateSegmentState(id: segment.id, state: .extractingFrame)
