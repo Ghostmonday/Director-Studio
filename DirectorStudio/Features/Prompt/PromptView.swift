@@ -23,6 +23,7 @@ struct PromptView: View {
     // UX State
     @State private var isPromptExpanded = true
     @FocusState private var isPromptFocused: Bool
+    @State private var isPromptConfirmed = false // Tracks if user has confirmed their prompt
     
     // MARK: - Computed Views
     
@@ -183,6 +184,15 @@ struct PromptView: View {
                             withAnimation(.spring(response: 0.3)) {
                                 isPromptExpanded = true
                             }
+                        }
+                    }
+                    .onChange(of: viewModel.promptText) { _, _ in
+                        // Reset confirmation if prompt changes
+                        if isPromptConfirmed {
+                            isPromptConfirmed = false
+                            #if DEBUG
+                            print("⚠️ [PromptView] Prompt changed - confirmation reset")
+                            #endif
                         }
                     }
                 
@@ -594,27 +604,95 @@ struct PromptView: View {
     
     @ViewBuilder
     private var costEstimationRow: some View {
-        let duration = viewModel.generationMode == .single ? viewModel.videoDuration : estimateTotalDuration()
-        let priceCents = MonetizationConfig.priceForSeconds(duration)
-        let tokens = creditsManager.creditsNeeded(for: duration, enabledStages: viewModel.enabledStages)
-        
         HStack {
-            Image(systemName: "info.circle")
+            Image(systemName: isPromptConfirmed ? "info.circle" : "clock.badge.questionmark")
                 .font(.caption)
+                .foregroundColor(isPromptConfirmed ? .primary : .orange)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(Int(duration))s • \(tokens) tokens • \(MonetizationConfig.formatPrice(priceCents))")
-                    .font(.caption)
-                    .fontWeight(.medium)
+            if isPromptConfirmed {
+                // Show actual cost only after prompt is confirmed
+                let duration = viewModel.generationMode == .single ? viewModel.videoDuration : estimateTotalDuration()
+                let priceCents = MonetizationConfig.priceForSeconds(duration)
+                let tokens = creditsManager.creditsNeeded(for: duration, enabledStages: viewModel.enabledStages)
                 
-                Text("$0.15 per second")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(Int(duration))s • \(tokens) tokens • \(MonetizationConfig.formatPrice(priceCents))")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    
+                    Text("$0.15 per second")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                // Show pending state
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Cost: Pending...")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.orange)
+                    
+                    Text("Confirm your prompt to see final cost")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Spacer()
+            
+            // Optional: Show live preview if enabled
+            if !isPromptConfirmed && viewModel.generationMode == .single {
+                Button(action: {
+                    // Show live preview tooltip
+                }) {
+                    Text("Preview")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                }
+            }
         }
         .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var confirmPromptButton: some View {
+        Button(action: {
+            withAnimation(.spring()) {
+                isPromptConfirmed = true
+            }
+            #if DEBUG
+            print("✅ [PromptView] Prompt confirmed - cost calculation enabled")
+            #endif
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Confirm Prompt")
+                        .font(.headline)
+                    Text("Lock in your script to see final cost")
+                        .font(.caption)
+                        .opacity(0.8)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "arrow.right")
+            }
+            .foregroundColor(.white)
+            .padding()
+            .background(
+                LinearGradient(
+                    colors: [.green, .teal],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(12)
+            .shadow(color: .green.opacity(0.3), radius: 8, y: 4)
+        }
+        .padding(.horizontal)
     }
     
     @ViewBuilder
@@ -680,13 +758,33 @@ struct PromptView: View {
     
     @ViewBuilder
     private func generateButton(creditCost: Int, hasEnoughCredits: Bool) -> some View {
-        let canGenerate = !viewModel.promptText.isEmpty && hasEnoughCredits
+        // Guardrails for generation readiness
+        let promptReady = !viewModel.promptText.isEmpty
+        let singleClipReady = viewModel.generationMode == .single ? isPromptConfirmed : true
+        let multiClipReady = viewModel.generationMode == .multiClip ? true : false // Multi-clip has its own flow
+        let canGenerate = promptReady && hasEnoughCredits && (singleClipReady || multiClipReady)
+        
+        // Determine why generation is blocked
+        let blockReason: String? = {
+            if !promptReady { return "Enter a prompt first" }
+            if viewModel.generationMode == .single && !isPromptConfirmed { return "Confirm your prompt to continue" }
+            if !hasEnoughCredits { return "Insufficient credits" }
+            return nil
+        }()
         
         return Button(action: {
             // Guardrail: Check if prompt exists
-            guard !viewModel.promptText.isEmpty else {
+            guard promptReady else {
                 #if DEBUG
                 print("⚠️ [Generate] Blocked: No prompt text")
+                #endif
+                return
+            }
+            
+            // Guardrail: Check if prompt is confirmed (single-clip only)
+            if viewModel.generationMode == .single && !isPromptConfirmed {
+                #if DEBUG
+                print("⚠️ [Generate] Blocked: Prompt not confirmed")
                 #endif
                 return
             }
@@ -713,19 +811,34 @@ struct PromptView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(0.8)
                 } else {
-                    Image(systemName: viewModel.generationMode == .single ? "wand.and.stars" : "film.stack.fill")
+                    Image(systemName: canGenerate ? 
+                          (viewModel.generationMode == .single ? "wand.and.stars" : "film.stack.fill") : 
+                          "lock.fill")
                         .font(.system(size: 20))
                 }
                 
                 VStack(spacing: 2) {
-                    Text(viewModel.isGenerating ? "Generating..." : 
-                         (viewModel.generationMode == .single ? "Generate Video" : "Generate Multiple Clips"))
-                        .font(.headline)
+                    if viewModel.isGenerating {
+                        Text("Generating...")
+                            .font(.headline)
+                    } else if let reason = blockReason {
+                        Text(reason)
+                            .font(.headline)
+                    } else {
+                        Text(viewModel.generationMode == .single ? "Generate Video" : "Generate Multiple Clips")
+                            .font(.headline)
+                    }
                     
-                    if !viewModel.isGenerating && viewModel.generationMode == .multiClip {
-                        Text("Review prompts, set durations, confirm cost")
-                            .font(.caption)
-                            .opacity(0.8)
+                    if !viewModel.isGenerating {
+                        if viewModel.generationMode == .multiClip && canGenerate {
+                            Text("Review prompts, set durations, confirm cost")
+                                .font(.caption)
+                                .opacity(0.8)
+                        } else if !canGenerate && viewModel.generationMode == .single && !isPromptConfirmed {
+                            Text("Use 'Confirm Prompt' button above")
+                                .font(.caption)
+                                .opacity(0.8)
+                        }
                     }
                 }
             }
@@ -857,6 +970,11 @@ struct PromptView: View {
                     Spacer()
                     
                     creditsAndCostDisplay
+                    
+                    // Prompt confirmation button (only for single-clip mode)
+                    if viewModel.generationMode == .single && !viewModel.promptText.isEmpty && !isPromptConfirmed {
+                        confirmPromptButton
+                    }
                     
                     generateSection
                     
