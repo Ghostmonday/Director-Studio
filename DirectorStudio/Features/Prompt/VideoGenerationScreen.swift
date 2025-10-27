@@ -30,6 +30,13 @@ struct VideoGenerationScreen: View {
                 SegmentingView(
                     script: initialScript,
                     onComplete: { segments in
+                        #if DEBUG
+                        print("🎬 [VideoGeneration] Segmentation complete:")
+                        print("   - Generated \(segments.count) segments")
+                        for (i, seg) in segments.enumerated() {
+                            print("   - Segment \(i+1): \(seg.text.prefix(50))... (\(seg.duration)s)")
+                        }
+                        #endif
                         segmentCollection.segments = segments
                         withAnimation(.spring()) {
                             currentStep = .reviewPrompts
@@ -48,6 +55,11 @@ struct VideoGenerationScreen: View {
                         set: { if !$0 { currentStep = .segmenting } }
                     ),
                     onContinue: {
+                        #if DEBUG
+                        print("🎬 [VideoGeneration] Prompts reviewed:")
+                        print("   - Total segments: \(segmentCollection.segments.count)")
+                        print("   - Moving to duration selection")
+                        #endif
                         withAnimation(.spring()) {
                             currentStep = .selectDurations
                         }
@@ -66,6 +78,15 @@ struct VideoGenerationScreen: View {
                         set: { if !$0 { currentStep = .reviewPrompts } }
                     ),
                     onContinue: {
+                        #if DEBUG
+                        print("🎬 [VideoGeneration] Durations set:")
+                        for (i, seg) in segmentCollection.segments.enumerated() {
+                            print("   - Segment \(i+1): \(seg.duration)s")
+                        }
+                        let total = segmentCollection.segments.reduce(0.0) { $0 + $1.duration }
+                        print("   - Total duration: \(total)s")
+                        print("   - Moving to cost confirmation")
+                        #endif
                         withAnimation(.spring()) {
                             currentStep = .costConfirmation
                         }

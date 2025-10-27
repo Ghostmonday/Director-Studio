@@ -28,6 +28,20 @@ struct DurationSelectionView: View {
         }
     }
     
+    /// Guardrail: Ensure prompts are ready
+    var promptsAreReady: Bool {
+        !segmentCollection.segments.isEmpty
+    }
+    
+    /// Guardrail: Ensure durations are set
+    var durationsAreSet: Bool {
+        if durationType == .fixed {
+            return segmentCollection.segments.count > 0 && fixedDuration > 0
+        } else {
+            return !detectedDurations.isEmpty && detectedDurations.count == segmentCollection.segments.count
+        }
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -40,6 +54,27 @@ struct DurationSelectionView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // Guardrail warning if prompts not ready
+                    if !promptsAreReady {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("No prompts available")
+                                    .font(.headline)
+                                    .foregroundColor(.orange)
+                                Text("Please go back and complete prompt review first")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                    }
+                    
                     // Header
                     headerView
                         .padding()
@@ -325,36 +360,53 @@ struct DurationSelectionView: View {
     }
     
     private var continueButton: some View {
-        Button(action: {
-            onContinue()
+        let canContinue = promptsAreReady && durationsAreSet && totalDuration > 0
+        
+        return Button(action: {
+            if canContinue {
+                onContinue()
+            }
         }) {
-            HStack(spacing: 12) {
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.system(size: 20))
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    Image(systemName: canContinue ? "arrow.right.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.system(size: 20))
+                    
+                    Text(canContinue ? "Continue to Cost Confirmation" : "Set durations for all clips")
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    if canContinue {
+                        Text(formatDuration(totalDuration))
+                            .font(.subheadline)
+                            .opacity(0.8)
+                    }
+                }
                 
-                Text("Continue to Cost Confirmation")
-                    .font(.headline)
-                
-                Spacer()
-                
-                Text(formatDuration(totalDuration))
-                    .font(.subheadline)
-                    .opacity(0.8)
+                // Debug info in development
+                #if DEBUG
+                if !canContinue {
+                    Text("Clips: \(segmentCollection.segments.count) • Durations: \(durationsAreSet ? "✓" : "✗")")
+                        .font(.caption2)
+                        .opacity(0.7)
+                }
+                #endif
             }
             .foregroundColor(.white)
             .padding()
             .frame(maxWidth: .infinity)
             .background(
                 LinearGradient(
-                    colors: totalDuration > 0 ? [.blue, .purple] : [.gray],
+                    colors: canContinue ? [.blue, .purple] : [.gray],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .cornerRadius(16)
-            .shadow(color: totalDuration > 0 ? .blue.opacity(0.3) : .clear, radius: 10, y: 5)
+            .shadow(color: canContinue ? .blue.opacity(0.3) : .clear, radius: 10, y: 5)
         }
-        .disabled(totalDuration == 0)
+        .disabled(!canContinue)
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {

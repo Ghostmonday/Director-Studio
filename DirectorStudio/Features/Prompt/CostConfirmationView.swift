@@ -21,7 +21,15 @@ struct CostConfirmationView: View {
     }
     
     var totalTokens: Int {
-        Int(ceil(MonetizationConfig.creditsForSeconds(totalDuration)))
+        let tokens = Int(ceil(MonetizationConfig.creditsForSeconds(totalDuration)))
+        #if DEBUG
+        print("💰 [CostConfirmation] Calculating tokens:")
+        print("   - Enabled segments: \(enabledSegments.count)")
+        print("   - Total duration: \(totalDuration)s")
+        print("   - Rate: \(MonetizationConfig.TOKENS_PER_SEC) tokens/sec")
+        print("   - Total tokens: \(tokens)")
+        #endif
+        return tokens
     }
     
     var totalPriceCents: Int {
@@ -44,6 +52,27 @@ struct CostConfirmationView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // Guardrail: Show warning if segments have zero duration
+                    if enabledSegments.isEmpty || totalDuration == 0 {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Invalid configuration")
+                                    .font(.headline)
+                                    .foregroundColor(.red)
+                                Text("No clips or zero duration detected. Go back and set durations.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                    }
+                    
                     ScrollView {
                         VStack(spacing: 24) {
                             // Summary header
