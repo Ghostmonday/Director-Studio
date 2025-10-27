@@ -2,153 +2,216 @@
 //  DeepSeekAIService.swift
 //  DirectorStudio
 //
-//  PURPOSE: DeepSeek AI API integration for advanced text processing
+//  PURPOSE: DeepSeek AI integration for prompt enhancement
 //
 
 import Foundation
+import os.log
 
-/// DeepSeek AI service implementation
-public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol, @unchecked Sendable {
-    private let apiKey: String
-    private let endpoint: String
-    private let session: URLSession
+// MARK: - DeepSeek API Models
+
+struct DeepSeekMessage: Codable {
+    let role: String
+    let content: String
+}
+
+struct DeepSeekRequest: Codable {
+    let model: String = "deepseek-chat"
+    let messages: [DeepSeekMessage]
+    let temperature: Double = 0.7
+    let maxTokens: Int = 4096
+    let topP: Double = 0.9
+    let stream: Bool = false  // Ensure full response
     
-    public init(apiKey: String? = nil, endpoint: String? = nil) {
-        // Get from Info.plist or use provided values
-        self.apiKey = apiKey ?? Bundle.main.infoDictionary?["DEEPSEEK_API_KEY"] as? String ?? ""
-        self.endpoint = endpoint ?? Bundle.main.infoDictionary?["DEEPSEEK_API_ENDPOINT"] as? String ?? "https://api.deepseek.com/v1"
+    enum CodingKeys: String, CodingKey {
+        case model, messages, temperature, stream
+        case maxTokens = "max_tokens"
+        case topP = "top_p"
+    }
+}
+
+struct DeepSeekResponse: Codable {
+    let choices: [Choice]
+    
+    struct Choice: Codable {
+        let message: DeepSeekMessage
+        let finishReason: String?
         
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 120
-        self.session = URLSession(configuration: config)
+        enum CodingKeys: String, CodingKey {
+            case message
+            case finishReason = "finish_reason"
+        }
+    }
+}
+
+// MARK: - DeepSeek AI Service
+
+/// DeepSeek AI service for prompt enhancement
+public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol, @unchecked Sendable {
+    private let client: APIClientProtocol
+    private let logger = Logger(subsystem: "DirectorStudio.API", category: "DeepSeek")
+    private let endpoint: String = "https://api.deepseek.com/v1"
+    
+    // Store API key fetched from Supabase
+    private var apiKey: String?
+    
+    public init(client: APIClientProtocol? = nil) {
+        self.client = client ?? APIClient()
+    }
+    
+    public init() {
+        self.client = APIClient()
     }
     
     public var isAvailable: Bool {
-        return !apiKey.isEmpty
+        // Always available, key fetched on demand
+        return true
     }
     
-    public func processText(prompt: String, systemPrompt: String?) async throws -> String {
-        guard isAvailable else {
-            throw PipelineError.configurationError("DeepSeek API key not configured")
+    /// Fetch API key if needed
+    private func ensureAPIKey() async throws -> String {
+        if let key = apiKey, !key.isEmpty {
+            return key
         }
+        
+        logger.debug("🔑 Fetching DeepSeek API key from Supabase...")
+        
+        do {
+            let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "deepseek")
+            self.apiKey = fetchedKey
+            logger.debug("✅ DeepSeek API key fetched successfully")
+            return fetchedKey
+        } catch {
+            logger.error("❌ Failed to fetch DeepSeek API key: \(error.localizedDescription)")
+            throw APIError.authError("Failed to fetch DeepSeek API key: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Call DeepSeek API with messages
+    public func callAPI(messages: [[String: String]]) async throws -> String {
+        let apiKey = try await ensureAPIKey()
         
         let url = URL(string: "\(endpoint)/chat/completions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")  // Space after Bearer!
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        var messages: [[String: String]] = []
+        let deepMessages = messages.map { DeepSeekMessage(role: $0["role"] ?? "user", content: $0["content"] ?? "") }
+        let body = DeepSeekRequest(messages: deepMessages)
+        request.httpBody = try JSONEncoder().encode(body)
         
-        if let systemPrompt = systemPrompt {
-            messages.append(["role": "system", "content": systemPrompt])
+        // Log request
+        logger.debug("📤 DeepSeek Request to: \(url)")
+        if let bodyData = request.httpBody,
+           let bodyString = String(data: bodyData, encoding: .utf8) {
+            logger.debug("📤 Request Body: \(bodyString.prefix(500))...")
         }
         
-        messages.append(["role": "user", "content": prompt])
+        let response: DeepSeekResponse = try await client.performRequest(request, expectedType: DeepSeekResponse.self)
         
-        let body: [String: Any] = [
-            "model": "deepseek-chat",
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 4096
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        // 🔍 DEBUG: Log the full request details
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("📤 DEEPSEEK API REQUEST:")
-        print("   URL: \(url.absoluteString)")
-        print("   Method: POST")
-        print("   Headers:")
-        print("      Authorization: Bearer \(String(apiKey.prefix(15)))...")
-        print("      Content-Type: application/json")
-        print("   Body:")
-        print("      model: deepseek-chat")
-        print("      prompt: \(prompt)")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
-        let (data, response) = try await session.data(for: request)
-        
-        // 🔍 DEBUG: Log the response
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("❌ Invalid HTTP response from DeepSeek")
-            throw PipelineError.apiError("Invalid HTTP response from DeepSeek")
+        guard let content = response.choices.first?.message.content else {
+            throw APIError.invalidResponse(statusCode: 200)
         }
         
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("📥 DEEPSEEK API RESPONSE:")
-        print("   Status Code: \(httpResponse.statusCode)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("   Response Body: \(responseString)")
-        }
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.debug("✅ DeepSeek Response: \(content.prefix(200))...")
         
-        // ✅ Enhanced error handling
-        guard httpResponse.statusCode == 200 else {
-            let errorMessage = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? [String: Any]
-            let errorText = errorMessage?["message"] as? String ?? "Unknown error"
-            print("❌ DeepSeek API error - Status: \(httpResponse.statusCode), Message: \(errorText)")
-            throw PipelineError.apiError("DeepSeek API error: \(errorText)")
-        }
-        
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let choices = json?["choices"] as? [[String: Any]]
-        let message = choices?.first?["message"] as? [String: Any]
-        let content = message?["content"] as? String ?? ""
-        
-        print("✅ DeepSeek response received: \(content.prefix(100))...")
         return content
     }
     
-    public func analyzeStory(text: String) async throws -> StoryAnalysisOutput {
-        let systemPrompt = """
-        You are a professional story analyst. Analyze the following story and extract:
-        1. Main characters with descriptions
-        2. Key themes
-        3. Emotional arc
-        4. Visual elements
-        Return as structured JSON.
-        """
-        
-        let result = try await processText(prompt: text, systemPrompt: systemPrompt)
-        
-        // Parse JSON response into StoryAnalysisOutput
-        // This is simplified - you'd want proper JSON parsing
-        return StoryAnalysisOutput(
-            themes: [],
-            characters: [],
-            settings: [],
-            emotions: [],
-            keyMoments: [],
-            tone: "neutral",
-            genre: nil
-        )
-    }
-    
+    /// Enhance a prompt for video generation
     public func enhancePrompt(prompt: String) async throws -> String {
-        let style = VideoStyle.cinematic // Default style
-        // Always use real API - demo mode has been removed
+        logger.debug("🎨 Enhancing prompt: '\(prompt.prefix(100))...'")
         
-        let systemPrompt = """
-        You are a video prompt enhancement expert. Take the user's prompt and enhance it with:
-        - Specific visual details
-        - Camera movements
-        - Lighting descriptions
-        - Mood and atmosphere
-        Style: \(style.rawValue)
-        """
+        let messages: [[String: String]] = [
+            [
+                "role": "system",
+                "content": "You are a creative director specializing in crafting cinematic video descriptions. Transform basic prompts into rich, visual narratives suitable for AI video generation."
+            ],
+            [
+                "role": "user",
+                "content": """
+                Transform this prompt into a detailed, cinematic description for video generation:
+                
+                "\(prompt)"
+                
+                Include:
+                - Visual style and cinematography
+                - Lighting and atmosphere
+                - Camera movements
+                - Key visual elements
+                - Mood and tone
+                
+                Keep it under 200 words and maintain the original intent.
+                """
+            ]
+        ]
         
-        return try await processText(prompt: prompt, systemPrompt: systemPrompt)
+        return try await callAPI(messages: messages)
     }
     
+    /// Protocol requirement - process text with system prompt
+    public func processText(prompt: String, systemPrompt: String?) async throws -> String {
+        let messages: [[String: String]]
+        
+        if let systemPrompt = systemPrompt {
+            messages = [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": prompt]
+            ]
+        } else {
+            messages = [
+                ["role": "user", "content": prompt]
+            ]
+        }
+        
+        return try await callAPI(messages: messages)
+    }
+    
+    /// Health check
     public func healthCheck() async -> Bool {
         do {
-            _ = try await processText(prompt: "ping", systemPrompt: "Respond with 'pong'")
+            _ = try await ensureAPIKey()
             return true
         } catch {
             return false
         }
+    }
+    
+    /// Enhanced prompt method with style parameter
+    public func enhancePrompt(_ prompt: String, style: VideoStyle) async throws -> String {
+        logger.debug("🎨 Enhancing prompt with style: \(style.rawValue)")
+        
+        let styleDescription: String
+        switch style {
+        case .cinematic:
+            styleDescription = "cinematic with dramatic lighting and professional cinematography"
+        case .animated:
+            styleDescription = "animated with vibrant colors and stylized movement"
+        case .documentary:
+            styleDescription = "documentary style with realistic settings and natural progression"
+        case .artistic:
+            styleDescription = "artistic and abstract with creative visual interpretation"
+        }
+        
+        let messages: [[String: String]] = [
+            [
+                "role": "system",
+                "content": "You are a creative director specializing in \(styleDescription) video descriptions."
+            ],
+            [
+                "role": "user",
+                "content": """
+                Transform this prompt into a detailed \(styleDescription) description:
+                
+                "\(prompt)"
+                
+                Focus on the \(style) style while maintaining the original intent.
+                Keep it under 200 words.
+                """
+            ]
+        ]
+        
+        return try await callAPI(messages: messages)
     }
 }
