@@ -427,7 +427,7 @@ struct SettingsView: View {
     
     private func resetCredits() {
         // Reset credits to 0
-        creditsManager.useCredits(amount: creditsManager.credits)
+        _ = creditsManager.useCredits(amount: creditsManager.credits)
         HapticFeedback.notification(.warning)
     }
     

@@ -46,9 +46,6 @@ class PipelineServiceBridge {
         print("   Prompt: \(prompt)")
         print("   Image: \(referenceImageData != nil ? "Yes (\(referenceImageData!.count / 1024)KB)" : "No")")
         
-        // Initialize generation ID
-        let generationId = UUID().uuidString
-        
         // Credit enforcement - calculate total cost
         let totalCost = CreditsManager.shared.creditsNeeded(for: duration, enabledStages: enabledStages)
         

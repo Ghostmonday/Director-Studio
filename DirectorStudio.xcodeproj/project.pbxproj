@@ -20,9 +20,6 @@
 		9B90AA7D2EAE31330085A1AC /* SupabaseAPIKeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA7B2EAE31330085A1AC /* SupabaseAPIKeyService.swift */; };
 		9B90AA7E2EAE31330085A1AC /* FrameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA7A2EAE31330085A1AC /* FrameExtractor.swift */; };
 		9B90AA832EAE338A0085A1AC /* BillingDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA812EAE338A0085A1AC /* BillingDashboardView.swift */; };
-		9B90AA872EAE3B940085A1AC /* APIUsageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA842EAE3B940085A1AC /* APIUsageManager.swift */; };
-		9B90AA882EAE3B940085A1AC /* FrameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA852EAE3B940085A1AC /* FrameExtractor.swift */; };
-		9B90AA892EAE3B940085A1AC /* SupabaseAPIKeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B90AA862EAE3B940085A1AC /* SupabaseAPIKeyService.swift */; };
 		9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113F2EAAF20100A0660D /* LoadingView.swift */; };
 		9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93113E2EAAF20100A0660D /* ErrorView.swift */; };
 		9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311402EAAF20100A0660D /* TooltipView.swift */; };
@@ -43,6 +40,10 @@
 		9B949E572EADAE880017473C /* PricingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B949E522EADAE880017473C /* PricingEngine.swift */; };
 		9B949E582EADAE880017473C /* BillingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B949E502EADAE880017473C /* BillingManager.swift */; };
 		9B949E5A2EADAEE50017473C /* RenderTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B949E592EADAEE50017473C /* RenderTransaction.swift */; };
+		9BF8CF942EB1628D00EFF27A /* TelemetryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF932EB1628D00EFF27A /* TelemetryService.swift */; };
+		9BF8CF952EB1628D00EFF27A /* AIClipDurationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF902EB1628D00EFF27A /* AIClipDurationAnalyzer.swift */; };
+		9BF8CF962EB1628D00EFF27A /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF912EB1628D00EFF27A /* APIClient.swift */; };
+		9BF8CF972EB1628D00EFF27A /* SmartSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF922EB1628D00EFF27A /* SmartSuggestions.swift */; };
 		9D42E4A7D6FE7B3BB6884CF1 /* ClipPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2750D2808218979C9A79F4E /* ClipPreviewSheet.swift */; };
 		A5D2C81BF065338A72401F17 /* MultiClipSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24440F5D4736E8CD989B8AD9 /* MultiClipSegment.swift */; };
 		B01234561234567890123456 /* DirectorStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01234561234567890123455 /* DirectorStudioApp.swift */; };
@@ -65,10 +66,6 @@
 		BD79DEF998290034C72B7E58 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07172BD7B4049D8B85F02298 /* AVFoundation.framework */; };
 		BE818CDA369F96FD0B183EF9 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38655C42D992EBAD2BE00103 /* CloudKit.framework */; };
 		C0742592824C3D90BA02FF68 /* SegmentEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F549D05C3AF5BED311740 /* SegmentEditorView.swift */; };
-		DF5EF234724134FCDF8BF47D /* EnhancedCreditsPurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157F0D32215137C86DD5449C /* EnhancedCreditsPurchaseView.swift */; };
-		E0726CD4F8A883B9D2D4BE6F /* PolishedStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A56E098BBFBDC14DBA314A /* PolishedStudioView.swift */; };
-		E196FE06584FA2146CA8CBC9 /* DirectorStudioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 315EBE6C8267A2B416F174A1 /* DirectorStudioTheme.swift */; };
-		E85A1781E0AC184023DDB84E /* PolishedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45DAA51F31409B502E4AA42A /* PolishedSettingsView.swift */; };
 		C07425A0824C3D90BA02FF69 /* PromptReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F549E05C3AF5BED311741 /* PromptReviewView.swift */; };
 		C07425A1824C3D90BA02FF6A /* DurationSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F549F05C3AF5BED311742 /* DurationSelectionView.swift */; };
 		C07425A2824C3D90BA02FF6B /* CostConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A005C3AF5BED311743 /* CostConfirmationView.swift */; };
@@ -76,12 +73,16 @@
 		C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */; };
 		C07425A4824C3D90BA02FF72 /* SegmentationConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A205C3AF5BED311750 /* SegmentationConfigView.swift */; };
 		C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */; };
-		C07425A5824C3D90BA02FF73 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A305C3AF5BED311751 /* APIClient.swift */; };
-		C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311747 /* TestingMode.swift */; };
-		C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311748 /* SegmentingModule.swift */; };
-		C07425A7824C3D90BA02FF71 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A505C3AF5BED311749 /* DebugLogger.swift */; };
-		C07425A7824C3D90BA02FF72 /* ShimmerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F474C1F23AFC635C7DFACB1C /* ShimmerView.swift */; };
-		C07425A7824C3D90BA02FF73 /* AnimatedCreditDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F474C1F23AFC635C7DFACB1D /* AnimatedCreditDisplay.swift */; };
+		C07425A5824C3D90BA02FF73 /* DirectorStudio/Services/APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A305C3AF5BED311751 /* DirectorStudio/Services/APIClient.swift */; };
+		C07425A6824C3D90BA02FF6F /* DirectorStudio/Configuration/TestingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311747 /* DirectorStudio/Configuration/TestingMode.swift */; };
+		C07425A6824C3D90BA02FF70 /* DirectorStudio/Services/SegmentingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A405C3AF5BED311748 /* DirectorStudio/Services/SegmentingModule.swift */; };
+		C07425A7824C3D90BA02FF71 /* DirectorStudio/Utils/DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22F54A505C3AF5BED311749 /* DirectorStudio/Utils/DebugLogger.swift */; };
+		C07425A7824C3D90BA02FF72 /* DirectorStudio/Components/ShimmerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F474C1F23AFC635C7DFACB1C /* DirectorStudio/Components/ShimmerView.swift */; };
+		C07425A7824C3D90BA02FF73 /* DirectorStudio/Components/AnimatedCreditDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F474C1F23AFC635C7DFACB1D /* DirectorStudio/Components/AnimatedCreditDisplay.swift */; };
+		DF5EF234724134FCDF8BF47D /* EnhancedCreditsPurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157F0D32215137C86DD5449C /* EnhancedCreditsPurchaseView.swift */; };
+		E0726CD4F8A883B9D2D4BE6F /* PolishedStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A56E098BBFBDC14DBA314A /* PolishedStudioView.swift */; };
+		E196FE06584FA2146CA8CBC9 /* DirectorStudioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 315EBE6C8267A2B416F174A1 /* DirectorStudioTheme.swift */; };
+		E85A1781E0AC184023DDB84E /* PolishedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45DAA51F31409B502E4AA42A /* PolishedSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -128,6 +129,10 @@
 		9B949E522EADAE880017473C /* PricingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingEngine.swift; sourceTree = "<group>"; };
 		9B949E532EADAE880017473C /* TokenMeteringEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMeteringEngine.swift; sourceTree = "<group>"; };
 		9B949E592EADAEE50017473C /* RenderTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderTransaction.swift; sourceTree = "<group>"; };
+		9BF8CF902EB1628D00EFF27A /* AIClipDurationAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIClipDurationAnalyzer.swift; sourceTree = "<group>"; };
+		9BF8CF912EB1628D00EFF27A /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		9BF8CF922EB1628D00EFF27A /* SmartSuggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartSuggestions.swift; sourceTree = "<group>"; };
+		9BF8CF932EB1628D00EFF27A /* TelemetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryService.swift; sourceTree = "<group>"; };
 		9DD90189A434C2DFE5E6CBBF /* EnhancedClipRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnhancedClipRow.swift; sourceTree = "<group>"; };
 		B01234561234567890123455 /* DirectorStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectorStudioApp.swift; sourceTree = "<group>"; };
 		B01234571234567890123455 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
@@ -159,13 +164,13 @@
 		F22F54A205C3AF5BED311745 /* VideoGenerationScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VideoGenerationScreen.swift; sourceTree = "<group>"; };
 		F22F54A205C3AF5BED311750 /* SegmentationConfigView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentationConfigView.swift; sourceTree = "<group>"; };
 		F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimulatorExportHelper.swift; sourceTree = "<group>"; };
-		F22F54A305C3AF5BED311751 /* APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Services/APIClient.swift"; sourceTree = SOURCE_ROOT; };
-		F22F54A405C3AF5BED311747 /* TestingMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Configuration/TestingMode.swift"; sourceTree = SOURCE_ROOT; };
-		F22F54A405C3AF5BED311748 /* SegmentingModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Services/SegmentingModule.swift"; sourceTree = SOURCE_ROOT; };
-		F22F54A505C3AF5BED311749 /* DebugLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Utils/DebugLogger.swift"; sourceTree = SOURCE_ROOT; };
+		F22F54A305C3AF5BED311751 /* DirectorStudio/Services/APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/APIClient.swift; sourceTree = SOURCE_ROOT; };
+		F22F54A405C3AF5BED311747 /* DirectorStudio/Configuration/TestingMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Configuration/TestingMode.swift; sourceTree = SOURCE_ROOT; };
+		F22F54A405C3AF5BED311748 /* DirectorStudio/Services/SegmentingModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Services/SegmentingModule.swift; sourceTree = SOURCE_ROOT; };
+		F22F54A505C3AF5BED311749 /* DirectorStudio/Utils/DebugLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Utils/DebugLogger.swift; sourceTree = SOURCE_ROOT; };
 		F474C1F23AFC635C7DFACB1B /* SegmentEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentEditorView.swift; sourceTree = "<group>"; };
-		F474C1F23AFC635C7DFACB1C /* ShimmerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Components/ShimmerView.swift"; sourceTree = SOURCE_ROOT; };
-		F474C1F23AFC635C7DFACB1D /* AnimatedCreditDisplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "DirectorStudio/Components/AnimatedCreditDisplay.swift"; sourceTree = SOURCE_ROOT; };
+		F474C1F23AFC635C7DFACB1C /* DirectorStudio/Components/ShimmerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Components/ShimmerView.swift; sourceTree = SOURCE_ROOT; };
+		F474C1F23AFC635C7DFACB1D /* DirectorStudio/Components/AnimatedCreditDisplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DirectorStudio/Components/AnimatedCreditDisplay.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,8 +199,8 @@
 				9B93113F2EAAF20100A0660D /* LoadingView.swift */,
 				9B9311402EAAF20100A0660D /* TooltipView.swift */,
 				61335CCF3B3E77DFC84EA7D3 /* InsufficientCreditsOverlay.swift */,
-				F474C1F23AFC635C7DFACB1C /* ShimmerView.swift */,
-				F474C1F23AFC635C7DFACB1D /* AnimatedCreditDisplay.swift */,
+				F474C1F23AFC635C7DFACB1C /* DirectorStudio/Components/ShimmerView.swift */,
+				F474C1F23AFC635C7DFACB1D /* DirectorStudio/Components/AnimatedCreditDisplay.swift */,
 			);
 			name = Components;
 			path = DirectorStudio/Components;
@@ -238,6 +243,15 @@
 			path = Monetization;
 			sourceTree = "<group>";
 		};
+		9BF8CF8F2EAFE8BF00EFF27A /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				F22F54A305C3AF5BED311751 /* DirectorStudio/Services/APIClient.swift */,
+				F22F54A405C3AF5BED311747 /* DirectorStudio/Configuration/TestingMode.swift */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		B01234401234567890123456 = {
 			isa = PBXGroup;
 			children = (
@@ -247,6 +261,7 @@
 				B01234801234567890123456 /* Frameworks */,
 				9B9311412EAAF20100A0660D /* Components */,
 				9B93114C2EAAF26B00A0660D /* Resources */,
+				9BF8CF8F2EAFE8BF00EFF27A /* Recovered References */,
 			);
 			sourceTree = "<group>";
 			usesTabs = 0;
@@ -325,6 +340,10 @@
 		B01234881234567890123456 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				9BF8CF902EB1628D00EFF27A /* AIClipDurationAnalyzer.swift */,
+				9BF8CF912EB1628D00EFF27A /* APIClient.swift */,
+				9BF8CF922EB1628D00EFF27A /* SmartSuggestions.swift */,
+				9BF8CF932EB1628D00EFF27A /* TelemetryService.swift */,
 				9B90AA842EAE3B940085A1AC /* APIUsageManager.swift */,
 				9B90AA852EAE3B940085A1AC /* FrameExtractor.swift */,
 				9B90AA862EAE3B940085A1AC /* SupabaseAPIKeyService.swift */,
@@ -340,7 +359,7 @@
 				9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */,
 				9B9311612EAAF81300A0660D /* AIServiceFactory.swift */,
 				F22F54A105C3AF5BED311744 /* AIClipDurator.swift */,
-				F22F54A405C3AF5BED311748 /* SegmentingModule.swift */,
+				F22F54A405C3AF5BED311748 /* DirectorStudio/Services/SegmentingModule.swift */,
 				2B00DF7B74AC9DF76123272F /* DirectorStudio/Services/PipelineProtocols.swift */,
 				17F1C29A646342F73AA8948E /* DirectorStudio/Services/VideoStitchingService.swift */,
 				BB8C3DDA9C41D713A328175F /* DirectorStudio/Services/VoiceoverGenerationService.swift */,
@@ -355,7 +374,7 @@
 				B01234751234567890123455 /* CrashReporter.swift */,
 				721BC5701783F8C36C50BA44 /* Notifications+Credits.swift */,
 				F22F54A305C3AF5BED311746 /* SimulatorExportHelper.swift */,
-				F22F54A505C3AF5BED311749 /* DebugLogger.swift */,
+				F22F54A505C3AF5BED311749 /* DirectorStudio/Utils/DebugLogger.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -484,6 +503,9 @@
 				B01234561234567890123456 /* DirectorStudioApp.swift in Sources */,
 				B01234571234567890123456 /* AppCoordinator.swift in Sources */,
 				9B9311582EAAF43700A0660D /* EnhancedStudioView.swift in Sources */,
+				9BF8CF942EB1628D00EFF27A /* TelemetryService.swift in Sources */,
+				9BF8CF952EB1628D00EFF27A /* AIClipDurationAnalyzer.swift in Sources */,
+				9BF8CF972EB1628D00EFF27A /* SmartSuggestions.swift in Sources */,
 				9B9311642EAB125A00A0660D /* ContinuityManager.swift in Sources */,
 				9B949E552EADAE880017473C /* TokenMeteringEngine.swift in Sources */,
 				9B949E562EADAE880017473C /* MonetizationConfig.swift in Sources */,
@@ -533,12 +555,12 @@
 				C07425A4824C3D90BA02FF6D /* VideoGenerationScreen.swift in Sources */,
 				C07425A4824C3D90BA02FF72 /* SegmentationConfigView.swift in Sources */,
 				C07425A5824C3D90BA02FF6E /* SimulatorExportHelper.swift in Sources */,
-				C07425A5824C3D90BA02FF73 /* APIClient.swift in Sources */,
-				C07425A6824C3D90BA02FF6F /* TestingMode.swift in Sources */,
-				C07425A6824C3D90BA02FF70 /* SegmentingModule.swift in Sources */,
-				C07425A7824C3D90BA02FF71 /* DebugLogger.swift in Sources */,
-				C07425A7824C3D90BA02FF72 /* ShimmerView.swift in Sources */,
-				C07425A7824C3D90BA02FF73 /* AnimatedCreditDisplay.swift in Sources */,
+				C07425A5824C3D90BA02FF73 /* DirectorStudio/Services/APIClient.swift in Sources */,
+				C07425A6824C3D90BA02FF6F /* DirectorStudio/Configuration/TestingMode.swift in Sources */,
+				C07425A6824C3D90BA02FF70 /* DirectorStudio/Services/SegmentingModule.swift in Sources */,
+				C07425A7824C3D90BA02FF71 /* DirectorStudio/Utils/DebugLogger.swift in Sources */,
+				C07425A7824C3D90BA02FF72 /* DirectorStudio/Components/ShimmerView.swift in Sources */,
+				C07425A7824C3D90BA02FF73 /* DirectorStudio/Components/AnimatedCreditDisplay.swift in Sources */,
 				A5D2C81BF065338A72401F17 /* MultiClipSegment.swift in Sources */,
 				03E41333D15C1DC713D41A5C /* EnhancedLibraryView.swift in Sources */,
 				B18E75D1884AD952EBB5BBE8 /* EnhancedClipCell.swift in Sources */,

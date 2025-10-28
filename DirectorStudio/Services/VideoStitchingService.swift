@@ -166,7 +166,6 @@ class VideoStitchingService: VideoStitchingProtocol {
                 )
                 
                 let fadeInStart = CMTimeSubtract(timeRange.start, transitionDuration)
-                let fadeInEnd = timeRange.start
                 
                 switch transitionStyle {
                 case .fadeIn, .crossfade:
@@ -199,7 +198,6 @@ class VideoStitchingService: VideoStitchingProtocol {
                 )
                 
                 let fadeOutStart = CMTimeSubtract(nextTimeRange.start, transitionDuration)
-                let fadeOutEnd = nextTimeRange.start
                 
                 layerInstruction.setOpacityRamp(
                     fromStartOpacity: 1.0,

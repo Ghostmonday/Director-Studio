@@ -12,6 +12,17 @@ struct DirectorStudioApp: App {
     init() {
         // Clear API key cache on app launch to ensure fresh keys
         SupabaseAPIKeyService.shared.clearCache()
+        
+        // Test telemetry
+        testTelemetry()
+    }
+    
+    func testTelemetry() {
+        TelemetryService.shared.logEvent("telemetry_test_event", metadata: [
+            "test": true,
+            "message": "Testing DirectorStudio telemetry",
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ])
     }
     
     var body: some Scene {

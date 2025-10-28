@@ -299,7 +299,7 @@ public final class CreditsManager: ObservableObject {
             stagesCost.append(("Lighting", 1))
         }
         
-        let totalCost = baseCost + stagesCost.reduce(0) { $0 + $1.1 }
+        _ = baseCost + stagesCost.reduce(0) { $0 + $1.1 }
         
         // Calculate using new pricing system
         let credits = MonetizationConfig.creditsForSeconds(duration)

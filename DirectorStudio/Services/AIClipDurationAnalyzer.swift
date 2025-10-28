@@ -3,18 +3,21 @@
 // PURPOSE: AI-powered clip duration selection (5 or 10 seconds) based on content analysis
 
 import Foundation
+import os.log
 
 /// AI service that analyzes segment content to determine optimal duration (5 or 10 seconds)
 @MainActor
 public class AIClipDurationAnalyzer: ObservableObject {
     public static let shared = AIClipDurationAnalyzer()
     
-    private let deepSeekService = DeepSeekAIService.shared
-    private let logger = LogManager.shared.getLogger(category: "AIClipDurationAnalyzer")
+    private let deepSeekService = DeepSeekAIService()
+    private let logger = Logger(subsystem: "DirectorStudio", category: "AIClipDurationAnalyzer")
+    
+    private init() {}
     
     /// Analyze a segment and determine if it should be 5 or 10 seconds
-    public func analyzeDuration(for segment: SegmentedPrompt) async throws -> TimeInterval {
-        logger.debug("🧠 Analyzing optimal duration for segment: \(segment.name)")
+    public func analyzeDuration(for segment: MultiClipSegment) async throws -> TimeInterval {
+        logger.debug("🧠 Analyzing optimal duration for segment: \(segment.id)")
         
         let systemPrompt = """
         You are an expert video editor analyzing a script segment to determine optimal clip duration.
@@ -47,11 +50,9 @@ public class AIClipDurationAnalyzer: ObservableObject {
         """
         
         do {
-            let response = try await deepSeekService.generateText(
-                systemPrompt: systemPrompt,
-                userPrompt: userPrompt,
-                maxTokens: 10,
-                temperature: 0.3 // Lower temperature for consistent decisions
+            let response = try await deepSeekService.processText(
+                prompt: userPrompt,
+                systemPrompt: systemPrompt
             )
             
             let duration: TimeInterval
@@ -61,11 +62,11 @@ public class AIClipDurationAnalyzer: ObservableObject {
                 duration = 10.0 // Default to 10 if unclear
             }
             
-            logger.debug("✅ AI determined duration: \(Int(duration))s for '\(segment.name)'")
+            logger.debug("✅ AI determined duration: \(Int(duration))s")
             return duration
             
         } catch {
-            logger.error("❌ Failed to analyze duration: \(error)")
+            logger.error("❌ Failed to analyze duration: \(error.localizedDescription)")
             // Default to 10 seconds on error
             return 10.0
         }
@@ -73,7 +74,7 @@ public class AIClipDurationAnalyzer: ObservableObject {
     
     /// Batch analyze multiple segments with optional override
     public func analyzeDurations(
-        for segments: [SegmentedPrompt],
+        for segments: [MultiClipSegment],
         defaultDuration: TimeInterval? = nil
     ) async throws -> [UUID: TimeInterval] {
         var durations: [UUID: TimeInterval] = [:]
@@ -95,7 +96,7 @@ public class AIClipDurationAnalyzer: ObservableObject {
                 let duration = try await analyzeDuration(for: segment)
                 durations[segment.id] = duration
             } catch {
-                logger.error("Failed to analyze segment '\(segment.name)': \(error)")
+                logger.error("Failed to analyze segment: \(error.localizedDescription)")
                 durations[segment.id] = 10.0 // Default to 10s on error
             }
         }
@@ -109,7 +110,7 @@ public class AIClipDurationAnalyzer: ObservableObject {
     }
     
     /// Get a duration recommendation explanation
-    public func explainDuration(for segment: SegmentedPrompt, duration: TimeInterval) -> String {
+    public func explainDuration(for segment: MultiClipSegment, duration: TimeInterval) -> String {
         if duration == 5.0 {
             return "Quick moment - best as a 5 second clip"
         } else {

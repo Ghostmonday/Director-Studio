@@ -922,7 +922,6 @@ final class SegmentingModule: SegmentingModuleProtocol {
     private func segmentEvenly(script: String, constraints: SegmentationConstraints) -> [CinematicSegment] {
         let totalTokens = tokenEstimator.estimate(script)
         let targetSegments = min(constraints.maxSegments, max(1, totalTokens / constraints.maxTokensPerSegment))
-        let tokensPerSegment = totalTokens / targetSegments
         
         let words = script.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }

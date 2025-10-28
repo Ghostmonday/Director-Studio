@@ -13,10 +13,16 @@ let package = Package(
             targets: ["DirectorStudioLib"]
         )
     ],
+    dependencies: [
+        .package(url: "https://github.com/supabase/supabase-swift", from: "2.0.0")
+    ],
     targets: [
         .target(
             name: "DirectorStudioLib",
-            path: "DirectorStudio"
+            path: "DirectorStudio",
+            dependencies: [
+                .product(name: "Supabase", package: "supabase-swift")
+            ]
         )
     ]
 )

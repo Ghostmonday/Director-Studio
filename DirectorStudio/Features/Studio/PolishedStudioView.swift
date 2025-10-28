@@ -46,10 +46,8 @@ struct StudioView: View {
         case .all:
             break
         case .today:
-            let calendar = Calendar.current
-            clips = clips.filter { calendar.isDateInToday($0.createdAt) }
+            clips = clips.filter { Calendar.current.isDateInToday($0.createdAt) }
         case .thisWeek:
-            let calendar = Calendar.current
             let weekAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
             clips = clips.filter { $0.createdAt > weekAgo }
         case .favorites:
