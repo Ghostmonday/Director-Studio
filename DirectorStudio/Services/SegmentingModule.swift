@@ -9,8 +9,8 @@ import Foundation
 
 // MARK: - Core Data Models
 
-struct FilmTake: Codable, Identifiable {
-    let id: UUID
+public struct FilmTake: Codable, Identifiable {
+    public let id: UUID
     let takeNumber: Int
     let prompt: String                    // Complete Pollo-ready video prompt
     let storyContent: String              // What narrative moment this captures

@@ -348,92 +348,29 @@ struct PromptView: View {
     
     @ViewBuilder
     private var durationStrategySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Clip Duration Strategy", systemImage: "timer")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                Spacer()
-            }
-            .padding(.horizontal)
-            
-            Text("AI will analyze each scene and choose 5 or 10 seconds")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.horizontal)
-            
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                // AI Auto-select info
-                VStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                    Text("AI Auto-Select")
-                        .font(.headline)
-                    Text("Optimal duration per scene")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(Color.blue, lineWidth: 2)
-                        )
-                )
-                
-                // Duration options info
-                VStack(spacing: 8) {
-                    HStack(spacing: 16) {
-                        VStack {
-                            Image(systemName: "5.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.orange)
-                            Text("Quick")
-                                .font(.caption2)
-                        }
-                        
-                        VStack {
-                            Image(systemName: "10.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.blue)
-                            Text("Standard")
-                                .font(.caption2)
-                        }
-                    }
-                    Text("5 or 10 seconds")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                    Text("Based on content")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
-                )
-            }
-            .padding(.horizontal)
-            
-            // Info note
-            HStack {
-                Image(systemName: "info.circle.fill")
+                Image(systemName: "sparkles")
+                    .font(.title3)
                     .foregroundColor(.blue)
-                Text("You can override AI choices in the duration selection step")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AI Duration Selection")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    Text("Automatically chooses 5 or 10 seconds per scene based on content")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
                 Spacer()
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color.blue.opacity(0.05))
-            .cornerRadius(8)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.blue.opacity(0.08))
+            )
             .padding(.horizontal)
         }
     }
@@ -764,11 +701,13 @@ struct PromptView: View {
     
     @ViewBuilder
     private var generateSection: some View {
+        // Calculate token cost using correct pricing (0.5 tokens per second)
         let creditCost = creditsManager.creditsNeeded(
             for: viewModel.videoDuration,
             enabledStages: viewModel.enabledStages
         )
-        let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canGenerate(cost: creditCost)
+        // Check tokens, not legacy credits
+        let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canAffordGeneration(tokenCost: creditCost)
         
         VStack(spacing: 8) {
             if creditsManager.isDevMode {
@@ -809,13 +748,13 @@ struct PromptView: View {
         HStack {
             Image(systemName: "dollarsign.circle.fill")
                 .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .green : .orange))
-            Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
+            Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) token\(creditCost == 1 ? "" : "s")")
                 .font(.subheadline)
                 .fontWeight(.medium)
             
             Spacer()
             
-            Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.credits)")
+            Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.tokens)")
                 .font(.subheadline)
                 .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .primary : .red))
                 .fontWeight(.semibold)
@@ -857,9 +796,9 @@ struct PromptView: View {
             }
             
             if viewModel.generationMode == .single {
-                // Single clip generation
-                if !creditsManager.canGenerate(cost: creditCost) {
-                    insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
+                // Single clip generation - check tokens, not legacy credits
+                if !creditsManager.canAffordGeneration(tokenCost: creditCost) {
+                    insufficientCreditsInfo = (needed: creditCost, have: creditsManager.tokens)
                     showingInsufficientCredits = true
                 } else {
                     Task {

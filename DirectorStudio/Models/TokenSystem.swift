@@ -220,26 +220,31 @@ public struct TokenBundle {
 public struct TokenCalculator {
     
     /// Calculate token cost for a video
+    /// Uses MonetizationConfig for accurate token calculation (0.5 tokens per second base)
     public static func calculateCost(
         duration: TimeInterval,
         quality: VideoQualityTier,
         includesEnhancement: Bool = true,
         includesContinuity: Bool = false
     ) -> Int {
-        let baseCost = Int(ceil(duration)) * quality.tokensPerSecond
-        var totalCost = baseCost
+        // Use MonetizationConfig for base token calculation (0.5 tokens per second)
+        let baseCredits = MonetizationConfig.creditsForSeconds(duration)
+        let baseTokens = MonetizationConfig.tokensToDebit(baseCredits)
+        
+        // Apply quality multiplier
+        var totalCost = Double(baseTokens) * quality.tokenMultiplier
         
         // Add 20% for enhancement
         if includesEnhancement {
-            totalCost = Int(ceil(Double(totalCost) * 1.2))
+            totalCost = totalCost * 1.2
         }
         
         // Add 10% for continuity
         if includesContinuity {
-            totalCost = Int(ceil(Double(totalCost) * 1.1))
+            totalCost = totalCost * 1.1
         }
         
-        return totalCost
+        return Int(ceil(totalCost))
     }
     
     /// Convert tokens to dollar value

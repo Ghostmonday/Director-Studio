@@ -39,7 +39,7 @@ struct CostConfirmationView: View {
     }
     
     var canAfford: Bool {
-        creditsManager.isDevMode || creditsManager.credits >= totalTokens
+        creditsManager.isDevMode || creditsManager.tokens >= totalTokens
     }
     
     var isHighCostGeneration: Bool {
@@ -151,7 +151,7 @@ struct CostConfirmationView: View {
             InsufficientCreditsOverlay(
                 isShowing: $showingInsufficientCredits,
                 creditsNeeded: totalTokens,
-                creditsHave: creditsManager.credits,
+                creditsHave: creditsManager.tokens,
                 onPurchase: {
                     // Handle purchase
                 }
@@ -330,7 +330,7 @@ struct CostConfirmationView: View {
                     HStack {
                         Text("Your balance")
                         Spacer()
-                        Text("\(creditsManager.credits) tokens")
+                        Text("\(creditsManager.tokens) tokens")
                             .fontWeight(.medium)
                     }
                     
@@ -347,7 +347,7 @@ struct CostConfirmationView: View {
                     HStack {
                         Text("Remaining after")
                         Spacer()
-                        let remaining = creditsManager.credits - totalTokens
+                        let remaining = creditsManager.tokens - totalTokens
                         Text("\(max(0, remaining)) tokens")
                             .fontWeight(.bold)
                             .foregroundColor(remaining >= 0 ? .green : .red)
@@ -392,7 +392,7 @@ struct CostConfirmationView: View {
                     if !creditsManager.isDevMode {
                         Text(canAfford ? 
                             "Charge \(totalTokens) tokens • \(MonetizationConfig.formatPrice(totalPriceCents))" :
-                            "Need \(totalTokens - creditsManager.credits) more tokens"
+                            "Need \(totalTokens - creditsManager.tokens) more tokens"
                         )
                         .font(.caption)
                         .opacity(0.8)

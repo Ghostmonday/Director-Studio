@@ -116,7 +116,7 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
         let response: DeepSeekResponse = try await client.performRequest(request, expectedType: DeepSeekResponse.self)
         
         guard let content = response.choices.first?.message.content else {
-            throw APIError.invalidResponse(statusCode: 200)
+            throw APIError.invalidResponse(statusCode: 200, message: "Unexpected response format")
         }
         
         logger.debug("✅ DeepSeek Response: \(content.prefix(200))...")

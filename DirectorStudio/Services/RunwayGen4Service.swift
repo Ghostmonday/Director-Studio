@@ -190,7 +190,7 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
                 let status: RunwayGen4StatusResponse = try await client.performRequest(request, expectedType: RunwayGen4StatusResponse.self)
                 
                 guard let data = status.data else {
-                    throw APIError.invalidResponse(statusCode: 200)
+                    throw APIError.invalidResponse(statusCode: 200, message: "Unexpected response format")
                 }
                 
                 logger.debug("📊 Status: \(data.status)")
@@ -199,7 +199,7 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
                 case "succeed":
                     guard let videoUrlString = data.videoUrl,
                           let videoURL = URL(string: videoUrlString) else {
-                        throw APIError.invalidResponse(statusCode: 200)
+                        throw APIError.invalidResponse(statusCode: 200, message: "Unexpected response format")
                     }
                     logger.debug("✅ Video ready: \(videoURL)")
                     removeTaskID(taskId) // Clear on success
@@ -245,7 +245,7 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
         
         // Convert data to UIImage for compression
         guard let image = UIImage(data: imageData) else {
-            throw APIError.invalidResponse(statusCode: -1)
+            throw APIError.invalidResponse(statusCode: -1, message: "Invalid task ID or status")
         }
         
         // Compress and prepare the image

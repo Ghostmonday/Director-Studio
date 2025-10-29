@@ -34,7 +34,7 @@ struct SegmentEditorView: View {
     }
     
     var canGenerate: Bool {
-        !enabledSegments.isEmpty && (creditsManager.isDevMode || creditsManager.credits >= estimatedCost)
+        !enabledSegments.isEmpty && (creditsManager.isDevMode || creditsManager.tokens >= estimatedCost)
     }
     
     var body: some View {
@@ -233,7 +233,7 @@ struct SegmentEditorView: View {
                         .font(.headline)
                     
                     if !creditsManager.isDevMode {
-                        Text("\(MonetizationConfig.formatPrice(estimatedPriceCents)) • \(estimatedCost) tokens • Balance: \(creditsManager.credits)")
+                        Text("\(MonetizationConfig.formatPrice(estimatedPriceCents)) • \(estimatedCost) tokens • Balance: \(creditsManager.tokens)")
                             .font(.caption)
                             .opacity(0.8)
                     }

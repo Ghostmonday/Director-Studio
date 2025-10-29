@@ -94,8 +94,11 @@ struct EditRoomView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear {
-            viewModel.setup(clips: coordinator.generatedClips)
-            voiceoverVM.loadExisting(for: viewModel.clip.id)
+               viewModel.setup(clips: coordinator.clipRepository.clips)
+            // Load voiceover for the first clip if available
+            if let firstClip = coordinator.clipRepository.clips.first {
+                voiceoverVM.loadExisting(for: firstClip.id)
+            }
         }
     }
     
