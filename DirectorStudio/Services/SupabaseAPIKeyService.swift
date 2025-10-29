@@ -45,7 +45,18 @@ class SupabaseAPIKeyService {
         }
         
         guard httpResponse.statusCode == 200 else {
+            let responseBody = String(data: data, encoding: .utf8) ?? "No response body"
             print("❌ Failed to fetch \(service) key: HTTP \(httpResponse.statusCode)")
+            print("📦 Response: \(responseBody.prefix(200))")
+            
+            if httpResponse.statusCode == 400 {
+                print("💡 Check: 1) Service name matches Supabase ('Pollo', 'DeepSeek', etc.), 2) Row exists in api_keys table")
+            } else if httpResponse.statusCode == 401 {
+                print("💡 Check: Supabase anon key is correct")
+            } else if httpResponse.statusCode == 404 {
+                print("💡 Check: api_keys table exists and has a row for service '\(service)'")
+            }
+            
             throw APIKeyError.httpError(httpResponse.statusCode)
         }
         

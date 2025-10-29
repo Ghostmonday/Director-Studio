@@ -112,10 +112,12 @@ struct DurationSelectionView: View {
             }
         }
         .onAppear {
-            // Auto-run AI analysis if selected
-            if durationType == .aiAutoSelect && !durationsAreSet {
-                Task {
-                    await runAIAnalysis()
+            // Auto-run AI analysis by default (automated duration strategy)
+            if durationType == .aiAutoSelect {
+                if !durationsAreSet {
+                    Task {
+                        await runAIAnalysis()
+                    }
                 }
             }
         }
@@ -140,20 +142,67 @@ struct DurationSelectionView: View {
                     .foregroundColor(.secondary)
             }
             
-            Text("Set Clip Durations")
+            Text("Clip Durations")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
-            Text("Choose 5 or 10 seconds per clip")
+            Text("AI automatically selects optimal duration (5 or 10 seconds)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
     }
     
     @ViewBuilder
     private var durationTypeSelector: some View {
         VStack(spacing: 12) {
-            ForEach(DurationType.allCases, id: \.self) { type in
+            // AI Auto-Select (default) - shown first and emphasized
+            Button(action: {
+                withAnimation(.spring()) {
+                    durationType = .aiAutoSelect
+                    applyDurationType(.aiAutoSelect)
+                }
+            }) {
+                HStack(spacing: 16) {
+                    Image(systemName: "sparkles")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                        .frame(width: 30)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text("AI Auto-Select")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Text("(Recommended)")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.white.opacity(0.2)))
+                        }
+                        
+                        Text("AI analyzes content and chooses 5 or 10 seconds per clip")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.9))
+                            .multilineTextAlignment(.leading)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.white)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue)
+                )
+            }
+            .buttonStyle(.plain)
+            
+            // Other options (less prominent)
+            ForEach([DurationType.uniform5s, .uniform10s, .manual], id: \.self) { type in
                 Button(action: {
                     withAnimation(.spring()) {
                         durationType = type

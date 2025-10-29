@@ -145,7 +145,7 @@ class PromptViewModel: ObservableObject {
     
     // Generation mode
     @Published var generationMode: GenerationMode = .single
-    @Published var durationStrategy: DurationStrategy = .uniform(10.0)
+    @Published var durationStrategy: DurationStrategy = .auto  // Automated by default
     @Published var uniformDuration: TimeInterval = 10.0
     
     // Context-aware UI state

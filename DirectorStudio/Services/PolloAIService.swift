@@ -162,7 +162,9 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         logger.debug("💰 Customer charge: $\(String(format: "%.2f", cost)), Profit: $\(String(format: "%.2f", profit))")
         
         // Make request
-        logger.debug("🔄 Making \(tier.modelName) API request...")
+        logger.debug("🔄 Making \(tier.modelName) API request to: \(url.absoluteString)")
+        logger.debug("📋 Request body: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "nil")")
+        logger.debug("🔑 API Key present: \(!apiKey.isEmpty)")
         
         do {
             let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
@@ -175,6 +177,10 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             return try await continueWithValidResponse(response, apiKey: apiKey)
         } catch let error as APIError {
             logger.error("❌ \(tier.shortName) generation failed: \(error.localizedDescription)")
+            // Add more context for debugging
+            if case .invalidResponse(let code) = error {
+                logger.error("💡 Check: 1) API key fetched from Supabase, 2) Endpoint URL correct, 3) Request body format valid")
+            }
             throw error
         } catch {
             logger.error("❌ Unexpected error: \(error)")
@@ -269,7 +275,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
                 case "succeed":
                     guard let videoUrlString = status.data.videoUrl,
                           let videoURL = URL(string: videoUrlString) else {
-                        throw APIError.invalidResponse(statusCode: 200)
+                        throw APIError.invalidResponse(statusCode: 200, message: "Unexpected response format")
                     }
                     logger.debug("✅ Video ready: \(videoURL)")
                     removeTaskID(taskId) // Clear on success
@@ -315,7 +321,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         
         // 2. 80% QUALITY JPEG - targeting under 600KB
         guard let jpegData = scaled.jpegData(compressionQuality: 0.80) else {
-            throw APIError.invalidResponse(statusCode: -1)
+            throw APIError.invalidResponse(statusCode: -1, message: "Invalid task ID or status")
         }
         
         // Verify size is under 600KB
@@ -455,7 +461,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         
         // Convert data to UIImage for compression
         guard let image = UIImage(data: imageData) else {
-            throw APIError.invalidResponse(statusCode: -1)
+            throw APIError.invalidResponse(statusCode: -1, message: "Invalid task ID or status")
         }
         
         // Use perfectSeed to compress and prepare the image
