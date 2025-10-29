@@ -27,14 +27,14 @@ struct PolloInput: Codable {
     let resolution: String
     let length: Int
     let mode: String
-    let seed_image: String? // Base64 image data with format prefix
+    let image: String? // Base64 image data with format prefix
     
     init(prompt: String, resolution: String, length: Int, mode: String = "basic", seedImage: String? = nil) {
         self.prompt = prompt
         self.resolution = resolution
         self.length = length
         self.mode = mode
-        self.seed_image = seedImage
+        self.image = seedImage
     }
 }
 
@@ -103,6 +103,11 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         
         logger.debug("🔑 Fetching Pollo API key from Supabase...")
         
+        // In dev mode, we still need real API keys to make actual calls
+        if CreditsManager.shared.isDevMode {
+            logger.debug("🧑‍💻 DEV MODE: Fetching real API key for testing")
+        }
+        
         do {
             let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
             self.apiKey = fetchedKey
@@ -114,70 +119,113 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         }
     }
     
-    public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
-        logger.debug("🚀 Starting video generation - Prompt: '\(prompt)', Duration: \(duration)s")
+    /// Generate video with specific quality tier
+    public func generateVideo(
+        prompt: String,
+        duration: TimeInterval,
+        tier: VideoQualityTier = .basic
+    ) async throws -> URL {
+        logger.debug("🚀 Starting \(tier.shortName) video generation - Prompt: '\(prompt)', Duration: \(duration)s")
         
         // Ensure we have API key
         let apiKey = try await ensureAPIKey()
         
-        // Pollo API supports up to 5 seconds per clip (can chain for longer)
-        // Enforce strict validation
-        let validDuration: Int
-        if duration <= 5.0 {
-            validDuration = 5
-        } else {
-            // For longer durations, we'd need to chain multiple 5s clips
-            logger.warning("⚠️ Duration \(duration)s > 5s requested, using 5s (chain for longer)")
-            validDuration = 5
+        // In dev mode, log but still make real API calls
+        if CreditsManager.shared.isDevMode {
+            logger.debug("🧑‍💻 DEV MODE: Making real API call (no credits charged)")
         }
         
-        let finalResolution = TestingMode.isEnabled ? "480p" : "480p" // Already using 480p for cost
+        // Validate duration for tier
+        let maxDuration = Double(tier.maxDuration)
+        let validDuration = min(duration, maxDuration)
         
-        logger.debug("📊 Final parameters - Duration: \(validDuration)s (requested: \(duration)s), Resolution: \(finalResolution)")
+        if duration > maxDuration {
+            logger.warning("⚠️ Duration \(duration)s exceeds \(tier.shortName) limit of \(maxDuration)s")
+        }
         
-        // Create request
-        let url = URL(string: "https://pollo.ai/api/platform/generation/pollo/pollo-v1-6")!
+        logger.debug("📊 Using \(tier.modelName) - Duration: \(Int(validDuration))s, Cost: $\(String(format: "%.2f", validDuration * tier.customerPricePerSecond))")
+        
+        // Create request for specific tier
+        let url = URL(string: tier.apiEndpoint)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")  // Case-sensitive!
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
-        let body = PolloRequest(input: PolloInput(
-            prompt: prompt,
-            resolution: finalResolution,
-            length: validDuration
-        ))
-        
+        // Build tier-specific request body
+        let body = try buildRequestBody(for: tier, prompt: prompt, duration: Int(validDuration))
         request.httpBody = try JSONEncoder().encode(body)
         
-        // Log request details
-        logger.debug("📤 Request URL: \(url)")
-        logger.debug("📤 Request Headers: x-api-key: \(String(apiKey.prefix(8)))...")
-        if let bodyData = request.httpBody,
-           let bodyString = String(data: bodyData, encoding: .utf8) {
-            logger.debug("📤 Request Body: \(bodyString)")
-        }
+        // Log cost calculation
+        let cost = validDuration * tier.customerPricePerSecond
+        let profit = validDuration * (tier.customerPricePerSecond - tier.baseCostPerSecond)
+        logger.debug("💰 Customer charge: $\(String(format: "%.2f", cost)), Profit: $\(String(format: "%.2f", profit))")
         
         // Make request
-        logger.debug("🔄 Making Pollo API request...")
+        logger.debug("🔄 Making \(tier.modelName) API request...")
         
         do {
             let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
             
             guard response.code == "SUCCESS" else {
-                logger.error("❌ Pollo API returned code: \(response.code)")
-                throw APIError.authError("Pollo API error: \(response.code)")
+                logger.error("❌ \(tier.modelName) API returned code: \(response.code)")
+                throw APIError.authError("\(tier.modelName) API error: \(response.code)")
             }
             
             return try await continueWithValidResponse(response, apiKey: apiKey)
         } catch let error as APIError {
-            // Re-throw with more context
-            logger.error("❌ Pollo API Error: \(error.localizedDescription)")
+            logger.error("❌ \(tier.shortName) generation failed: \(error.localizedDescription)")
             throw error
         } catch {
             logger.error("❌ Unexpected error: \(error)")
             throw error
         }
+    }
+    
+    /// Build tier-specific request body
+    private func buildRequestBody(for tier: VideoQualityTier, prompt: String, duration: Int, image: String? = nil) throws -> PolloRequest {
+        var input: PolloInput
+        
+        // Create base input based on tier
+        switch tier {
+        case .economy, .pro:
+            // Kling models use similar structure
+            input = PolloInput(
+                prompt: prompt,
+                resolution: tier == .premium ? "1080p" : "480p",
+                length: duration,
+                mode: tier == .economy ? "std" : "turbo",
+                seedImage: image
+            )
+            
+        case .basic:
+            // Pollo model
+            input = PolloInput(
+                prompt: prompt,
+                resolution: "480p",
+                length: duration,
+                mode: "basic",
+                seedImage: image
+            )
+            
+        case .premium:
+            // Runway Gen-4 uses higher resolution
+            input = PolloInput(
+                prompt: prompt,
+                resolution: "1080p",
+                length: duration,
+                mode: "turbo",
+                seedImage: image
+            )
+        }
+        
+        return PolloRequest(input: input)
+    }
+    
+    // Keep existing method for backward compatibility
+    public func generateVideo(prompt: String, duration: TimeInterval) async throws -> URL {
+        // Default to Basic tier for backward compatibility
+        return try await generateVideo(prompt: prompt, duration: duration, tier: .basic)
     }
     
     private func continueWithValidResponse(_ response: PolloResponse, apiKey: String) async throws -> URL {
@@ -202,7 +250,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         request.httpMethod = "GET"
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
-        let maxAttempts = 30 // As recommended
+        let maxAttempts = 60 // Increased for longer generations (up to 2 minutes)
         var attempts = 0
         var backoffDelay = 1.0 // Start with 1 second
         
@@ -261,21 +309,29 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     /// - Parameter image: UIImage to use as seed
     /// - Returns: Base64 encoded image with data URI prefix
     private func perfectSeed(_ image: UIImage) async throws -> String {
-        // 1. Scale to Pollo-native 1024x576 (16:9) — NO CROPPING
-        let targetSize = CGSize(width: 1024, height: 576)
+        // 1. Scale to 480p (16:9) for consistent sizing across services
+        let targetSize = CGSize(width: 854, height: 480)
         let scaled = image.resized(to: targetSize)
         
-        // 2. 80% QUALITY JPEG = ~380KB — ZERO quality loss in video
+        // 2. 80% QUALITY JPEG - targeting under 600KB
         guard let jpegData = scaled.jpegData(compressionQuality: 0.80) else {
             throw APIError.invalidResponse(statusCode: -1)
         }
         
-        // Verify size is under 400KB
+        // Verify size is under 600KB
         let sizeKB = Double(jpegData.count) / 1024.0
         logger.debug("📸 Compressed seed image: \(String(format: "%.1f", sizeKB))KB")
         
-        if jpegData.count > 400_000 {
-            logger.warning("⚠️ Compressed image exceeds 400KB: \(sizeKB)KB")
+        if jpegData.count > 600_000 {
+            logger.warning("⚠️ Compressed image exceeds 600KB: \(sizeKB)KB")
+            // Try lower quality if needed
+            if let lowerQualityData = scaled.jpegData(compressionQuality: 0.60),
+               lowerQualityData.count <= 600_000 {
+                let base64String = lowerQualityData.base64EncodedString()
+                let dataURI = "data:image/jpeg;base64,\(base64String)"
+                logger.debug("✅ Recompressed to 60% quality: \(Double(lowerQualityData.count) / 1024.0)KB")
+                return dataURI
+            }
         }
         
         // 3. Convert to base64 with data URI prefix
@@ -380,17 +436,22 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         }
     }
     
-    /// Generate video from an image
-    /// - Parameters:
-    ///   - imageData: Image data to use as input
-    ///   - prompt: Text prompt for generation
-    ///   - duration: Duration of the video in seconds
-    /// - Returns: URL to the generated video
-    public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
-        logger.debug("🎬 Starting image-to-video generation - Prompt: '\(prompt)', Duration: \(duration)s")
+    /// Generate video from an image with specific quality tier
+    public func generateVideoFromImage(
+        imageData: Data,
+        prompt: String,
+        duration: TimeInterval = 5.0,
+        tier: VideoQualityTier = .basic
+    ) async throws -> URL {
+        logger.debug("🎬 Starting \(tier.shortName) image-to-video generation - Prompt: '\(prompt)', Duration: \(duration)s")
         
         // Ensure we have API key
         let apiKey = try await ensureAPIKey()
+        
+        // In dev mode, log but still make real API calls
+        if CreditsManager.shared.isDevMode {
+            logger.debug("🧑‍💻 DEV MODE: Making real image-to-video API call (no credits charged)")
+        }
         
         // Convert data to UIImage for compression
         guard let image = UIImage(data: imageData) else {
@@ -401,28 +462,31 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         let seedImageData = try await perfectSeed(image)
         logger.debug("🔗 Seed image prepared as base64")
         
-        // Validate duration (5s for chained clips as per user info)
-        let validDuration = 5 // Force 5s for chained generation
-        logger.debug("📊 Chained generation - Duration: \(validDuration)s, Using seed image")
+        // Validate duration for tier
+        let maxDuration = Double(tier.maxDuration)
+        let validDuration = min(duration, maxDuration)
         
-        let finalResolution = TestingMode.isEnabled ? "480p" : "480p"
+        if duration > maxDuration {
+            logger.warning("⚠️ Duration \(duration)s exceeds \(tier.shortName) limit of \(maxDuration)s")
+        }
         
-        // Create request with base64 seed image
-        let url = URL(string: "https://pollo.ai/api/platform/generation/pollo/pollo-v1-6")!
+        logger.debug("📊 Using \(tier.modelName) - Duration: \(Int(validDuration))s, With seed image")
+        
+        // Create request for specific tier
+        let url = URL(string: tier.apiEndpoint)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
-        let body = PolloRequest(input: PolloInput(
-            prompt: prompt,
-            resolution: finalResolution,
-            length: validDuration,
-            mode: "basic",
-            seedImage: seedImageData  // Base64 with data:image/jpeg;base64, prefix
-        ))
-        
+        // Build tier-specific request body with image
+        let body = try buildRequestBody(for: tier, prompt: prompt, duration: Int(validDuration), image: seedImageData)
         request.httpBody = try JSONEncoder().encode(body)
+        
+        // Log cost calculation
+        let cost = validDuration * tier.customerPricePerSecond
+        let profit = validDuration * (tier.customerPricePerSecond - tier.baseCostPerSecond)
+        logger.debug("💰 Customer charge: $\(String(format: "%.2f", cost)), Profit: $\(String(format: "%.2f", profit))")
         
         logger.debug("📤 Image-to-video request with base64 seed (no upload needed!)")
         
@@ -445,6 +509,12 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             logger.error("❌ Unexpected error: \(error)")
             throw error
         }
+    }
+    
+    // Keep existing method for backward compatibility
+    public func generateVideoFromImage(imageData: Data, prompt: String, duration: TimeInterval = 5.0) async throws -> URL {
+        // Default to Basic tier for backward compatibility
+        return try await generateVideoFromImage(imageData: imageData, prompt: prompt, duration: duration, tier: .basic)
     }
     
     // MARK: - Protocol Requirements

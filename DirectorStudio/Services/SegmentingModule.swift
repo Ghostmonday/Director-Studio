@@ -89,7 +89,7 @@ final class StoryToFilmGenerator {
         var enableEmotionalAnalysis: Bool = true
         var enableCameraDirections: Bool = true
         var continuityMode: ContinuityMode = .fullChain
-        var useSimpleChunking: Bool = true  // NEW: Use word-based chunking with overlap
+        var useSimpleChunking: Bool = false  // Use AI-powered intelligent analysis
         
         enum ContinuityMode {
             case none
@@ -152,7 +152,9 @@ final class StoryToFilmGenerator {
         \(text)
         
         REQUIREMENTS:
-        - Each take = 5-10 seconds of video
+        - Each take must be EXACTLY 5 or 10 seconds (no other durations)
+        - Use 5 seconds for: quick actions, single moments, fast cuts
+        - Use 10 seconds for: dialogue, establishing shots, complex scenes
         - CAPTURE EVERY STORY BEAT - nothing skipped
         - If dialogue exists: show characters speaking visually
         - If action exists: show the action happening
@@ -165,7 +167,7 @@ final class StoryToFilmGenerator {
             "takeNumber": 1,
             "prompt": "Detailed visual description: characters, actions, environment, camera, lighting, mood",
             "storyContent": "What narrative moment this captures",
-            "estimatedDuration": 7.0,
+            "estimatedDuration": 10.0,
             "sceneType": "establishing",
             "hasDialogue": false,
             "emotionalTone": "tense",

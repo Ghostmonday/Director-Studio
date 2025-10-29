@@ -13,7 +13,7 @@ public enum SyncStatus: String, Codable {
 }
 
 /// A generated video clip with metadata
-public struct GeneratedClip: Identifiable, Codable {
+public struct GeneratedClip: Identifiable, Codable, Hashable {
     public let id: UUID
     var name: String
     var localURL: URL?

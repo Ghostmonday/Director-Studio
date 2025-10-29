@@ -32,7 +32,7 @@ struct StudioView: View {
     }
     
     var filteredClips: [GeneratedClip] {
-        var clips = coordinator.generatedClips
+        var clips = coordinator.clipRepository.clips
         
         // Apply search
         if !searchText.isEmpty {
@@ -169,7 +169,7 @@ struct StudioView: View {
             // Stats bar
             HStack(spacing: theme.Spacing.large) {
                 StatBadge(
-                    value: "\(coordinator.generatedClips.count)",
+                    value: "\(coordinator.clipRepository.clips.count)",
                     label: "Total Clips",
                     icon: "film.stack",
                     color: theme.Colors.primary
@@ -282,14 +282,7 @@ struct StudioView: View {
     private func loadClips() {
         Task {
             // Load clips from storage
-            do {
-                let clips = try await coordinator.storageService.loadClips()
-                await MainActor.run {
-                    coordinator.generatedClips = clips
-                }
-            } catch {
-                print("Failed to load clips: \(error)")
-            }
+            try? await coordinator.clipRepository.loadAll()
         }
     }
     
@@ -301,12 +294,14 @@ struct StudioView: View {
     // MARK: - Computed Properties
     
     private var totalDuration: TimeInterval {
-        coordinator.generatedClips.reduce(0) { $0 + $1.duration }
+        coordinator.clipRepository.clips.reduce(0) { $0 + $1.duration }
     }
     
     private var todayClipsCount: Int {
         let calendar = Calendar.current
-        return coordinator.generatedClips.filter { calendar.isDateInToday($0.createdAt) }.count
+        return coordinator.clipRepository.clips.filter {
+            calendar.isDateInToday($0.createdAt)
+        }.count
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {

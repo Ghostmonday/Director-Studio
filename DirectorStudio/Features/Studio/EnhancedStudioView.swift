@@ -17,73 +17,83 @@ struct EnhancedStudioView: View {
     // All clips are regular clips now - no demo clips
     
     var body: some View {
+        
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Header with stats
-                    StudioHeaderView(clipCount: coordinator.generatedClips.count)
-                        .padding(.horizontal)
+            NavigationStack(path: $coordinator.path) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Header with stats
+                        StudioHeaderView(clipCount: coordinator.clipRepository.clips.count)
+                            .padding(.horizontal)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : -20)
+                            .animation(.easeOut(duration: 0.5), value: animateIn)
+                        
+                        // Featured section removed - all clips are real
+                        
+                        // My Clips Section with drag-and-drop
+                        MyClipsSection(
+                            clips: coordinator.clipRepository.clips,
+                            selectedClipID: $selectedClipID,
+                            draggedClip: $draggedClip
+                        )
                         .opacity(animateIn ? 1 : 0)
-                        .offset(y: animateIn ? 0 : -20)
-                        .animation(.easeOut(duration: 0.5), value: animateIn)
+                        .offset(y: animateIn ? 0 : 20)
+                        .animation(.easeOut(duration: 0.5).delay(0.2), value: animateIn)
+                        
+                        // Empty state
+                        if coordinator.clipRepository.clips.isEmpty {
+                            EmptyStudioView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 100)
+                        }
+                    }
+                    .padding(.vertical)
+                }
+                .background(DirectorStudioTheme.Colors.backgroundBase)
+                .navigationTitle("Studio")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: { showingDebugConsole = true }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "terminal")
+                                Text("Debug")
+                            }
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(6)
+                        }
+                    }
                     
-                    // Featured section removed - all clips are real
-                    
-                    // My Clips Section with drag-and-drop
-                    MyClipsSection(
-                        clips: coordinator.generatedClips,
-                        selectedClipID: $selectedClipID,
-                        draggedClip: $draggedClip
-                    )
-                    .opacity(animateIn ? 1 : 0)
-                    .offset(y: animateIn ? 0 : 20)
-                    .animation(.easeOut(duration: 0.5).delay(0.2), value: animateIn)
-                    
-                    // Empty state
-                    if coordinator.generatedClips.isEmpty {
-                        EmptyStudioView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Menu {
+                            Button(action: { showingExportOptions = true }) {
+                                Label("Export All", systemImage: "square.and.arrow.up")
+                            }
+                            
+                            Button(action: { /* Preview action */ }) {
+                                Label("Preview Timeline", systemImage: "play.rectangle")
+                            }
+                            
+                            Divider()
+                            
+                            Button(action: { /* Sort action */ }) {
+                                Label("Sort by Date", systemImage: "arrow.up.arrow.down")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.title3)
+                        }
                     }
                 }
-                .padding(.vertical)
-            }
-            .navigationTitle("Studio")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { showingDebugConsole = true }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "terminal")
-                            Text("Debug")
-                        }
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(6)
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button(action: { showingExportOptions = true }) {
-                            Label("Export All", systemImage: "square.and.arrow.up")
-                        }
-                        
-                        Button(action: { /* Preview action */ }) {
-                            Label("Preview Timeline", systemImage: "play.rectangle")
-                        }
-                        
-                        Divider()
-                        
-                        Button(action: { /* Sort action */ }) {
-                            Label("Sort by Date", systemImage: "arrow.up.arrow.down")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
+                .navigationDestination(for: NavigationDestination.self) { dest in
+                    switch dest {
+                    case .editRoom(let clip):
+                        EditRoomView(viewModel: EditRoomViewModel(clip: clip))
                     }
                 }
             }
@@ -92,6 +102,10 @@ struct EnhancedStudioView: View {
             withAnimation {
                 animateIn = true
             }
+        }
+        .onReceive(coordinator.clipRepository.clipsPublisher) { _ in }
+        .task {
+            try? await coordinator.clipRepository.loadAll()
         }
         .sheet(isPresented: $showingExportOptions) {
             ExportOptionsView()
@@ -333,7 +347,7 @@ struct MyClipsSection: View {
                         )
                         .onTapGesture {
                             withAnimation(.spring(response: 0.3)) {
-                                selectedClipID = clip.id
+                                coordinator.path.append(.editRoom(clip: clip))
                             }
                         }
                         .onDrag {

@@ -67,7 +67,7 @@ public final class CreditsManager: ObservableObject {
     @Published public var isLoadingCredits: Bool = false
     @Published public var hasPurchased: Bool = false
     @Published public var lastCreditError: CreditError? = nil
-    @Published public var selectedQuality: VideoQualityTier = .medium
+    @Published public var selectedQuality: VideoQualityTier = .basic
     
     private let userDefaults = UserDefaults.standard
     private let tokensKey = "user_tokens"
@@ -79,28 +79,7 @@ public final class CreditsManager: ObservableObject {
     /// Developer mode for free testing (highly secure implementation)
     public var isDevMode: Bool {
         #if DEBUG
-        // Multiple security checks required:
-        
-        // 1. Check if dev mode is enabled in UserDefaults
-        guard UserDefaults.standard.bool(forKey: "DEV_MODE_ENABLED") else {
-            return false
-        }
-        
-        // 2. Verify secret passcode was entered correctly
-        guard let lastPasscodeEntry = UserDefaults.standard.object(forKey: "DEV_MODE_PASSCODE_TIMESTAMP") as? Date else {
-            return false
-        }
-        
-        // 3. Passcode expires after 1 hour for security
-        let oneHourAgo = Date().addingTimeInterval(-3600)
-        guard lastPasscodeEntry > oneHourAgo else {
-            // Expired - disable dev mode
-            UserDefaults.standard.set(false, forKey: "DEV_MODE_ENABLED")
-            UserDefaults.standard.removeObject(forKey: "DEV_MODE_PASSCODE_TIMESTAMP")
-            return false
-        }
-        
-        // Dev mode is now active!
+        // TEMPORARY: Always enabled in DEBUG builds for testing
         return true
         #else
         // Never allow dev mode in release builds
@@ -430,6 +409,34 @@ public final class CreditsManager: ObservableObject {
     public func canAffordGeneration(tokenCost: Int) -> Bool {
         if isDevMode { return true }
         return tokens >= tokenCost
+    }
+    
+    /// Calculate tokens needed for video with specific tier
+    public func tokensNeeded(for duration: TimeInterval, tier: VideoQualityTier) -> Int {
+        return Int(ceil(duration * Double(tier.tokensPerSecond)))
+    }
+    
+    /// Get cost breakdown for tier
+    public func getTierCostBreakdown(duration: TimeInterval, tier: VideoQualityTier) -> CostBreakdown {
+        let baseTokens = tokensNeeded(for: duration, tier: tier)
+        let priceInCents = Int(baseTokens) // 1 token = 1 cent
+        
+        return CostBreakdown(
+            videoDuration: duration,
+            baseTokens: baseTokens,
+            multiplier: 1.0,
+            totalTokens: baseTokens,
+            priceInCents: priceInCents,
+            pipelineFeatures: tier.features
+        )
+    }
+    
+    /// Calculate total cost for a film with multiple takes
+    public func calculateFilmCost(takes: Int, averageDuration: TimeInterval, tier: VideoQualityTier) -> (tokens: Int, dollars: String) {
+        let totalDuration = Double(takes) * averageDuration
+        let totalTokens = tokensNeeded(for: totalDuration, tier: tier)
+        let dollars = String(format: "$%.2f", Double(totalTokens) / 100.0)
+        return (tokens: totalTokens, dollars: dollars)
     }
     
     /// Purchase options

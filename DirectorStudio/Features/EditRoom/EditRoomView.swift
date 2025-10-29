@@ -9,6 +9,7 @@ import AVFoundation
 struct EditRoomView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @StateObject private var viewModel = EditRoomViewModel()
+    @StateObject var voiceoverVM = VoiceoverRecorderViewModel()
     
     var body: some View {
         VStack(spacing: 20) {
@@ -94,6 +95,7 @@ struct EditRoomView: View {
         #endif
         .onAppear {
             viewModel.setup(clips: coordinator.generatedClips)
+            voiceoverVM.loadExisting(for: viewModel.clip.id)
         }
     }
     

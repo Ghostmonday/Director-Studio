@@ -13,6 +13,7 @@ import AVFoundation
 struct VideoGenerationScreen: View {
     @Binding var isPresented: Bool
     @EnvironmentObject var coordinator: AppCoordinator
+    @EnvironmentObject var creditsManager: CreditsManager
     
     let initialScript: String
     
@@ -40,7 +41,7 @@ struct VideoGenerationScreen: View {
                             onGenerate: {
                                 currentStep = .generating
                                 Task {
-                                    await generator.generateVideos()
+                                    await generator.generateVideos(coordinator: coordinator)
                                     if generator.error == nil {
                                         currentStep = .complete
                                     }
@@ -134,83 +135,101 @@ class FilmGeneratorViewModel: ObservableObject {
         }
     }
     
-    func generateVideos() async {
-        guard let film = film else { return }
+    func generateVideos(coordinator: AppCoordinator) async {
+        guard let film = film, let totalCost = film.totalTokenCost else { return }
         
-        for (index, take) in film.takes.enumerated() {
-            currentTakeIndex = index
-            progress = Double(index) / Double(film.takes.count)
-            status = "Generating Take \(take.takeNumber) of \(film.takeCount)..."
+        let transaction = GenerationTransaction(repository: coordinator.clipRepository)
+        
+        do {
+            try transaction.begin(cost: totalCost)
             
-            do {
-                // Prepare prompt and seed
-                let prompt = take.prompt
+            for (index, take) in film.takes.enumerated() {
+                currentTakeIndex = index
+                progress = Double(index) / Double(film.takes.count)
+                status = "Generating Take \(take.takeNumber) of \(film.takeCount)..."
                 
-                // For takes after the first, we MUST have a seed image for continuity
-                if index > 0 && lastFrame == nil {
-                    throw GeneratorError.noTakesGenerated
+                do {
+                    let clip = try await generateTake(take: take, index: index)
+                    await transaction.addPending(clip)
+                } catch {
+                    // await showPartialSaveAlert(with: await transaction.pendingClips, error: error)
+                    await transaction.rollback()
+                    return
                 }
-                
-                // Generate video
-                let videoURL: URL
-                if index == 0 {
-                    // First take - no seed
-                    print("🎬 [Take \(take.takeNumber)] First take - generating from text")
-                    videoURL = try await videoService.generateVideo(
-                        prompt: prompt,
-                        duration: take.estimatedDuration
-                    )
-                } else {
-                    // All subsequent takes MUST use seed for continuity
-                    guard let seedImage = lastFrame,
-                          let seedData = seedImage.jpegData(compressionQuality: 0.8) else {
-                        throw NSError(domain: "FilmGenerator", code: -1,
-                                    userInfo: [NSLocalizedDescriptionKey: "Missing seed image for Take \(take.takeNumber)"])
-                    }
-                    
-                    print("🔗 [Take \(take.takeNumber)] Using seed image from Take \(index)")
-                    videoURL = try await videoService.generateVideoFromImage(
-                        imageData: seedData,
-                        prompt: prompt,
-                        duration: take.estimatedDuration
-                    )
-                }
-                
-                // Download locally
-                let localURL = try await downloadVideo(from: videoURL, takeNumber: take.takeNumber)
-                
-                // Create clip
-                let clip = GeneratedClip(
-                    id: UUID(),
-                    name: "Take \(take.takeNumber): \(take.storyContent)",
-                    localURL: localURL,
-                    thumbnailURL: nil,
-                    syncStatus: .notUploaded,
-                    createdAt: Date(),
-                    duration: take.estimatedDuration,
-                    projectID: nil,
-                    isGeneratedFromImage: index > 0  // All takes after first use seed
-                )
-                
-                generatedClips.append(clip)
-                
-                // ALWAYS extract last frame for continuity (even for last take)
-                print("📸 [Take \(take.takeNumber)] Extracting last frame for continuity...")
-                lastFrame = try await extractLastFrame(from: localURL)
-                print("✅ [Take \(take.takeNumber)] Last frame extracted")
-                
-                // Save
-                try await storageService.saveClip(clip)
-                
-            } catch {
-                self.error = error
-                status = "Error on Take \(take.takeNumber): \(error.localizedDescription)"
-                return
             }
+            
+            try await transaction.commit()
+            
+        } catch {
+            await transaction.rollback()
+            self.error = error
         }
         
         progress = 1.0
         status = "Complete! Generated \(generatedClips.count) videos"
+    }
+    
+    private func generateTake(take: FilmTake, index: Int) async throws -> GeneratedClip {
+        // Prepare prompt and seed
+        let prompt = take.prompt
+        
+        // For takes after the first, we MUST have a seed image for continuity
+        if index > 0 && lastFrame == nil {
+            throw GeneratorError.noTakesGenerated
+        }
+        
+        // Generate video
+        let videoURL: URL
+        if index == 0 {
+            // First take - no seed
+            print("🎬 [Take \(take.takeNumber)] First take - generating from text")
+            videoURL = try await videoService.generateVideo(
+                prompt: prompt,
+                duration: take.estimatedDuration
+            )
+        } else {
+            // All subsequent takes MUST use seed for continuity
+            guard let seedImage = lastFrame,
+                  let seedData = seedImage.jpegData(compressionQuality: 0.8) else {
+                throw NSError(domain: "FilmGenerator", code: -1,
+                              userInfo: [NSLocalizedDescriptionKey: "Missing seed image for Take \(take.takeNumber)"])
+            }
+            
+            print("🔗 [Take \(take.takeNumber)] Using seed image from Take \(index)")
+            videoURL = try await videoService.generateVideoFromImage(
+                imageData: seedData,
+                prompt: prompt,
+                duration: take.estimatedDuration
+            )
+        }
+        
+        // Download locally
+        let localURL = try await downloadVideo(from: videoURL, takeNumber: take.takeNumber)
+        
+        // Create clip
+        let clip = GeneratedClip(
+            id: UUID(),
+            name: "Take \(take.takeNumber): \(take.storyContent)",
+            localURL: localURL,
+            thumbnailURL: nil,
+            syncStatus: .notUploaded,
+            createdAt: Date(),
+            duration: take.estimatedDuration,
+            projectID: nil,
+            isGeneratedFromImage: index > 0  // All takes after first use seed
+        )
+        
+        generatedClips.append(clip)
+        
+        // ALWAYS extract last frame for continuity (even for last take)
+        print("📸 [Take \(take.takeNumber)] Extracting last frame for continuity...")
+        lastFrame = try await extractLastFrame(from: localURL)
+        print("✅ [Take \(take.takeNumber)] Last frame extracted")
+        
+        // Save
+        try await storageService.saveClip(clip)
+        
+        return clip
     }
     
     private func downloadVideo(from url: URL, takeNumber: Int) async throws -> URL {

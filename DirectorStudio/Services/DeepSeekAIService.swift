@@ -76,6 +76,11 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
         
         logger.debug("🔑 Fetching DeepSeek API key from Supabase...")
         
+        // In dev mode, we still need real API keys to make actual calls
+        if CreditsManager.shared.isDevMode {
+            logger.debug("🧑‍💻 DEV MODE: Fetching real DeepSeek API key for testing")
+        }
+        
         do {
             let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
             self.apiKey = fetchedKey

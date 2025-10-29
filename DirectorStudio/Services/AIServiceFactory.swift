@@ -21,7 +21,7 @@ public final class AIServiceFactory {
             return MockAIService()
             
         case .pollo:
-            return PolloAIService()
+            return RunwayGen4Service()
             
         case .deepseek:
             return DeepSeekAIService()
@@ -39,16 +39,16 @@ public final class AIServiceFactory {
     public static func createFromEnvironment() -> AIServiceProtocol {
         // Check which API keys are available
         // Services now fetch keys dynamically from Supabase
-        return PolloAIService()
+        return RunwayGen4Service()
     }
     
     // MARK: - Specialized Service Creation
     
     /// Create a video generation service based on available providers
     public static func createVideoService() -> VideoGenerationProtocol {
-        // FORCE REAL POLLO SERVICE FOR DEBUGGING
-        print("🚨 FORCING REAL POLLO SERVICE - BYPASSING API KEY CHECK")
-        return PolloAIService()
+        // Using Runway Gen-4 Turbo for video generation
+        print("🚀 Using Runway Gen-4 Turbo API for video generation")
+        return RunwayGen4Service()
         
         /* OLD CODE - DISABLED FOR DEBUGGING
         // Check for Pollo first (primary video generation service)
@@ -81,8 +81,8 @@ public final class AIServiceFactory {
         case .videoGeneration:
             if factors.contains(.cost) {
                 // Pollo is cost-effective for video
-                if PolloAIService().isAvailable {
-                    return PolloAIService()
+                if RunwayGen4Service().isAvailable {
+                    return RunwayGen4Service()
                 }
             }
             // TODO: Add other video services

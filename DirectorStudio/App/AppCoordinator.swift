@@ -17,14 +17,19 @@ enum AppTab {
     case library
 }
 
+enum NavigationDestination: Hashable {
+    case editRoom(clip: GeneratedClip)
+}
+
 /// Coordinates app-wide state, navigation, and business logic
 class AppCoordinator: ObservableObject {
     // MARK: - Navigation
     @Published var selectedTab: AppTab = .prompt
+    @Published var path: [NavigationDestination] = []
     
     // MARK: - App State
     @Published var currentProject: Project?
-    @Published var generatedClips: [GeneratedClip] = []
+    @Published var clipRepository: ClipRepositoryProtocol
     @Published var isAuthenticated: Bool = false
     // REMOVED: Guest mode no longer exists - all users have full access
     @Published var showingCreditsPurchase: Bool = false
@@ -36,9 +41,12 @@ class AppCoordinator: ObservableObject {
     init() {
         self.authService = AuthService()
         self.storageService = LocalStorageService()
+        let repo = ClipRepository(storage: self.storageService)
+        self.clipRepository = repo
         
         // Check authentication on init
         Task {
+            try? await repo.loadAll()
             await checkAuthentication()
             // Uncomment to test API services (makes actual API calls - costs money!)
             // await testAPIServices()
@@ -54,7 +62,9 @@ class AppCoordinator: ObservableObject {
     
     /// Add a generated clip to the current project
     func addClip(_ clip: GeneratedClip) {
-        generatedClips.append(clip)
+        Task {
+            try? await clipRepository.save(clip)
+        }
     }
     
     /// Check iCloud authentication status
@@ -69,7 +79,7 @@ class AppCoordinator: ObservableObject {
     private func testAPIServices(runHealthCheck: Bool = false) async {
         print("🔧 Testing API Services Configuration...")
         
-        let polloService = PolloAIService()
+        let polloService = RunwayGen4Service()
         let deepSeekService = DeepSeekAIService()
         
         print("🔑 Pollo API key configured: \(polloService.isAvailable)")
@@ -128,7 +138,7 @@ class AppCoordinator: ObservableObject {
         """
         
         do {
-            let polloService = PolloAIService()
+            let polloService = RunwayGen4Service()
             
             print("📤 Sending request to Pollo API...")
             print("📝 Prompt: \(prompt)")

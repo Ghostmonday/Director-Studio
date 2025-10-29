@@ -58,7 +58,7 @@ struct CreditsPurchaseView: View {
         }
         
         var features: [String] {
-            let quality = VideoQualityTier.medium
+            let quality = VideoQualityTier.pro
             let estimatedVideos = TokenCalculator.estimateVideos(tokens: tokens, duration: 10, quality: quality)
             
             switch self {

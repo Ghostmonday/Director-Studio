@@ -48,15 +48,13 @@ class PipelineServiceBridge {
         
         // Credit enforcement - calculate total cost
         let totalCost = CreditsManager.shared.creditsNeeded(for: duration, enabledStages: enabledStages)
+        // let reservationID = CreditsManager.shared.reserveCredits(amount: cost)
         
-        // Check credits for all users
-        do {
-            try CreditsManager.shared.checkCreditsForGeneration(cost: totalCost)
-            print("✅ Credit check passed. Cost: \(totalCost), Available: \(CreditsManager.shared.credits)")
-        } catch let creditError as CreditError {
-            print("❌ Credit check failed: \(creditError.localizedDescription)")
-            throw PipelineError.configurationError(creditError.localizedDescription)
-        }
+        // defer {
+        //     if Task.isCancelled || currentError != nil {
+        //         CreditsManager.shared.cancelReservation(reservationID)
+        //     }
+        // }
         
         // Always use real API - demo mode has been removed
         
@@ -150,12 +148,7 @@ class PipelineServiceBridge {
         print("   Enabled stages: \(enabledStages.map { $0.rawValue }.joined(separator: ", "))")
         
         // Deduct credits for successful generation
-        let deducted = CreditsManager.shared.useCredits(amount: totalCost)
-        if deducted {
-            print("💳 Deducted \(totalCost) credits. Remaining: \(CreditsManager.shared.credits)")
-        } else {
-            print("⚠️ Failed to deduct credits - this shouldn't happen after pre-check")
-        }
+        // CreditsManager.shared.commitReservation(reservationID)
         
         print("🔄 Progress: Complete! (100%)")
         print("🎉 Video generation successful!")

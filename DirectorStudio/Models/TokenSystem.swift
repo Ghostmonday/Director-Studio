@@ -6,71 +6,148 @@ import Foundation
 
 /// Video quality tiers with associated token costs
 public enum VideoQualityTier: String, CaseIterable, Codable {
-    case low = "Standard"
-    case medium = "HD"
-    case high = "4K"
+    case economy = "Economy"
+    case basic = "Basic"
+    case pro = "Pro"
+    case premium = "Premium"
+    
+    /// Base cost per second (what you pay Pollo.ai)
+    public var baseCostPerSecond: Double {
+        switch self {
+        case .economy: return 0.07
+        case .basic: return 0.10
+        case .pro: return 0.12
+        case .premium: return 0.30
+        }
+    }
+    
+    /// Customer price per second (with markup)
+    public var customerPricePerSecond: Double {
+        switch self {
+        case .economy: return 0.20  // 186% markup
+        case .basic: return 0.31    // 210% markup
+        case .pro: return 0.37      // 208% markup
+        case .premium: return 0.93  // 210% markup
+        }
+    }
     
     /// Tokens per second of video
     public var tokensPerSecond: Int {
         switch self {
-        case .low: return 15
-        case .medium: return 20
-        case .high: return 25
+        case .economy: return 20   // $0.20
+        case .basic: return 31     // $0.31
+        case .pro: return 37       // $0.37
+        case .premium: return 93   // $0.93
         }
     }
     
     /// Token cost multiplier for each tier (used by TokenMeteringEngine)
     public var tokenMultiplier: Double {
         switch self {
-        case .low: return 1.0      // Standard quality baseline
-        case .medium: return 1.33  // ~33% more (20/15)
-        case .high: return 1.67    // ~67% more (25/15)
+        case .economy: return 0.65   // Cheapest option
+        case .basic: return 1.0      // Baseline
+        case .pro: return 1.19       // ~19% more than basic
+        case .premium: return 3.0    // 3x basic price
+        }
+    }
+    
+    /// API endpoint for each tier
+    public var apiEndpoint: String {
+        switch self {
+        case .economy: return "https://pollo.ai/api/platform/generation/kling-ai/kling-v1-6"
+        case .basic: return "https://pollo.ai/api/platform/generation/pollo/pollo-v1-6"
+        case .pro: return "https://pollo.ai/api/platform/generation/kling-ai/kling-v2-5-turbo"
+        case .premium: return "https://pollo.ai/api/platform/generation/runway/runway-gen-4-turbo"
+        }
+    }
+    
+    /// Model name for display
+    public var modelName: String {
+        switch self {
+        case .economy: return "Kling 1.6"
+        case .basic: return "Pollo 1.6"
+        case .pro: return "Kling 2.5 Turbo"
+        case .premium: return "Runway Gen-4 Turbo"
         }
     }
     
     /// Display name for UI
     public var displayName: String {
         switch self {
-        case .low: return "Standard Quality"
-        case .medium: return "HD Quality"
-        case .high: return "4K Quality"
+        case .economy: return "Economy - Budget Friendly"
+        case .basic: return "Basic - Fast & Reliable"
+        case .pro: return "Pro - Director's Choice"
+        case .premium: return "Premium - Hollywood Quality"
         }
     }
     
     /// Short name for compact UI
     public var shortName: String {
         switch self {
-        case .low: return "SD"
-        case .medium: return "HD"
-        case .high: return "4K"
+        case .economy: return "💰 Economy"
+        case .basic: return "⚡ Basic"
+        case .pro: return "🎬 Pro"
+        case .premium: return "👑 Premium"
         }
     }
     
     /// System icon
     public var icon: String {
         switch self {
-        case .low: return "tv"
-        case .medium: return "tv.inset.filled"
-        case .high: return "4k.tv"
+        case .economy: return "dollarsign.circle"
+        case .basic: return "bolt.circle"
+        case .pro: return "video.circle"
+        case .premium: return "crown.fill"
         }
     }
     
     /// Description for tooltips
     public var description: String {
         switch self {
-        case .low: return "Good for drafts and testing"
-        case .medium: return "Professional quality for most uses"
-        case .high: return "Cinema-grade for final production"
+        case .economy: return "Perfect for drafts and testing ideas"
+        case .basic: return "Quick generation with good quality"
+        case .pro: return "Cinematic quality for serious creators"
+        case .premium: return "Film-grade quality for final production"
+        }
+    }
+    
+    /// Features list
+    public var features: [String] {
+        switch self {
+        case .economy:
+            return ["Budget-friendly pricing", "Good motion quality", "Up to 10 seconds", "Text & Image input"]
+        case .basic:
+            return ["Fast generation", "Reliable quality", "Up to 8 seconds", "Perfect for social media"]
+        case .pro:
+            return ["Director-level cinematics", "Pro camera controls", "Enhanced motion", "Up to 10 seconds"]
+        case .premium:
+            return ["Hollywood quality", "Ultra-realistic", "4K support", "Maximum detail"]
+        }
+    }
+    
+    /// Max duration in seconds
+    public var maxDuration: Int {
+        switch self {
+        case .economy: return 10
+        case .basic: return 8
+        case .pro: return 10
+        case .premium: return 10
         }
     }
     
     /// Processing speed multiplier
     public var speedMultiplier: Double {
         switch self {
-        case .low: return 1.0
-        case .medium: return 0.8
-        case .high: return 0.6
+        case .economy: return 1.0
+        case .basic: return 1.2
+        case .pro: return 0.9
+        case .premium: return 0.7
         }
+    }
+    
+    /// Is this tier most popular?
+    public var isPopular: Bool {
+        self == .pro
     }
 }
 
@@ -187,7 +264,7 @@ public struct TokenCalculator {
     public static func estimateVideos(
         tokens: Int,
         duration: TimeInterval = 10,
-        quality: VideoQualityTier = .medium
+        quality: VideoQualityTier = .pro
     ) -> Int {
         let costPerVideo = calculateCost(duration: duration, quality: quality)
         return tokens / costPerVideo
