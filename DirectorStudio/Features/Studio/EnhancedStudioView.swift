@@ -93,7 +93,8 @@ struct EnhancedStudioView: View {
                 .navigationDestination(for: NavigationDestination.self) { dest in
                     switch dest {
                     case .editRoom(let clip):
-                        EditRoomView(viewModel: EditRoomViewModel(clip: clip))
+                        EditRoomView()
+                            .environmentObject(coordinator)
                     }
                 }
             }
@@ -309,6 +310,7 @@ struct MyClipsSection: View {
     let clips: [GeneratedClip]
     @Binding var selectedClipID: UUID?
     @Binding var draggedClip: GeneratedClip?
+    @EnvironmentObject var coordinator: AppCoordinator
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -347,7 +349,7 @@ struct MyClipsSection: View {
                         )
                         .onTapGesture {
                             withAnimation(.spring(response: 0.3)) {
-                                coordinator.path.append(.editRoom(clip: clip))
+                                coordinator.path.append(NavigationDestination.editRoom(clip: clip))
                             }
                         }
                         .onDrag {

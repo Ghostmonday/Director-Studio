@@ -26,38 +26,6 @@ public enum CreditError: LocalizedError {
     }
 }
 
-/// Cost breakdown for transparency
-public struct CostBreakdown {
-    let videoDuration: TimeInterval
-    let baseTokens: Int
-    let multiplier: Double
-    let totalTokens: Int
-    let priceInCents: Int
-    let pipelineFeatures: [String]
-    
-    var formattedBreakdown: String {
-        var result = "Cost Breakdown:\n"
-        result += "• Duration: \(Int(videoDuration))s\n"
-        result += "• Base rate: $0.15/sec\n"
-        result += "• Base cost: $\(String(format: "%.2f", videoDuration * 0.15))\n"
-        
-        if !pipelineFeatures.isEmpty {
-            result += "\nFeatures:\n"
-            for feature in pipelineFeatures {
-                result += "• \(feature)\n"
-            }
-            if multiplier > 1.0 {
-                result += "• Multiplier: \(String(format: "%.1fx", multiplier))\n"
-            }
-        }
-        
-        result += "\n━━━━━━━━━━━━━━━\n"
-        result += "Total: \(totalTokens) tokens"
-        result += " ($\(String(format: "%.2f", Double(priceInCents) / 100.0)))"
-        return result
-    }
-}
-
 /// Manages user credits and determines demo mode status
 public final class CreditsManager: ObservableObject {
     public static let shared = CreditsManager()
@@ -258,69 +226,12 @@ public final class CreditsManager: ObservableObject {
     }
     
     /// Get cost breakdown for transparency
+    /// Uses CostCalculator for consistent calculations
     public func getCostBreakdown(duration: TimeInterval, enabledStages: Set<PipelineStage>) -> CostBreakdown {
-        let baseCost = Int(ceil(duration / 5.0))
-        var stagesCost: [(String, Int)] = []
-        
-        if enabledStages.contains(.continuityAnalysis) {
-            stagesCost.append(("Continuity Analysis", 1))
-        }
-        if enabledStages.contains(.continuityInjection) {
-            stagesCost.append(("Continuity Injection", 1))
-        }
-        if enabledStages.contains(.enhancement) {
-            stagesCost.append(("AI Enhancement", 2))
-        }
-        if enabledStages.contains(.cameraDirection) {
-            stagesCost.append(("Camera Direction", 1))
-        }
-        if enabledStages.contains(.lighting) {
-            stagesCost.append(("Lighting", 1))
-        }
-        
-        _ = baseCost + stagesCost.reduce(0) { $0 + $1.1 }
-        
-        // Calculate using new pricing system
-        let credits = MonetizationConfig.creditsForSeconds(duration)
-        let baseTokens = MonetizationConfig.tokensToDebit(credits)
-        
-        // Track features and multiplier
-        var features: [String] = []
-        var multiplier = 1.0
-        
-        // Enhancement adds 20%
-        if enabledStages.contains(.enhancement) {
-            features.append("Enhancement (+20%)")
-            multiplier *= 1.2
-        }
-        
-        // Continuity adds 10%
-        if enabledStages.contains(.continuityAnalysis) || 
-           enabledStages.contains(.continuityInjection) {
-            features.append("Continuity (+10%)")
-            multiplier *= 1.1
-        }
-        
-        // Camera and lighting are included in base price now
-        if enabledStages.contains(.cameraDirection) {
-            features.append("Camera Direction")
-        }
-        if enabledStages.contains(.lighting) {
-            features.append("Lighting")
-        }
-        
-        // Calculate final cost
-        let totalTokens = Int(ceil(Double(baseTokens) * multiplier))
-        let priceInCents = MonetizationConfig.priceForSeconds(duration)
-        let adjustedPriceCents = Int(ceil(Double(priceInCents) * multiplier))
-        
-        return CostBreakdown(
-            videoDuration: duration,
-            baseTokens: baseTokens,
-            multiplier: multiplier,
-            totalTokens: totalTokens,
-            priceInCents: adjustedPriceCents,
-            pipelineFeatures: features
+        return CostCalculator.calculateVideoCost(
+            duration: duration,
+            quality: selectedQuality,
+            enabledStages: enabledStages
         )
     }
     
@@ -417,17 +328,12 @@ public final class CreditsManager: ObservableObject {
     }
     
     /// Get cost breakdown for tier
+    /// Uses CostCalculator for consistent calculations
     public func getTierCostBreakdown(duration: TimeInterval, tier: VideoQualityTier) -> CostBreakdown {
-        let baseTokens = tokensNeeded(for: duration, tier: tier)
-        let priceInCents = Int(baseTokens) // 1 token = 1 cent
-        
-        return CostBreakdown(
-            videoDuration: duration,
-            baseTokens: baseTokens,
-            multiplier: 1.0,
-            totalTokens: baseTokens,
-            priceInCents: priceInCents,
-            pipelineFeatures: tier.features
+        return CostCalculator.calculateVideoCost(
+            duration: duration,
+            quality: tier,
+            enabledStages: []
         )
     }
     

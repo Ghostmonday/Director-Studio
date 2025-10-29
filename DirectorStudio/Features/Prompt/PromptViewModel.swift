@@ -314,14 +314,14 @@ class PromptViewModel: ObservableObject {
     func generateClip(coordinator: AppCoordinator) async {
         guard !promptText.isEmpty else { return }
         
-        // Pre-flight credit check
+        // Pre-flight credit check - use tokens, not legacy credits
         let cost = CreditsManager.shared.creditsNeeded(for: videoDuration, enabledStages: enabledStages)
         
-        // Check credits for all users
-        if !useDefaultAdImage && !CreditsManager.shared.canGenerate(cost: cost) {
+        // Check tokens for all users
+        if !useDefaultAdImage && !CreditsManager.shared.canAffordGeneration(tokenCost: cost) {
             generationError = CreditError.insufficientCredits(
                 needed: cost,
-                have: CreditsManager.shared.credits
+                have: CreditsManager.shared.tokens
             )
             showingCreditsAlert = true
             return

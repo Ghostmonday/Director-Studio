@@ -764,11 +764,13 @@ struct PromptView: View {
     
     @ViewBuilder
     private var generateSection: some View {
+        // Calculate token cost using correct pricing (0.5 tokens per second)
         let creditCost = creditsManager.creditsNeeded(
             for: viewModel.videoDuration,
             enabledStages: viewModel.enabledStages
         )
-        let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canGenerate(cost: creditCost)
+        // Check tokens, not legacy credits
+        let hasEnoughCredits = viewModel.useDefaultAdImage || creditsManager.canAffordGeneration(tokenCost: creditCost)
         
         VStack(spacing: 8) {
             if creditsManager.isDevMode {
@@ -809,13 +811,13 @@ struct PromptView: View {
         HStack {
             Image(systemName: "dollarsign.circle.fill")
                 .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .green : .orange))
-            Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) credit\(creditCost == 1 ? "" : "s")")
+            Text(creditsManager.isDevMode ? "FREE" : "Cost: \(creditCost) token\(creditCost == 1 ? "" : "s")")
                 .font(.subheadline)
                 .fontWeight(.medium)
             
             Spacer()
             
-            Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.credits)")
+            Text(creditsManager.isDevMode ? "Dev Mode" : "Balance: \(creditsManager.tokens)")
                 .font(.subheadline)
                 .foregroundColor(creditsManager.isDevMode ? .purple : (hasEnoughCredits ? .primary : .red))
                 .fontWeight(.semibold)
@@ -857,9 +859,9 @@ struct PromptView: View {
             }
             
             if viewModel.generationMode == .single {
-                // Single clip generation
-                if !creditsManager.canGenerate(cost: creditCost) {
-                    insufficientCreditsInfo = (needed: creditCost, have: creditsManager.credits)
+                // Single clip generation - check tokens, not legacy credits
+                if !creditsManager.canAffordGeneration(tokenCost: creditCost) {
+                    insufficientCreditsInfo = (needed: creditCost, have: creditsManager.tokens)
                     showingInsufficientCredits = true
                 } else {
                     Task {
