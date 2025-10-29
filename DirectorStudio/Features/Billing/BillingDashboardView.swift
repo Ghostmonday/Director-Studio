@@ -383,7 +383,7 @@ struct BillingSettingsView: View {
             Form {
                 Section {
                     Toggle("Allow Overage Billing", isOn: $billingManager.userBalance.allowOverage)
-                        .onChange(of: billingManager.userBalance.allowOverage) { _ in
+                        .onChange(of: billingManager.userBalance.allowOverage) { _, _ in
                             // Save setting
                         }
                 } footer: {

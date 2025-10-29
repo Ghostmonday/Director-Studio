@@ -33,7 +33,7 @@ RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
     "input": {
       "prompt": "A dragon breathing fire",
       "resolution": "480p",
-      "length": 1,
+      "length": 10,
       "mode": "basic"
     }
   }')

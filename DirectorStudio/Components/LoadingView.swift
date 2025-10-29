@@ -126,7 +126,7 @@ struct CinematicLoadingPhrases {
 }
 
 /// Cinematic loading view with film reel animation
-struct CinematicLoadingView: View {
+struct FilmReelLoadingView: View {
     @State private var currentPhrase = 0
     @State private var rotation: Double = 0
     @State private var isTyping = false

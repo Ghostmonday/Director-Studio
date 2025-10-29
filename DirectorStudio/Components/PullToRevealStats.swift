@@ -80,7 +80,7 @@ struct PullToRevealStats: ViewModifier {
                                     
                                     // Haptic feedback at threshold
                                     if pullProgress >= 1.0 && !hapticTriggered {
-                                        HapticFeedback.medium()
+                                        HapticFeedback.impact(.medium)
                                         hapticTriggered = true
                                     }
                                 }

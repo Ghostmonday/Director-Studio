@@ -27,7 +27,7 @@ struct DirectorStudioApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AdaptiveContentView()
                 .environmentObject(coordinator)
                 .fullScreenCover(isPresented: $showOnboarding) {
                     OnboardingView()

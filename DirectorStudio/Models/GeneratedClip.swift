@@ -23,7 +23,15 @@ public struct GeneratedClip: Identifiable, Codable {
     var duration: TimeInterval
     var projectID: UUID?
     var isGeneratedFromImage: Bool
+    var tags: [String] = []
+    var fileSize: Int64?
+    var prompt: String?
     // Demo mode removed - all clips are real
+    
+    // Computed property for backward compatibility
+    var thumbnailUrl: String? {
+        thumbnailURL?.absoluteString
+    }
     
     init(
         id: UUID = UUID(),
@@ -35,6 +43,9 @@ public struct GeneratedClip: Identifiable, Codable {
         duration: TimeInterval = 0,
         projectID: UUID? = nil,
         isGeneratedFromImage: Bool = false,
+        tags: [String] = [],
+        fileSize: Int64? = nil,
+        prompt: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -45,6 +56,9 @@ public struct GeneratedClip: Identifiable, Codable {
         self.duration = duration
         self.projectID = projectID
         self.isGeneratedFromImage = isGeneratedFromImage
+        self.tags = tags
+        self.fileSize = fileSize
+        self.prompt = prompt
     }
 }
 

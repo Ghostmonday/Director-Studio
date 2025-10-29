@@ -67,7 +67,7 @@ struct AnimatedEmptyState: View {
                 Text(title)
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.textPrimary)
+                    .foregroundColor(.primary)
                 
                 Text(message)
                     .font(.body)
@@ -77,7 +77,7 @@ struct AnimatedEmptyState: View {
             }
             
             Button(action: {
-                HapticFeedback.light()
+                MicroHapticFeedback.light()
                 action()
             }) {
                 Label(actionTitle, systemImage: "plus.circle.fill")

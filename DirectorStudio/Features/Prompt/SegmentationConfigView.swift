@@ -13,10 +13,11 @@ struct SegmentationConfigView: View {
     let onStart: (SegmentationConfig) -> Void
     
     @State private var selectedMode: SegmentationMode = .hybrid
-    @State private var enableSemanticExpansion = false
+    @State private var enableSemanticExpansion = true
     @State private var expansionStyle: SemanticExpansionConfig.ExpansionStyle = .vivid
     @State private var maxSegments: Double = 100
     @State private var targetDuration: Double = 3.0
+    @State private var enableDialogueImplantation = true
     
     var body: some View {
         NavigationView {
@@ -89,6 +90,28 @@ struct SegmentationConfigView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                     
+                    // Dialogue Implantation
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $enableDialogueImplantation) {
+                            Label("Dialogue Implantation", systemImage: "text.bubble.fill")
+                                .font(.headline)
+                        }
+                        
+                        if enableDialogueImplantation {
+                            Text("Add natural dialogue to scenes without any")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("AI will identify characters and create contextual dialogue")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .background(Color.purple.opacity(0.1))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    
                     // Constraints
                     VStack(alignment: .leading, spacing: 16) {
                         Label("Constraints", systemImage: "slider.horizontal.below.rectangle")
@@ -126,7 +149,8 @@ struct SegmentationConfigView: View {
                             enableSemanticExpansion: enableSemanticExpansion,
                             expansionStyle: expansionStyle,
                             maxSegments: Int(maxSegments),
-                            targetDuration: targetDuration
+                            targetDuration: targetDuration,
+                            enableDialogueImplantation: enableDialogueImplantation
                         )
                         onStart(config)
                     }) {
@@ -239,5 +263,6 @@ struct SegmentationConfig {
     let expansionStyle: SemanticExpansionConfig.ExpansionStyle
     let maxSegments: Int
     let targetDuration: Double
+    let enableDialogueImplantation: Bool
 }
 

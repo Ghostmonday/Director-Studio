@@ -51,7 +51,7 @@ struct TooltipBubble: View {
                 .frame(maxWidth: 250)
             
             // Arrow
-            Triangle()
+            TooltipTriangle()
                 .fill(Color.black.opacity(0.9))
                 .frame(width: 12, height: 6)
                 .rotationEffect(.degrees(180))
@@ -61,7 +61,7 @@ struct TooltipBubble: View {
 }
 
 /// Triangle shape for tooltip arrow
-struct Triangle: Shape {
+struct TooltipTriangle: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.midX, y: rect.minY))

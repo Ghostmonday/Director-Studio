@@ -38,7 +38,7 @@ struct ConfettiPiece: Identifiable {
             position: startPosition,
             velocity: CGVector(
                 dx: CGFloat.random(in: -200...200),
-                dy: CGFloat.random(in: -600...-300)
+                dy: CGFloat.random(in: -600...(-300))
             ),
             rotationSpeed: Double.random(in: -360...360)
         )
@@ -137,17 +137,16 @@ struct ConfettiPieceView: View {
             .rotationEffect(.degrees(piece.rotation))
     }
     
-    @ViewBuilder
-    private var shape: some Shape {
+    private var shape: AnyShape {
         switch piece.shape {
         case .circle:
-            Circle()
+            return AnyShape(Circle())
         case .square:
-            Rectangle()
+            return AnyShape(Rectangle())
         case .triangle:
-            Triangle()
+            return AnyShape(Triangle())
         case .star:
-            Star()
+            return AnyShape(Star())
         }
     }
 }
@@ -218,7 +217,7 @@ struct SuccessCheckmark: View {
         }
         
         // Haptic feedback
-        HapticFeedback.success()
+        HapticFeedback.impact(.light)
     }
 }
 

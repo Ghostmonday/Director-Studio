@@ -268,10 +268,11 @@ struct SegmentingView: View {
                 // Use user-selected configuration or defaults
                 let userConfig = config ?? SegmentationConfig(
                     mode: .hybrid,
-                    enableSemanticExpansion: false,
+                    enableSemanticExpansion: true,  // Enable re-articulation by default!
                     expansionStyle: .vivid,
                     maxSegments: 100,
-                    targetDuration: 3.0
+                    targetDuration: 3.0,
+                    enableDialogueImplantation: true  // Enable dialogue by default!
                 )
                 
                 // Apply user constraints
@@ -324,8 +325,16 @@ struct SegmentingView: View {
                 
                 // Convert CinematicSegments to MultiClipSegments
                 let segments = result.segments.map { seg -> MultiClipSegment in
-                    MultiClipSegment(
-                        text: seg.text,
+                    #if DEBUG
+                    if seg.expandedPrompt != nil {
+                        print("✨ [Segment \(seg.segmentIndex + 1)] Re-articulated!")
+                        print("   Original: \(seg.text.prefix(50))...")
+                        print("   Enhanced: \(seg.effectivePrompt.prefix(50))...")
+                    }
+                    #endif
+                    
+                    return MultiClipSegment(
+                        text: seg.effectivePrompt, // Use expanded/re-articulated prompt if available
                         order: seg.segmentIndex,
                         duration: seg.estimatedDuration
                     )

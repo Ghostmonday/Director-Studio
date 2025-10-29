@@ -1124,6 +1124,13 @@ struct PromptView: View {
                 }
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            // Debug button for segmentation logs
+            #if DEBUG
+            SegmentationDebugButton()
+                .padding()
+            #endif
+        }
     }
     
     private func binding(for stage: PipelineStage) -> Binding<Bool> {

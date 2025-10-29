@@ -41,7 +41,7 @@ extension View {
     }
     
     // Cinema depth shadow effect
-    func cinemaDepth(_ level: Int = 2) -> some View {
+    func microCinemaDepth(_ level: Int = 2) -> some View {
         self.shadow(color: .black.opacity(0.1 * Double(level)), radius: 5 * CGFloat(level), y: 2 * CGFloat(level))
     }
     
@@ -74,7 +74,7 @@ struct TypewriterModifier: ViewModifier {
             .onAppear {
                 animateText()
             }
-            .onChange(of: text) { newText in
+            .onChange(of: text) { _, _ in
                 displayedText = ""
                 animateText()
             }
@@ -138,7 +138,7 @@ struct JiggleModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .offset(x: offset)
-            .onChange(of: trigger) { _ in
+            .onChange(of: trigger) { _, _ in
                 if trigger {
                     jiggle()
                 }
@@ -186,7 +186,7 @@ struct AnimatedLoadingDots: View {
         HStack(spacing: 4) {
             ForEach(0..<dotCount, id: \.self) { index in
                 Circle()
-                    .fill(Color.primaryAmber)
+                    .fill(DirectorStudioTheme.Colors.accent)
                     .frame(width: 8, height: 8)
                     .scaleEffect(currentDot == index ? 1.3 : 0.8)
                     .opacity(currentDot == index ? 1.0 : 0.5)
@@ -210,7 +210,7 @@ struct AnimatedLoadingDots: View {
 
 // MARK: - Haptic Feedback
 
-enum HapticFeedback {
+enum MicroHapticFeedback {
     case impact(UIImpactFeedbackGenerator.FeedbackStyle)
     case notification(UINotificationFeedbackGenerator.FeedbackType)
     case selection
@@ -233,31 +233,31 @@ enum HapticFeedback {
     }
     
     static func light() {
-        HapticFeedback.impact(.light).trigger()
+        MicroHapticFeedback.impact(.light).trigger()
     }
     
     static func medium() {
-        HapticFeedback.impact(.medium).trigger()
+        MicroHapticFeedback.impact(.medium).trigger()
     }
     
     static func heavy() {
-        HapticFeedback.impact(.heavy).trigger()
+        MicroHapticFeedback.impact(.heavy).trigger()
     }
     
     static func success() {
-        HapticFeedback.notification(.success).trigger()
+        MicroHapticFeedback.notification(.success).trigger()
     }
     
     static func warning() {
-        HapticFeedback.notification(.warning).trigger()
+        MicroHapticFeedback.notification(.warning).trigger()
     }
     
     static func error() {
-        HapticFeedback.notification(.error).trigger()
+        MicroHapticFeedback.notification(.error).trigger()
     }
     
     static func selection() {
-        HapticFeedback.selection.trigger()
+        MicroHapticFeedback.selection.trigger()
     }
 }
 
@@ -291,7 +291,7 @@ struct AnimatedProgressRing: View {
         .onAppear {
             animatedProgress = progress
         }
-        .onChange(of: progress) { newValue in
+        .onChange(of: progress) { _, newValue in
             animatedProgress = newValue
         }
     }

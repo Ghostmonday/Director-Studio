@@ -57,8 +57,14 @@ class VideoStitchingService: VideoStitchingProtocol {
             let asset = AVAsset(url: clipURL)
             
             // Check if asset is readable
-            guard asset.isReadable else {
-                print("⚠️ Asset not readable: \(clipURL)")
+            do {
+                let isReadable = try await asset.load(.isReadable)
+                guard isReadable else {
+                    print("⚠️ Asset not readable: \(clipURL)")
+                    continue
+                }
+            } catch {
+                print("⚠️ Error checking asset readability: \(error)")
                 continue
             }
             

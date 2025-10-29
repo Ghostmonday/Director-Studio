@@ -142,15 +142,15 @@ struct SemanticExpansionConfig {
         var promptGuidance: String {
             switch self {
             case .vivid:
-                return "Create a vivid, visually rich description that emphasizes colors, lighting, textures, and cinematic framing."
+                return "Create a vivid, visually rich description that emphasizes colors, lighting, textures, and cinematic framing. If no dialogue exists, add natural character dialogue that fits the scene."
             case .emotional:
-                return "Expand with emotional depth, focusing on character feelings, internal states, and psychological nuance."
+                return "Expand with emotional depth, focusing on character feelings, internal states, and psychological nuance. Add emotionally resonant dialogue where characters express their feelings."
             case .action:
-                return "Emphasize movement, energy, and dynamic action with precise choreography and momentum."
+                return "Emphasize movement, energy, and dynamic action with precise choreography and momentum. Include sharp, urgent dialogue if characters would speak during action."
             case .atmospheric:
-                return "Build atmosphere through environmental details, mood, ambiance, and sensory elements."
+                return "Build atmosphere through environmental details, mood, ambiance, and sensory elements. Add atmospheric dialogue that enhances the mood."
             case .balanced:
-                return "Blend visual richness, emotional depth, action, and atmosphere into a cohesive cinematic description."
+                return "Blend visual richness, emotional depth, action, and atmosphere into a cohesive cinematic description. Add natural dialogue where appropriate to bring characters to life."
             }
         }
     }
@@ -1351,18 +1351,24 @@ final class SemanticExpansionProcessor {
         for (index, segment) in segments.enumerated() {
             var shouldExpand = false
             
-            // Check if segment is short
-            if config.expandShortSegments {
-                if segment.text.count < config.minLengthForExpansion {
-                    shouldExpand = true
+            // ALWAYS expand if enabled (for re-articulation)
+            if config.enabled {
+                shouldExpand = true
+            } else {
+                // Original logic for selective expansion
+                // Check if segment is short
+                if config.expandShortSegments {
+                    if segment.text.count < config.minLengthForExpansion {
+                        shouldExpand = true
+                    }
                 }
-            }
-            
-            // Check if segment is emotionally charged
-            if config.expandEmotionalSegments {
-                let emotionScore = detectEmotionalIntensity(segment.text)
-                if emotionScore > config.emotionThreshold {
-                    shouldExpand = true
+                
+                // Check if segment is emotionally charged
+                if config.expandEmotionalSegments {
+                    let emotionScore = detectEmotionalIntensity(segment.text)
+                    if emotionScore > config.emotionThreshold {
+                        shouldExpand = true
+                    }
                 }
             }
             
@@ -1408,13 +1414,22 @@ final class SemanticExpansionProcessor {
         let emotionScore = detectEmotionalIntensity(segment.text)
         
         // Determine expansion reason
-        let reason: String
+        var reason: String
         if segment.text.count < expansionConfig.minLengthForExpansion {
             reason = "Short segment (\(segment.text.count) chars)"
         } else if emotionScore > expansionConfig.emotionThreshold {
             reason = "Emotionally charged (score: \(String(format: "%.2f", emotionScore)))"
         } else {
             reason = "Selected for enhancement"
+        }
+        
+        // Log dialogue implantation
+        if let dialogueAdded = parsed.dialogueAdded, dialogueAdded {
+            #if DEBUG
+            SEGLOG("💬 [Dialogue Implanted] Segment \(segment.segmentIndex + 1)")
+            SEGLOG("   Original: \(segment.text.prefix(50))...")
+            #endif
+            reason += " + Dialogue added"
         }
         
         return ExpandedPrompt(
@@ -1442,6 +1457,14 @@ final class SemanticExpansionProcessor {
         EXPANSION STYLE:
         \(expansionConfig.expansionStyle.promptGuidance)
 
+        DIALOGUE IMPLANTATION RULES:
+        - If the scene has NO dialogue, ADD natural, contextual dialogue
+        - Identify who would be speaking (e.g., "a young woman", "the detective", "someone in the crowd")
+        - Create 1-3 short, impactful lines that fit the scene
+        - Format dialogue clearly: Character: "Their words"
+        - Make dialogue reveal character, advance story, or enhance mood
+        - If dialogue already exists, enhance it but don't replace it
+
         CONSTRAINTS:
         - Target expansion: ~\(expansionConfig.tokenBudgetPerSegment) additional tokens
         - Preserve core meaning and intent
@@ -1455,8 +1478,10 @@ final class SemanticExpansionProcessor {
 
         OUTPUT FORMAT (valid JSON):
         {
-          "expandedText": "Your expanded, vivid prompt here",
+          "expandedText": "Your expanded, vivid prompt here WITH dialogue if missing",
           "confidence": 0.95,
+          "hasDialogue": true/false,
+          "dialogueAdded": true/false,
           "enhancedHints": {
             "cameraAngle": "improved or suggested camera angle",
             "sceneType": "enhanced scene type",
@@ -1561,6 +1586,8 @@ final class SemanticExpansionProcessor {
 struct ParsedExpansion: Codable {
     let expandedText: String
     let confidence: Double
+    let hasDialogue: Bool?
+    let dialogueAdded: Bool?
     let enhancedHints: TaxonomyHints?
     let analysisNotes: String?
 }
