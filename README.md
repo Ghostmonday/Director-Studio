@@ -1,6 +1,6 @@
 # DirectorStudio
 
-**Version:** 2.0.0  
+**Version:** 2.1.0  
 **Platform:** iOS 17+, macOS 14+ (via Mac Catalyst)  
 **Architecture:** SwiftUI + Dependency-Injected Pipeline with Continuity Engine
 
@@ -57,15 +57,25 @@ DirectorStudio/
 │   │   └── ClipCell.swift
 │   ├── EditRoom/                     # Voiceover recording
 │   │   ├── EditRoomView.swift
-│   │   └── EditRoomViewModel.swift
-│   └── Library/                      # Storage management
-│       ├── LibraryView.swift
-│       └── LibraryViewModel.swift
+│   │   ├── EditRoomViewModel.swift
+│   │   └── VoiceoverRecorderViewModel.swift
+│   ├── Library/                      # Storage management
+│   │   ├── LibraryView.swift
+│   │   └── LibraryViewModel.swift
+│   └── Settings/                     # Settings and monetization
+│       ├── PolishedSettingsView.swift
+│       ├── EnhancedCreditsPurchaseView.swift
+│       └── MonetizationAnalysisView.swift
 ├── Models/
 │   ├── Project.swift                 # Project data model
 │   ├── GeneratedClip.swift           # Clip with sync status
 │   ├── VoiceoverTrack.swift          # Voiceover metadata
-│   └── StorageLocation.swift         # Storage backend enum
+│   ├── StorageLocation.swift         # Storage backend enum
+│   └── TokenSystem.swift             # Token calculation and monetization
+├── Repositories/
+│   └── ClipRepository.swift           # Clip storage and management
+├── Transactions/
+│   └── GenerationTransaction.swift   # Atomic multi-clip generation with credit management
 ├── Services/
 │   ├── AuthService.swift             # iCloud authentication
 │   ├── StorageService.swift          # Local storage implementation
@@ -79,7 +89,15 @@ DirectorStudio/
 │   ├── VideoStitchingService.swift   # AVFoundation video stitching
 │   ├── VoiceoverGenerationService.swift # AI TTS and audio mixing
 │   ├── FrameExtractor.swift          # Extract frames for continuity
-│   └── ExportService.swift           # Video export & ShareSheet
+│   ├── ExportService.swift           # Video export & ShareSheet
+│   ├── CreditsManager.swift          # Token-based credit system
+│   ├── SupabaseAPIKeyService.swift   # Secure API key management via Supabase
+│   └── Monetization/
+│       ├── CostCalculator.swift      # Cost analysis and monetization calculations
+│       ├── MonetizationConfig.swift   # Pricing configuration
+│       ├── PricingEngine.swift       # Dynamic pricing logic
+│       ├── TokenMeteringEngine.swift # Token metering and usage tracking
+│       └── BillingManager.swift      # Billing and purchase management
 └── Utils/
     ├── Telemetry.swift               # Event logging
     └── CrashReporter.swift           # Error reporting (stub)
@@ -153,6 +171,14 @@ open DirectorStudio.xcodeproj
 - [x] Settings panel
 - [x] Storage usage display
 - [x] Auto-upload preferences
+- [x] Monetization calculator for cost analysis
+
+### ✅ Phase 8: Monetization & Credits
+- [x] Token-based credit system
+- [x] Real-time cost calculation (customer tokens, API costs, profit margins)
+- [x] Multi-clip film cost estimation
+- [x] Credit enforcement with transaction management
+- [x] Monetization analysis view (Settings → Monetization Calculator)
 
 ## Pipeline Modules
 
@@ -211,8 +237,24 @@ Users must be signed into iCloud to create content. The app checks `CKContainer.
 - Sync status displayed per clip
 
 ### Backend (Supabase)
-- Stub implementation
-- Will connect to `clip_jobs`, `screenplays`, `continuity_logs` tables
+- API key management via Supabase (`api_keys` table)
+- Secure key retrieval for Pollo AI, DeepSeek, and other services
+- Backend tables: `clip_jobs`, `screenplays`, `continuity_logs`
+
+## Monetization
+
+DirectorStudio uses a token-based credit system:
+
+- **Base Rate**: 0.5 tokens per second of video
+- **Quality Multipliers**: Basic (1x), Standard (1.5x), Premium (2x), Ultra (3x)
+- **Feature Add-ons**: Enhancement (+20%), Continuity (+10%)
+- **Transaction Management**: Atomic multi-clip generation with rollback on failure
+- **Cost Calculator**: Real-time analysis of customer costs, API costs, and profit margins (available in Settings)
+
+### Credit Enforcement
+- Credits are reserved before generation starts
+- Failed generations automatically rollback credits
+- Multi-clip generations use transactions to ensure atomicity
 
 ## Testing
 
@@ -243,12 +285,13 @@ The app compiles successfully for macOS and iOS. To test:
 - [ ] Thumbnail generation for clips
 - [ ] Real video player integration
 - [ ] Actual voiceover recording (AVAudioRecorder)
-- [ ] Supabase backend integration
+- [ ] Supabase backend integration (API key management implemented)
 - [ ] Guest mode demo video
 - [ ] Advanced export options (4K, etc.)
 - [ ] Onboarding flow
 - [ ] Segmented prompts UI (design complete, needs implementation)
 - [ ] Real AI TTS integration
+- [ ] Automated SwiftLint/SwiftFormat in CI/CD pipeline
 
 ## Protocols Compliance
 
@@ -268,17 +311,23 @@ Proprietary - DirectorStudio 2025
 
 ## 🎯 Latest Update
 
-**v2.0 Pipeline Architecture** - Major refactor complete! 
+**v2.1 Monetization & Code Quality** - Major improvements complete!
 
-- **Dependency Injection**: All services now use constructor injection for maximum flexibility
-- **Multi-Clip Generation**: Segmentation support with visual continuity between clips
-- **Video Stitching**: Complete AVFoundation implementation with multiple transition styles
-- **CloudKit Storage**: Full iCloud sync functionality
-- **Continuity Engine**: Automatic visual consistency with frame extraction and analysis
+- **Monetization Calculator**: Comprehensive cost analysis tool for pricing strategies (Settings → Monetization Calculator)
+  - Real-time calculation of customer-facing tokens, real API costs, and profit margins
+  - Support for single videos and multi-clip films
+  - Configurable quality tiers, features, and upstream costs
+- **Token-Based Credit System**: Fixed "insufficient credits" bug with accurate token calculations (0.5 tokens/second base)
+- **Improved API Error Handling**: Detailed, user-friendly error messages for HTTP 400/401/404 with diagnostic logging
+- **AI Duration Selection**: Automated duration strategy set as default (AI automatically chooses 5 or 10 seconds per clip)
+- **Code Cleanup**: Removed 30+ unused markdown files, improved documentation, standardized naming conventions
+- **Build Tools**: Added SwiftLint and SwiftFormat configuration files for automated code quality checks
 
-Previous update: **Image Reference Feature** - Generate promotional videos from screenshots with cinematic camera movements.
+**Previous updates:**
+- **v2.0 Pipeline Architecture** - Dependency injection, multi-clip generation, video stitching, CloudKit storage, continuity engine
+- **Image Reference Feature** - Generate promotional videos from screenshots with cinematic camera movements
 
-**Last Updated:** October 25, 2025
+**Last Updated:** October 29, 2025
 
 ---
 
@@ -293,17 +342,26 @@ Previous update: **Image Reference Feature** - Generate promotional videos from 
 - **Import Ordering**: ✅ Properly structured imports
 
 ### Validation Notes
-- SwiftLint and SwiftFormat configuration files created for future CI/CD integration
-- Project builds successfully for iOS Simulator (iPhone 16)
-- No test scheme configured - tests can be added when needed
-- All Swift files pass Xcode's built-in static analysis
+- SwiftLint and SwiftFormat configuration files created (`.swiftlint.yml`, `.swiftformat`)
+- Project builds successfully for iOS Simulator (iPhone 16, arm64)
+- Zero linter errors via Xcode's built-in static analysis
+- Consistent code style and formatting maintained
+- All Swift files properly structured with correct import ordering
 - No deprecated API calls detected
-- No XCodeBridge legacy code found (no update needed)
+- Comprehensive error handling for API calls (HTTP 400/401/404)
+
+### Code Quality Improvements (v2.1)
+- ✅ Removed 30+ unused markdown documentation files
+- ✅ Standardized naming conventions across codebase
+- ✅ Added comprehensive doc comments to core classes
+- ✅ Improved error messages with diagnostic logging
+- ✅ Fixed token calculation bug (was using incorrect quality multipliers)
 
 ### Next Steps for Full Automation
 1. Install SwiftLint: `brew install swiftlint`
 2. Install SwiftFormat: `brew install swiftformat`
 3. Run: `swiftlint autocorrect` and `swiftformat .`
 4. Configure test target in Xcode project if unit tests are needed
+5. Integrate into CI/CD pipeline for automated checks
 
 ---
