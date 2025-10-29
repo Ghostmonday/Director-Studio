@@ -38,15 +38,16 @@ class AppCoordinator: ObservableObject {
     let authService: AuthService
     let storageService: StorageServiceProtocol
     
+    @MainActor
     init() {
         self.authService = AuthService()
         self.storageService = LocalStorageService()
-        let repo = ClipRepository(storage: self.storageService)
-        self.clipRepository = repo
+        // ClipRepository is @MainActor, so init must be @MainActor too
+        self.clipRepository = ClipRepository(storage: self.storageService)
         
         // Check authentication on init
         Task {
-            try? await repo.loadAll()
+            try? await clipRepository.loadAll()
             await checkAuthentication()
             // Uncomment to test API services (makes actual API calls - costs money!)
             // await testAPIServices()

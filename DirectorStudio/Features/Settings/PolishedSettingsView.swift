@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var showingDevPasscode = false
     @State private var devPasscode = ""
     @State private var showingLogs = false
+      @State private var showingMonetizationCalculator = false
     
     private let theme = DirectorStudioTheme.self
     
@@ -83,6 +84,9 @@ struct SettingsView: View {
         .sheet(isPresented: $showingAbout) {
             AboutView()
         }
+        .sheet(isPresented: $showingMonetizationCalculator) {
+            MonetizationAnalysisView()
+        }
         .alert("Developer Mode", isPresented: $showingDevPasscode) {
             TextField("Enter passcode", text: $devPasscode)
                 .textInputAutocapitalization(.never)
@@ -145,7 +149,7 @@ struct SettingsView: View {
             
             // Quick stats
             HStack(spacing: theme.Spacing.medium) {
-                ProfileStat(value: "\(coordinator.generatedClips.count)", label: "Clips")
+                ProfileStat(value: "\(coordinator.clipRepository.clips.count)", label: "Clips")
                 Divider().frame(height: 30)
                 ProfileStat(value: formatStorage(), label: "Storage")
                 Divider().frame(height: 30)
@@ -252,6 +256,14 @@ struct SettingsView: View {
                 subtitle: "Vibration on interactions",
                 icon: "hand.tap",
                 isOn: .constant(true)
+            )
+            
+            // Monetization Calculator
+            SettingsRow(
+                title: "Monetization Calculator",
+                subtitle: "Calculate costs and analyze pricing",
+                icon: "calculator",
+                action: { showingMonetizationCalculator = true }
             )
         }
     }
@@ -385,7 +397,7 @@ struct SettingsView: View {
     }
     
     private func formatStorage() -> String {
-        let totalSize = coordinator.generatedClips.count * 50 // Assume 50MB per clip
+        let totalSize = coordinator.clipRepository.clips.count * 50 // Assume 50MB per clip
         if totalSize > 1000 {
             return "\(totalSize / 1000)GB"
         } else {

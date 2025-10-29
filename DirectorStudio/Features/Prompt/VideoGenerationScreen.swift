@@ -17,14 +17,18 @@ struct VideoGenerationScreen: View {
     
     let initialScript: String
     
-    @StateObject private var generator = FilmGeneratorViewModel()
-    @State private var currentStep: FlowStep = .analyzing
+    /// View model that handles film generation logic
+    @StateObject private var filmGeneratorViewModel = FilmGeneratorViewModel()
     
-    enum FlowStep {
-        case analyzing
-        case preview
-        case generating
-        case complete
+    /// Current step in the video generation flow
+    @State private var currentStep: GenerationFlowStep = .analyzing
+    
+    /// Represents the different stages of the video generation process
+    enum GenerationFlowStep {
+        case analyzing      // Analyzing the story script
+        case preview        // Showing breakdown preview before generation
+        case generating     // Currently generating videos
+        case complete       // All videos generated successfully
     }
     
     var body: some View {
@@ -32,17 +36,20 @@ struct VideoGenerationScreen: View {
             ZStack {
                 switch currentStep {
                 case .analyzing:
-                    AnalyzingView(progress: generator.progress, status: generator.status)
+                    AnalyzingView(
+                        progress: filmGeneratorViewModel.progress,
+                        status: filmGeneratorViewModel.status
+                    )
                     
                 case .preview:
-                    if let film = generator.film {
+                    if let filmBreakdown = filmGeneratorViewModel.film {
                         TakesPreviewView(
-                            film: film,
+                            film: filmBreakdown,
                             onGenerate: {
                                 currentStep = .generating
                                 Task {
-                                    await generator.generateVideos(coordinator: coordinator)
-                                    if generator.error == nil {
+                                    await filmGeneratorViewModel.generateVideos(coordinator: coordinator)
+                                    if filmGeneratorViewModel.error == nil {
                                         currentStep = .complete
                                     }
                                 }
@@ -53,19 +60,21 @@ struct VideoGenerationScreen: View {
                     
                 case .generating:
                     GeneratingVideosView(
-                        takes: generator.film?.takes ?? [],
-                        currentTake: generator.currentTakeIndex,
-                        progress: generator.progress,
-                        generatedClips: generator.generatedClips
+                        takes: filmGeneratorViewModel.film?.takes ?? [],
+                        currentTakeIndex: filmGeneratorViewModel.currentTakeIndex,
+                        progress: filmGeneratorViewModel.progress,
+                        generatedClips: filmGeneratorViewModel.generatedClips
                     )
                     
                 case .complete:
                     CompleteView(
-                        clips: generator.generatedClips,
+                        clips: filmGeneratorViewModel.generatedClips,
                         onDone: {
-                            for clip in generator.generatedClips {
+                            // Add all generated clips to the coordinator
+                            for clip in filmGeneratorViewModel.generatedClips {
                                 coordinator.addClip(clip)
                             }
+                            // Navigate to Studio tab and dismiss this view
                             coordinator.selectedTab = .studio
                             isPresented = false
                         }
@@ -84,17 +93,17 @@ struct VideoGenerationScreen: View {
         }
         .onAppear {
             Task {
-                await generator.analyzeStory(initialScript)
+                await filmGeneratorViewModel.analyzeStory(initialScript)
                 currentStep = .preview
             }
         }
         .alert("Error", isPresented: Binding(
-            get: { generator.error != nil },
-            set: { if !$0 { generator.error = nil } }
+            get: { filmGeneratorViewModel.error != nil },
+            set: { if !$0 { filmGeneratorViewModel.error = nil } }
         )) {
-            Button("OK") { generator.error = nil }
+            Button("OK") { filmGeneratorViewModel.error = nil }
         } message: {
-            if let error = generator.error {
+            if let error = filmGeneratorViewModel.error {
                 Text(error.localizedDescription)
             }
         }
@@ -103,31 +112,57 @@ struct VideoGenerationScreen: View {
 
 // MARK: - View Model
 
+/// View model that manages the film generation workflow
+/// Handles story analysis, video generation, and continuity management
 @MainActor
 class FilmGeneratorViewModel: ObservableObject {
+    /// The analyzed film breakdown containing all takes
     @Published var film: FilmBreakdown?
+    
+    /// Generation progress (0.0 to 1.0)
     @Published var progress: Double = 0
+    
+    /// Current status message for user feedback
     @Published var status: String = "Starting..."
+    
+    /// Index of the take currently being generated
     @Published var currentTakeIndex: Int = 0
+    
+    /// Clips that have been successfully generated
     @Published var generatedClips: [GeneratedClip] = []
+    
+    /// Error that occurred during generation, if any
     @Published var error: Error?
     
-    private var storyGenerator: StoryToFilmGenerator?
-    private let videoService = PolloAIService()
-    private let storageService = LocalStorageService()
-    private var lastFrame: UIImage?
+    /// Story-to-film generator instance (created after API key is fetched)
+    private var storyToFilmGenerator: StoryToFilmGenerator?
     
+    /// Service for generating videos via Pollo AI
+    private let polloVideoService = PolloAIService()
+    
+    /// Service for saving clips to local storage
+    private let localStorageService = LocalStorageService()
+    
+    /// Last frame extracted from the most recently generated video (for continuity)
+    private var lastExtractedFrame: UIImage?
+    
+    /// Analyzes the input story text and generates a film breakdown
+    /// - Parameter text: The story script to analyze
     func analyzeStory(_ text: String) async {
         do {
             status = "Fetching API key..."
-            let apiKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
+            let deepSeekAPIKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
             
-            storyGenerator = StoryToFilmGenerator(apiKey: apiKey)
+            storyToFilmGenerator = StoryToFilmGenerator(apiKey: deepSeekAPIKey)
             
             status = "Analyzing story..."
-            film = try await storyGenerator!.generateFilm(from: text)
+            film = try await storyToFilmGenerator!.generateFilm(from: text)
             
-            status = "Ready to generate \(film!.takeCount) videos"
+            guard let filmBreakdown = film else {
+                throw NSError(domain: "FilmGenerator", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to generate film breakdown"])
+            }
+            
+            status = "Ready to generate \(filmBreakdown.takeCount) videos"
             
         } catch {
             self.error = error
@@ -135,33 +170,51 @@ class FilmGeneratorViewModel: ObservableObject {
         }
     }
     
+    /// Generates all videos for the film breakdown within a transaction
+    /// - Parameter coordinator: App coordinator for accessing clip repository
     func generateVideos(coordinator: AppCoordinator) async {
-        guard let film = film, let totalCost = film.totalTokenCost else { return }
+        guard let filmBreakdown = film else {
+            error = NSError(domain: "FilmGenerator", code: -1, userInfo: [NSLocalizedDescriptionKey: "No film breakdown available"])
+            return
+        }
         
-        let transaction = GenerationTransaction(repository: coordinator.clipRepository)
+        // Calculate total token cost from all takes using correct pricing
+        let totalTokenCost = filmBreakdown.takes.reduce(0) { total, take in
+            // Use MonetizationConfig for accurate token calculation (0.5 tokens per second)
+            let credits = MonetizationConfig.creditsForSeconds(take.estimatedDuration)
+            let tokensForDuration = MonetizationConfig.tokensToDebit(credits)
+            return total + tokensForDuration
+        }
+        
+        let generationTransaction = GenerationTransaction(repository: coordinator.clipRepository)
         
         do {
-            try transaction.begin(cost: totalCost)
+            // Begin transaction and reserve credits
+            try await generationTransaction.begin(totalCost: totalTokenCost)
             
-            for (index, take) in film.takes.enumerated() {
-                currentTakeIndex = index
-                progress = Double(index) / Double(film.takes.count)
-                status = "Generating Take \(take.takeNumber) of \(film.takeCount)..."
+            // Generate each take sequentially to maintain continuity
+            for (takeIndex, take) in filmBreakdown.takes.enumerated() {
+                currentTakeIndex = takeIndex
+                progress = Double(takeIndex) / Double(filmBreakdown.takes.count)
+                status = "Generating Take \(take.takeNumber) of \(filmBreakdown.takeCount)..."
                 
                 do {
-                    let clip = try await generateTake(take: take, index: index)
-                    await transaction.addPending(clip)
+                    let generatedClip = try await generateTake(take: take, takeIndex: takeIndex)
+                    try await generationTransaction.addPending(generatedClip)
                 } catch {
-                    // await showPartialSaveAlert(with: await transaction.pendingClips, error: error)
-                    await transaction.rollback()
+                    // If generation fails, rollback the entire transaction
+                    await generationTransaction.rollback()
+                    self.error = error
                     return
                 }
             }
             
-            try await transaction.commit()
+            // Commit all clips atomically
+            try await generationTransaction.commit()
             
         } catch {
-            await transaction.rollback()
+            // Rollback on any transaction error
+            await generationTransaction.rollback()
             self.error = error
         }
         
@@ -169,94 +222,110 @@ class FilmGeneratorViewModel: ObservableObject {
         status = "Complete! Generated \(generatedClips.count) videos"
     }
     
-    private func generateTake(take: FilmTake, index: Int) async throws -> GeneratedClip {
-        // Prepare prompt and seed
-        let prompt = take.prompt
+    /// Generates a single video take, handling continuity seeds for subsequent takes
+    /// - Parameters:
+    ///   - take: The film take to generate
+    ///   - takeIndex: Zero-based index of this take in the sequence
+    /// - Returns: The generated clip
+    private func generateTake(take: FilmTake, takeIndex: Int) async throws -> GeneratedClip {
+        let videoPrompt = take.prompt
         
-        // For takes after the first, we MUST have a seed image for continuity
-        if index > 0 && lastFrame == nil {
+        // For takes after the first, we require a seed image for visual continuity
+        if takeIndex > 0 && lastExtractedFrame == nil {
             throw GeneratorError.noTakesGenerated
         }
         
-        // Generate video
-        let videoURL: URL
-        if index == 0 {
-            // First take - no seed
+        // Generate video based on whether this is the first take or a subsequent one
+        let generatedVideoURL: URL
+        if takeIndex == 0 {
+            // First take: generate from text prompt only
             print("🎬 [Take \(take.takeNumber)] First take - generating from text")
-            videoURL = try await videoService.generateVideo(
-                prompt: prompt,
+            generatedVideoURL = try await polloVideoService.generateVideo(
+                prompt: videoPrompt,
                 duration: take.estimatedDuration
             )
         } else {
-            // All subsequent takes MUST use seed for continuity
-            guard let seedImage = lastFrame,
-                  let seedData = seedImage.jpegData(compressionQuality: 0.8) else {
-                throw NSError(domain: "FilmGenerator", code: -1,
-                              userInfo: [NSLocalizedDescriptionKey: "Missing seed image for Take \(take.takeNumber)"])
+            // Subsequent takes: use seed image from previous take for continuity
+            guard let seedImage = lastExtractedFrame,
+                  let seedImageData = seedImage.jpegData(compressionQuality: 0.8) else {
+                throw NSError(
+                    domain: "FilmGenerator",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing seed image for Take \(take.takeNumber)"]
+                )
             }
             
-            print("🔗 [Take \(take.takeNumber)] Using seed image from Take \(index)")
-            videoURL = try await videoService.generateVideoFromImage(
-                imageData: seedData,
-                prompt: prompt,
+            print("🔗 [Take \(take.takeNumber)] Using seed image from Take \(takeIndex)")
+            generatedVideoURL = try await polloVideoService.generateVideoFromImage(
+                imageData: seedImageData,
+                prompt: videoPrompt,
                 duration: take.estimatedDuration
             )
         }
         
-        // Download locally
-        let localURL = try await downloadVideo(from: videoURL, takeNumber: take.takeNumber)
+        // Download video to local storage
+        let localVideoURL = try await downloadVideo(from: generatedVideoURL, takeNumber: take.takeNumber)
         
-        // Create clip
-        let clip = GeneratedClip(
+        // Create clip metadata
+        let generatedClip = GeneratedClip(
             id: UUID(),
             name: "Take \(take.takeNumber): \(take.storyContent)",
-            localURL: localURL,
+            localURL: localVideoURL,
             thumbnailURL: nil,
             syncStatus: .notUploaded,
             createdAt: Date(),
             duration: take.estimatedDuration,
             projectID: nil,
-            isGeneratedFromImage: index > 0  // All takes after first use seed
+            isGeneratedFromImage: takeIndex > 0  // All takes after first use seed
         )
         
-        generatedClips.append(clip)
+        generatedClips.append(generatedClip)
         
-        // ALWAYS extract last frame for continuity (even for last take)
+        // Extract last frame for continuity with next take
         print("📸 [Take \(take.takeNumber)] Extracting last frame for continuity...")
-        lastFrame = try await extractLastFrame(from: localURL)
+        lastExtractedFrame = try await extractLastFrame(from: localVideoURL)
         print("✅ [Take \(take.takeNumber)] Last frame extracted")
         
-        // Save
-        try await storageService.saveClip(clip)
+        // Persist clip to storage
+        try await localStorageService.saveClip(generatedClip)
         
-        return clip
+        return generatedClip
     }
     
+    /// Downloads a video from a remote URL to local storage
+    /// - Parameters:
+    ///   - url: Remote URL of the video to download
+    ///   - takeNumber: Number of the take (used in filename)
+    /// - Returns: Local file URL where the video was saved
     private func downloadVideo(from url: URL, takeNumber: Int) async throws -> URL {
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileName = "Take_\(takeNumber)_\(Date().timeIntervalSince1970).mp4"
-        let localURL = documentsPath.appendingPathComponent(fileName)
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let timestamp = Date().timeIntervalSince1970
+        let fileName = "Take_\(takeNumber)_\(timestamp).mp4"
+        let localFileURL = documentsDirectory.appendingPathComponent(fileName)
         
-        let (tempURL, _) = try await URLSession.shared.download(from: url)
-        try FileManager.default.moveItem(at: tempURL, to: localURL)
+        let (temporaryDownloadURL, _) = try await URLSession.shared.download(from: url)
+        try FileManager.default.moveItem(at: temporaryDownloadURL, to: localFileURL)
         
-        return localURL
+        return localFileURL
     }
     
+    /// Extracts the last frame from a video for use as a seed image in continuity generation
+    /// - Parameter videoURL: Local URL of the video file
+    /// - Returns: UIImage extracted from near the end of the video (90% mark)
     private func extractLastFrame(from videoURL: URL) async throws -> UIImage {
-        let asset = AVAsset(url: videoURL)
-        let duration = try await asset.load(.duration)
+        let videoAsset = AVAsset(url: videoURL)
+        let videoDuration = try await videoAsset.load(.duration)
         
-        // Extract at 90% of duration for smoother continuity
-        let time = CMTime(seconds: duration.seconds * 0.9, preferredTimescale: 600)
+        // Extract frame at 90% of duration for smoother visual continuity
+        let extractionTime = CMTime(seconds: videoDuration.seconds * 0.9, preferredTimescale: 600)
         
-        let imageGenerator = AVAssetImageGenerator(asset: asset)
-        imageGenerator.appliesPreferredTrackTransform = true
-        imageGenerator.requestedTimeToleranceBefore = .zero
-        imageGenerator.requestedTimeToleranceAfter = .zero
+        let frameImageGenerator = AVAssetImageGenerator(asset: videoAsset)
+        frameImageGenerator.appliesPreferredTrackTransform = true
+        frameImageGenerator.requestedTimeToleranceBefore = .zero
+        frameImageGenerator.requestedTimeToleranceAfter = .zero
         
-        let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
-        return UIImage(cgImage: cgImage)
+        let extractedCGImage = try frameImageGenerator.copyCGImage(at: extractionTime, actualTime: nil)
+        return UIImage(cgImage: extractedCGImage)
     }
 }
 
@@ -373,7 +442,7 @@ struct TakePreviewCard: View {
 
 struct GeneratingVideosView: View {
     let takes: [FilmTake]
-    let currentTake: Int
+    let currentTakeIndex: Int
     let progress: Double
     let generatedClips: [GeneratedClip]
     
@@ -404,14 +473,14 @@ struct GeneratingVideosView: View {
                 }
             }
             
-            if currentTake < takes.count {
-                let take = takes[currentTake]
+            if currentTakeIndex < takes.count {
+                let currentTake = takes[currentTakeIndex]
                 
                 VStack(spacing: 8) {
-                    Text("Take \(take.takeNumber)")
+                    Text("Take \(currentTake.takeNumber)")
                         .font(.headline)
                     
-                    Text(take.storyContent)
+                    Text(currentTake.storyContent)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
