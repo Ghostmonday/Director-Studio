@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var devPasscode = ""
     @State private var showingLogs = false
       @State private var showingMonetizationCalculator = false
+    @State private var showingRunwayAPIKey = false
+    @StateObject private var userAPIKeysManager = UserAPIKeysManager.shared
     
     private let theme = DirectorStudioTheme.self
     
@@ -86,6 +88,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingMonetizationCalculator) {
             MonetizationAnalysisView()
+        }
+        .sheet(isPresented: $showingRunwayAPIKey) {
+            RunwayAPIKeyView()
         }
         .alert("Developer Mode", isPresented: $showingDevPasscode) {
             TextField("Enter passcode", text: $devPasscode)
@@ -265,6 +270,26 @@ struct SettingsView: View {
                 icon: "calculator",
                 action: { showingMonetizationCalculator = true }
             )
+            
+            Divider()
+                .padding(.vertical, theme.Spacing.small)
+            
+            // API Keys Section
+            VStack(alignment: .leading, spacing: theme.Spacing.small) {
+                Text("API Keys")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, theme.Spacing.medium)
+                
+                // Runway API Key
+                SettingsRow(
+                    title: "Runway API Key",
+                    subtitle: userAPIKeysManager.hasRunwayKey ? "Your key is set" : "Use your own Runway key (optional)",
+                    icon: "key",
+                    action: { showingRunwayAPIKey = true }
+                )
+            }
         }
     }
     

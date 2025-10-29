@@ -88,10 +88,19 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
     // MARK: - API Key Management
     
     private func ensureAPIKey() async throws -> String {
+        // Check if we already have a cached key
         if let apiKey = self.apiKey, !apiKey.isEmpty {
             return apiKey
         }
         
+        // First, check if user has provided their own Runway API key
+        if let userKey = UserAPIKeysManager.shared.getRunwayAPIKey() {
+            logger.debug("🔑 Using user-provided Runway API key")
+            self.apiKey = userKey
+            return userKey
+        }
+        
+        // Fallback to Supabase (if available)
         logger.debug("📱 Fetching API key from Supabase...")
         
         // In dev mode, we still need real API keys to make actual calls
@@ -102,11 +111,12 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
         do {
             let key = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Runway")
             self.apiKey = key
-            logger.debug("✅ API key fetched successfully")
+            logger.debug("✅ API key fetched successfully from Supabase")
             return key
         } catch {
             logger.error("❌ Failed to fetch API key: \(error.localizedDescription)")
-            throw APIError.authError("Failed to fetch API key: \(error.localizedDescription)")
+            // If Supabase fails and user hasn't provided a key, throw helpful error
+            throw APIError.authError("Runway API key not available. Please add your own Runway API key in Settings, or configure Runway key in Supabase.")
         }
     }
     
