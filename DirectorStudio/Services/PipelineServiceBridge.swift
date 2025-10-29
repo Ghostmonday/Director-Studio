@@ -93,19 +93,11 @@ class PipelineServiceBridge {
             print("🔄 Progress: Continuity injected (40%)")
         }
         
-        // Then enhance prompt if needed
+        // Enhancement stage removed - now handled by PromptGeneratorModule
+        // The prompt will be processed by the new modular generator before reaching this point
         var enhancedPrompt = processedPrompt
-        if enabledStages.contains(.enhancement) {
-            print("🔄 Progress: Enhancing prompt with AI... (50%)")
-            print("🔧 Enhancing prompt...")
-            do {
-                enhancedPrompt = try await textService.enhancePrompt(prompt: processedPrompt)
-                print("✅ Enhanced prompt: \(enhancedPrompt.prefix(100))...")
-                print("🔄 Progress: Prompt enhanced (60%)")
-            } catch {
-                print("⚠️  Enhancement failed, using original prompt: \(error)")
-            }
-        }
+        print("📝 [Pipeline] Using prompt as-is (enhancement handled by PromptGenerator)")
+        print("🔄 Progress: Prompt ready (60%)")
         
         // Generate video
         var videoURL: URL

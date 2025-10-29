@@ -349,23 +349,14 @@ class PromptViewModel: ObservableObject {
         }
         
         do {
-            // Get continuity manager
-            let continuityManager = ContinuityManager.shared
+            // ===== NEW STORY-TO-FILM SYSTEM =====
+            // User input passed directly - no enhancement here
+            // Enhancement now happens in VideoGenerationScreen via StoryToFilmGenerator
             
-            // Analyze continuity (check if this is first clip in project)
-            let isFirstClip = (coordinator.currentProject?.clipCount ?? 0) == 0
-            let analysis = continuityManager.analyzeContinuity(
-                prompt: promptText,
-                isFirstClip: isFirstClip,
-                referenceImage: imageData
-            )
+            print("🎬 [PromptView] Passing user story directly to pipeline...")
+            print("   Input: \(promptText.prefix(100))...")
             
-            // Inject continuity elements into prompt for better scene flow
-            let enhancedPrompt = continuityManager.injectContinuity(
-                prompt: promptText,
-                analysis: analysis,
-                referenceImage: imageData
-            )
+            let enhancedPrompt = promptText  // Direct passthrough
             
             // Use all enabled stages including auto-enabled ones
             let finalStages = generationMode == .multiClip ? allEnabledStages : enabledStages
