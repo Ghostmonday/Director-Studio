@@ -145,19 +145,32 @@ class FilmGeneratorViewModel: ObservableObject {
             do {
                 // Prepare prompt and seed
                 let prompt = take.prompt
-                let seedImage = take.useSeedImage ? lastFrame : nil
-                let seedData = seedImage?.jpegData(compressionQuality: 0.8)
+                
+                // For takes after the first, we MUST have a seed image for continuity
+                if index > 0 && lastFrame == nil {
+                    throw GeneratorError.noTakesGenerated
+                }
                 
                 // Generate video
                 let videoURL: URL
-                if let seedData = seedData {
-                    videoURL = try await videoService.generateVideoFromImage(
-                        imageData: seedData,
+                if index == 0 {
+                    // First take - no seed
+                    print("🎬 [Take \(take.takeNumber)] First take - generating from text")
+                    videoURL = try await videoService.generateVideo(
                         prompt: prompt,
                         duration: take.estimatedDuration
                     )
                 } else {
-                    videoURL = try await videoService.generateVideo(
+                    // All subsequent takes MUST use seed for continuity
+                    guard let seedImage = lastFrame,
+                          let seedData = seedImage.jpegData(compressionQuality: 0.8) else {
+                        throw NSError(domain: "FilmGenerator", code: -1,
+                                    userInfo: [NSLocalizedDescriptionKey: "Missing seed image for Take \(take.takeNumber)"])
+                    }
+                    
+                    print("🔗 [Take \(take.takeNumber)] Using seed image from Take \(index)")
+                    videoURL = try await videoService.generateVideoFromImage(
+                        imageData: seedData,
                         prompt: prompt,
                         duration: take.estimatedDuration
                     )
@@ -176,15 +189,15 @@ class FilmGeneratorViewModel: ObservableObject {
                     createdAt: Date(),
                     duration: take.estimatedDuration,
                     projectID: nil,
-                    isGeneratedFromImage: seedImage != nil
+                    isGeneratedFromImage: index > 0  // All takes after first use seed
                 )
                 
                 generatedClips.append(clip)
                 
-                // Extract last frame for next take
-                if index < film.takes.count - 1 {
-                    lastFrame = try await extractLastFrame(from: localURL)
-                }
+                // ALWAYS extract last frame for continuity (even for last take)
+                print("📸 [Take \(take.takeNumber)] Extracting last frame for continuity...")
+                lastFrame = try await extractLastFrame(from: localURL)
+                print("✅ [Take \(take.takeNumber)] Last frame extracted")
                 
                 // Save
                 try await storageService.saveClip(clip)

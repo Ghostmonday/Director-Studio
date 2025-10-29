@@ -89,6 +89,7 @@ final class StoryToFilmGenerator {
         var enableEmotionalAnalysis: Bool = true
         var enableCameraDirections: Bool = true
         var continuityMode: ContinuityMode = .fullChain
+        var useSimpleChunking: Bool = true  // NEW: Use word-based chunking with overlap
         
         enum ContinuityMode {
             case none
@@ -108,7 +109,14 @@ final class StoryToFilmGenerator {
         print("🎬 [StoryToFilm] Starting generation")
         print("   Text length: \(text.count) characters")
         
-        let takes = try await breakIntoTakes(text: text)
+        let takes: [FilmTake]
+        if config.useSimpleChunking {
+            print("📝 Using simple chunking with 5-word overlap")
+            takes = createTakesFromChunks(text: text)
+        } else {
+            takes = try await breakIntoTakes(text: text)
+        }
+        
         let continuityLinks = buildContinuityChain(takes)
         
         let processingTime = Date().timeIntervalSince(startTime)
@@ -116,11 +124,11 @@ final class StoryToFilmGenerator {
         let metadata = FilmMetadata(
             originalTextLength: text.count,
             processingTime: processingTime,
-            apiCalls: deepSeekClient.callCount,
+            apiCalls: config.useSimpleChunking ? 0 : deepSeekClient.callCount,
             storySummary: "Story film",
             generatedAt: Date(),
             totalEstimatedDuration: takes.reduce(0) { $0 + $1.estimatedDuration },
-            model: "deepseek-chat"
+            model: config.useSimpleChunking ? "simple-chunking" : "deepseek-chat"
         )
         
         print("✅ [StoryToFilm] Complete!")
@@ -246,6 +254,94 @@ final class StoryToFilmGenerator {
         }
         
         return links
+    }
+    
+    // MARK: - Simple Chunking with 5-word Overlap
+    
+    /// Returns an array of prompts ready for Pollo.
+    /// Each prompt (except the first) starts with the **exact last 5 words** of the previous one.
+    private func processFullStory(_ storyText: String, toneTag: String = "/cinematic") -> [String] {
+        var chunks: [String] = []
+        var previousTail: String = ""               // will hold "word1 word2 word3 word4 word5"
+        
+        // 1. Split into clean words (same as before)
+        let sentences = storyText.components(separatedBy: CharacterSet(charactersIn: ".!?"))
+        var wordBuffer: [String] = []
+        
+        for sentence in sentences {
+            let words = sentence
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+                
+            for word in words {
+                wordBuffer.append(word)
+                if wordBuffer.count >= 30 {
+                    let chunk = wordBuffer.joined(separator: " ")
+                    // 2. Build final prompt
+                    let finalPrompt = (chunks.isEmpty ? "" : previousTail + " ") + chunk + " " + toneTag
+                    
+                    chunks.append(finalPrompt.trimmingCharacters(in: .whitespaces))
+                    
+                    // 3. Save tail for next iteration
+                    let tailWords = wordBuffer.suffix(5)
+                    previousTail = tailWords.joined(separator: " ")
+                    
+                    wordBuffer.removeAll()
+                }
+            }
+        }
+        
+        // Leftover words
+        if !wordBuffer.isEmpty {
+            let chunk = wordBuffer.joined(separator: " ")
+            let finalPrompt = (chunks.isEmpty ? "" : previousTail + " ") + chunk + " " + toneTag
+            chunks.append(finalPrompt.trimmingCharacters(in: .whitespaces))
+        }
+        
+        // 4. **First prompt must NOT have a leading tail**
+        if chunks.count > 1, !previousTail.isEmpty, chunks[0].hasPrefix(previousTail) {
+            // Edge case – shouldn't happen, but keep it safe
+            chunks[0] = chunks[0].replacingOccurrences(of: "^\(previousTail) ", with: "", options: .regularExpression)
+        }
+        
+        return chunks
+    }
+    
+    /// Convert chunked prompts into FilmTake objects
+    private func createTakesFromChunks(text: String) -> [FilmTake] {
+        let prompts = processFullStory(text)
+        
+        print("📊 [Chunking] Generated \(prompts.count) chunks with 5-word overlap")
+        
+        return prompts.enumerated().map { index, prompt in
+            // Log the overlap for debugging
+            if index > 0 {
+                let words = prompt.split(separator: " ")
+                if words.count >= 5 {
+                    let overlap = words.prefix(5).joined(separator: " ")
+                    print("   Take \(index + 1) overlap: '\(overlap)...'")
+                }
+            }
+            
+            // Only first take gets the tone tag
+            let finalPrompt = index == 0 ? prompt : prompt.replacingOccurrences(of: " /cinematic", with: "")
+            
+            return FilmTake(
+                id: UUID(),
+                takeNumber: index + 1,
+                prompt: finalPrompt,
+                storyContent: prompt.replacingOccurrences(of: " /cinematic", with: ""),
+                useSeedImage: index > 0,  // All takes after first use seed
+                seedFromTake: index > 0 ? index - 1 : nil,
+                estimatedDuration: 5.0,  // Fixed 5 seconds for simple chunking
+                sceneType: .atmosphere,  // Default type
+                hasDialogue: false,
+                dialogueLines: nil,
+                emotionalTone: "cinematic",
+                cameraDirection: nil
+            )
+        }
     }
 }
 
