@@ -22,7 +22,7 @@ actor GenerationTransaction {
     private let creditsManager = CreditsManager.shared
     
     /// Repository for persisting clips
-    private let repository: ClipRepositoryProtocol
+    private let repository: any ClipRepositoryProtocol
     
     /// Transaction states
     enum TransactionState {
@@ -50,7 +50,7 @@ actor GenerationTransaction {
         }
     }
     
-    init(repository: ClipRepositoryProtocol) {
+    init(repository: any ClipRepositoryProtocol) {
         self.repository = repository
     }
     

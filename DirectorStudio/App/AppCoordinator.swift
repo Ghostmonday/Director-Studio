@@ -29,7 +29,7 @@ class AppCoordinator: ObservableObject {
     
     // MARK: - App State
     @Published var currentProject: Project?
-    @Published var clipRepository: ClipRepositoryProtocol
+    @Published var clipRepository: any ClipRepositoryProtocol
     @Published var isAuthenticated: Bool = false
     // REMOVED: Guest mode no longer exists - all users have full access
     @Published var showingCreditsPurchase: Bool = false

@@ -63,7 +63,7 @@ struct SegmentationDebugView: View {
                             Color.clear
                                 .frame(height: 1)
                                 .id("bottom")
-                                .onChange(of: logManager.logs.count) { _ in
+                                .onChange(of: logManager.logs.count) {
                                     if autoScroll {
                                         withAnimation(.easeOut(duration: 0.2)) {
                                             proxy.scrollTo("bottom", anchor: .bottom)
@@ -400,7 +400,7 @@ struct SegmentationDebugButton: View {
             SegmentationDebugView()
                 .onAppear { hasNewLogs = false }
         }
-        .onChange(of: logManager.logs.count) { _ in
+                                .onChange(of: logManager.logs.count) {
             if !showDebugView {
                 hasNewLogs = true
             }

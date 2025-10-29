@@ -92,7 +92,7 @@ struct EnhancedStudioView: View {
                 }
                 .navigationDestination(for: NavigationDestination.self) { dest in
                     switch dest {
-                    case .editRoom(let clip):
+                    case .editRoom(_):
                         EditRoomView()
                             .environmentObject(coordinator)
                     }
