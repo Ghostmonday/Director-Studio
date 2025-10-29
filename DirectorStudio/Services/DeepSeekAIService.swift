@@ -120,34 +120,10 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
     }
     
     /// Enhance a prompt for video generation
+    /// PASSTHROUGH: No longer enhanced - handled by new Story-to-Film generator
     public func enhancePrompt(prompt: String) async throws -> String {
-        logger.debug("🎨 Enhancing prompt: '\(prompt.prefix(100))...'")
-        
-        let messages: [[String: String]] = [
-            [
-                "role": "system",
-                "content": "You are a creative director specializing in crafting cinematic video descriptions. Transform basic prompts into rich, visual narratives suitable for AI video generation."
-            ],
-            [
-                "role": "user",
-                "content": """
-                Transform this prompt into a detailed, cinematic description for video generation:
-                
-                "\(prompt)"
-                
-                Include:
-                - Visual style and cinematography
-                - Lighting and atmosphere
-                - Camera movements
-                - Key visual elements
-                - Mood and tone
-                
-                Keep it under 200 words and maintain the original intent.
-                """
-            ]
-        ]
-        
-        return try await callAPI(messages: messages)
+        logger.debug("🎨 [DeepSeek] Passthrough mode - no enhancement")
+        return prompt
     }
     
     /// Protocol requirement - process text with system prompt
@@ -179,39 +155,9 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
     }
     
     /// Enhanced prompt method with style parameter
+    /// PASSTHROUGH: No longer enhanced - handled by new Story-to-Film generator
     public func enhancePrompt(_ prompt: String, style: VideoStyle) async throws -> String {
-        logger.debug("🎨 Enhancing prompt with style: \(style.rawValue)")
-        
-        let styleDescription: String
-        switch style {
-        case .cinematic:
-            styleDescription = "cinematic with dramatic lighting and professional cinematography"
-        case .animated:
-            styleDescription = "animated with vibrant colors and stylized movement"
-        case .documentary:
-            styleDescription = "documentary style with realistic settings and natural progression"
-        case .artistic:
-            styleDescription = "artistic and abstract with creative visual interpretation"
-        }
-        
-        let messages: [[String: String]] = [
-            [
-                "role": "system",
-                "content": "You are a creative director specializing in \(styleDescription) video descriptions."
-            ],
-            [
-                "role": "user",
-                "content": """
-                Transform this prompt into a detailed \(styleDescription) description:
-                
-                "\(prompt)"
-                
-                Focus on the \(style) style while maintaining the original intent.
-                Keep it under 200 words.
-                """
-            ]
-        ]
-        
-        return try await callAPI(messages: messages)
+        logger.debug("🎨 [DeepSeek] Passthrough mode with style: \(style.rawValue)")
+        return prompt
     }
 }

@@ -2,271 +2,335 @@
 //  SegmentingModule.swift
 //  DirectorStudio
 //
-//  Advanced LLM-Integrated Segmentation System
-//  Built for AI filmmaking pipeline with DeepSeek integration
+//  REPLACED: New Story-to-Film Generator (was complex parsing system)
 //
 
 import Foundation
 
-// Simple file logger for debugging
-private func SEGLOG(_ message: String) {
-    #if DEBUG
-    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let logFileURL = documentsPath.appendingPathComponent("segmentation_debug.txt")
-    
-    let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-    let logMessage = "[\(timestamp)] \(message)\n"
-    
-    // Print to console
-    print(logMessage, terminator: "")
-    
-    // Append to file
-    if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
-        fileHandle.seekToEndOfFile()
-        if let data = logMessage.data(using: .utf8) {
-            fileHandle.write(data)
-        }
-        try? fileHandle.close()
-    } else {
-        // Create file if it doesn't exist
-        try? logMessage.write(to: logFileURL, atomically: true, encoding: .utf8)
-    }
-    #endif
-}
+// MARK: - Core Data Models
 
-// MARK: - Protocol Definition
-
-/// Core protocol for LLM-integrated segmentation
-protocol SegmentingModuleProtocol {
-    func segment(
-        script: String,
-        mode: SegmentationMode,
-        constraints: SegmentationConstraints,
-        llmConfig: LLMConfiguration?
-    ) async throws -> SegmentationResult
-}
-
-// MARK: - Segmentation Modes
-
-enum SegmentationMode: String, CaseIterable {
-    case ai             // LLM-powered cinematic analysis (primary)
-    case duration       // Time-based splitting
-    case evenSplit      // Equal token distribution
-    case hybrid         // AI with fallback to duration
-    
-    var displayName: String {
-        switch self {
-        case .ai: return "AI (Cinematic)"
-        case .duration: return "Duration-Based"
-        case .evenSplit: return "Even Split"
-        case .hybrid: return "Smart Hybrid"
-        }
-    }
-    
-    var requiresLLM: Bool {
-        switch self {
-        case .ai, .hybrid: return true
-        case .duration, .evenSplit: return false
-        }
-    }
-}
-
-// MARK: - Constraints
-
-struct SegmentationConstraints {
-    var maxSegments: Int = 20
-    var maxTokensPerSegment: Int = 200
-    var maxDuration: Double = 20.0          // seconds
-    var minDuration: Double = 1.0           // seconds
-    var targetDuration: Double = 3.0        // preferred duration
-    var enforceStrictLimits: Bool = true
-    var allowAutoAdjustment: Bool = true
-    
-    static let `default` = SegmentationConstraints()
-    
-    /// Validates if constraints are internally consistent
-    var isValid: Bool {
-        maxSegments > 0 &&
-        maxTokensPerSegment > 0 &&
-        maxDuration > minDuration &&
-        targetDuration >= minDuration &&
-        targetDuration <= maxDuration
-    }
-}
-
-// MARK: - LLM Configuration
-
-struct LLMConfiguration {
-    var provider: LLMProvider = .deepseek
-    var model: String = "deepseek-chat"  // Correct model name for DeepSeek API
-    var apiKey: String
-    var endpoint: String = "https://api.deepseek.com/v1/chat/completions"
-    var temperature: Double = 0.3           // Lower for more consistent segmentation
-    var maxRetries: Int = 3
-    var timeoutSeconds: Double = 120.0  // 2 minutes for complex scripts
-    var maxTokens: Int = 4096               // High token limit for complex segmentation
-    
-    // Semantic Expansion Configuration
-    var enableSemanticExpansion: Bool = false
-    var expansionConfig: SemanticExpansionConfig = .default
-    
-    enum LLMProvider: String {
-        case deepseek = "DeepSeek"
-        case openai = "OpenAI"
-        case anthropic = "Anthropic"
-        case custom = "Custom"
-    }
-}
-
-// MARK: - Semantic Expansion Configuration
-
-struct SemanticExpansionConfig {
-    var enabled: Bool = true
-    var expansionStyle: ExpansionStyle = .vivid
-    var tokenBudgetPerSegment: Int = 100        // Additional tokens for expanded prompt
-    var preserveOriginal: Bool = true           // Keep base prompt alongside expansion
-    var expandShortSegments: Bool = true        // Expand segments < minLength
-    var minLengthForExpansion: Int = 30         // Chars threshold for short segment
-    var expandEmotionalSegments: Bool = true    // Expand high-emotion segments
-    var emotionThreshold: Double = 0.6          // Emotion detection threshold (0.0-1.0)
-    var maxExpansions: Int = 5                  // Limit expansions per script (cost control)
-    var expansionTemperature: Double = 0.7      // Higher for creative expansion
-    
-    enum ExpansionStyle: String, CaseIterable {
-        case vivid = "Vivid & Cinematic"        // Rich visual descriptions
-        case emotional = "Emotionally Expressive" // Focus on feeling/tone
-        case action = "Action-Oriented"         // Movement and dynamics
-        case atmospheric = "Atmospheric"        // Mood and environment
-        case balanced = "Balanced"              // Mix of all aspects
-        
-        var promptGuidance: String {
-            switch self {
-            case .vivid:
-                return "Create a vivid, visually rich description that emphasizes colors, lighting, textures, and cinematic framing. If no dialogue exists, add natural character dialogue that fits the scene."
-            case .emotional:
-                return "Expand with emotional depth, focusing on character feelings, internal states, and psychological nuance. Add emotionally resonant dialogue where characters express their feelings."
-            case .action:
-                return "Emphasize movement, energy, and dynamic action with precise choreography and momentum. Include sharp, urgent dialogue if characters would speak during action."
-            case .atmospheric:
-                return "Build atmosphere through environmental details, mood, ambiance, and sensory elements. Add atmospheric dialogue that enhances the mood."
-            case .balanced:
-                return "Blend visual richness, emotional depth, action, and atmosphere into a cohesive cinematic description. Add natural dialogue where appropriate to bring characters to life."
-            }
-        }
-    }
-    
-    static let `default` = SemanticExpansionConfig()
-    
-    /// Validates configuration consistency
-    var isValid: Bool {
-        tokenBudgetPerSegment > 0 &&
-        minLengthForExpansion > 0 &&
-        emotionThreshold >= 0.0 && emotionThreshold <= 1.0 &&
-        maxExpansions > 0 &&
-        expansionTemperature >= 0.0 && expansionTemperature <= 2.0
-    }
-}
-
-// MARK: - Segment Object
-
-struct CinematicSegment: Codable, Identifiable {
+struct FilmTake: Codable, Identifiable {
     let id: UUID
-    let segmentIndex: Int
-    let text: String                    // Base prompt text
-    let estimatedTokens: Int
-    let estimatedDuration: Double
+    let takeNumber: Int
+    let prompt: String                    // Complete Pollo-ready video prompt
+    let storyContent: String              // What narrative moment this captures
+    let useSeedImage: Bool                // Should use previous frame as seed
+    let seedFromTake: Int?                // Which take to get seed from
+    let estimatedDuration: Double         // Seconds (5-10)
+    let sceneType: SceneType              // Visual classification
+    let hasDialogue: Bool                 // Contains spoken words
+    let dialogueLines: [DialogueLine]?    // Extracted dialogue if present
+    let emotionalTone: String             // Mood/atmosphere
+    let cameraDirection: String?          // Suggested camera work
     
-    // Chronological positioning
-    let globalStartToken: Int
-    let globalEndToken: Int
-    
-    // Taxonomy preparation
-    var taxonomyHints: TaxonomyHints
-    
-    // Semantic Expansion (optional)
-    var expandedPrompt: ExpandedPrompt?
-    
-    // Metadata
-    let splitReason: String?
-    let confidence: Double              // 0.0-1.0, LLM confidence in boundary
-    let fallbackNotes: String?
-    
-    // Generation state tracking
-    var generationState: GenerationState = .pending
-    var progress: Double = 0.0
-    var videoURL: URL?
-    
-    enum GenerationState: String, Codable {
-        case pending
-        case generating
-        case complete
-        case failed
-    }
-    
-    /// Returns the prompt to use for generation (expanded if available, else base)
-    var effectivePrompt: String {
-        expandedPrompt?.text ?? text
-    }
-    
-    /// Total tokens including expansion
-    var totalTokens: Int {
-        estimatedTokens + (expandedPrompt?.additionalTokens ?? 0)
+    enum SceneType: String, Codable {
+        case action = "Action"
+        case dialogue = "Dialogue"
+        case atmosphere = "Atmosphere"
+        case transition = "Transition"
+        case establishing = "Establishing"
+        case climax = "Climax"
     }
 }
 
-// MARK: - Expanded Prompt
-
-struct ExpandedPrompt: Codable {
-    let text: String                    // Expanded prompt text
-    let additionalTokens: Int           // Tokens added by expansion
-    let expansionReason: String         // Why expanded (short/emotional/etc)
-    let emotionScore: Double?           // Detected emotion intensity (0.0-1.0)
-    let expansionStyle: String          // Style used for expansion
-    let llmConfidence: Double           // LLM confidence in expansion quality
-    
-    // Enhanced taxonomy from expansion
-    var enhancedHints: TaxonomyHints?
-    
-    var summary: String {
-        """
-        Expanded (\(additionalTokens) tokens added)
-        Reason: \(expansionReason)
-        Style: \(expansionStyle)
-        Confidence: \(Int(llmConfidence * 100))%
-        """
-    }
+struct DialogueLine: Codable {
+    let speaker: String
+    let text: String
+    let emotion: String
+    let visualDescription: String
 }
 
-struct TaxonomyHints: Codable {
-    var cameraAngle: String?        // "wide", "closeup", "medium", etc.
-    var sceneType: String?          // "interior", "exterior", "transition"
-    var emotion: String?            // "tense", "joyful", "melancholic"
-    var pacing: String?             // "fast", "slow", "moderate"
-    var visualComplexity: String?   // "simple", "moderate", "complex"
-    var transitionType: String?     // "cut", "fade", "dissolve"
-    
-    static let empty = TaxonomyHints()
-}
-
-// MARK: - Segmentation Result
-
-struct SegmentationResult {
-    let segments: [CinematicSegment]
-    let metadata: SegmentationMetadata
-    let warnings: [SegmentationWarning]
-    let llmUsage: LLMUsageStats?
-    
-    var isValid: Bool {
-        !segments.isEmpty && segments.allSatisfy { !$0.text.isEmpty }
-    }
-    
-    var totalTokens: Int {
-        segments.reduce(0) { $0 + $1.estimatedTokens }
-    }
+struct FilmBreakdown: Codable {
+    let takes: [FilmTake]
+    let metadata: FilmMetadata
+    let continuityChain: [ContinuityLink]
+    let warnings: [String]
     
     var totalDuration: Double {
-        segments.reduce(0) { $0 + $1.estimatedDuration }
+        takes.reduce(0) { $0 + $1.estimatedDuration }
     }
+    
+    var takeCount: Int {
+        takes.count
+    }
+}
+
+struct FilmMetadata: Codable {
+    let originalTextLength: Int
+    let processingTime: TimeInterval
+    let apiCalls: Int
+    let storySummary: String
+    let generatedAt: Date
+    let totalEstimatedDuration: Double
+    let model: String
+}
+
+struct ContinuityLink: Codable {
+    let fromTake: Int
+    let toTake: Int
+    let continuityType: String
+    let description: String
+}
+
+// MARK: - Main Generator
+
+final class StoryToFilmGenerator {
+    
+    private let deepSeekClient: DeepSeekFilmClient
+    private let config: GeneratorConfig
+    
+    struct GeneratorConfig {
+        var minTakeDuration: Double = 5.0
+        var maxTakeDuration: Double = 10.0
+        var preferredTakeDuration: Double = 7.0
+        var minTakes: Int = 5
+        var maxTakes: Int = 50
+        var enableDialogueExtraction: Bool = true
+        var enableEmotionalAnalysis: Bool = true
+        var enableCameraDirections: Bool = true
+        var continuityMode: ContinuityMode = .fullChain
+        
+        enum ContinuityMode {
+            case none
+            case adjacent
+            case fullChain
+        }
+    }
+    
+    init(apiKey: String, config: GeneratorConfig = GeneratorConfig()) {
+        self.deepSeekClient = DeepSeekFilmClient(apiKey: apiKey)
+        self.config = config
+    }
+    
+    func generateFilm(from text: String) async throws -> FilmBreakdown {
+        let startTime = Date()
+        
+        print("🎬 [StoryToFilm] Starting generation")
+        print("   Text length: \(text.count) characters")
+        
+        let takes = try await breakIntoTakes(text: text)
+        let continuityLinks = buildContinuityChain(takes)
+        
+        let processingTime = Date().timeIntervalSince(startTime)
+        
+        let metadata = FilmMetadata(
+            originalTextLength: text.count,
+            processingTime: processingTime,
+            apiCalls: deepSeekClient.callCount,
+            storySummary: "Story film",
+            generatedAt: Date(),
+            totalEstimatedDuration: takes.reduce(0) { $0 + $1.estimatedDuration },
+            model: "deepseek-chat"
+        )
+        
+        print("✅ [StoryToFilm] Complete!")
+        print("   Takes: \(takes.count)")
+        print("   Duration: \(metadata.totalEstimatedDuration)s")
+        print("   Processing: \(String(format: "%.2f", processingTime))s")
+        
+        return FilmBreakdown(
+            takes: takes,
+            metadata: metadata,
+            continuityChain: continuityLinks,
+            warnings: []
+        )
+    }
+    
+    private func breakIntoTakes(text: String) async throws -> [FilmTake] {
+        let prompt = """
+        Break this story into \(config.minTakes)-\(config.maxTakes) video takes for AI video generation.
+        
+        STORY:
+        \(text)
+        
+        REQUIREMENTS:
+        - Each take = 5-10 seconds of video
+        - CAPTURE EVERY STORY BEAT - nothing skipped
+        - If dialogue exists: show characters speaking visually
+        - If action exists: show the action happening
+        - Each prompt must be COMPLETE and ready for video generation
+        - Include: who's in frame, what they're doing, environment, lighting, mood, camera angle
+        
+        Return JSON array:
+        [
+          {
+            "takeNumber": 1,
+            "prompt": "Detailed visual description: characters, actions, environment, camera, lighting, mood",
+            "storyContent": "What narrative moment this captures",
+            "estimatedDuration": 7.0,
+            "sceneType": "establishing",
+            "hasDialogue": false,
+            "emotionalTone": "tense",
+            "cameraDirection": "wide shot"
+          }
+        ]
+        
+        Return ONLY valid JSON.
+        """
+        
+        let response = try await deepSeekClient.complete(prompt: prompt)
+        return try parseTakes(response)
+    }
+    
+    private func parseTakes(_ json: String) throws -> [FilmTake] {
+        var cleaned = json.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("```json") { cleaned = String(cleaned.dropFirst(7)) }
+        if cleaned.hasPrefix("```") { cleaned = String(cleaned.dropFirst(3)) }
+        if cleaned.hasSuffix("```") { cleaned = String(cleaned.dropLast(3)) }
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard let data = cleaned.data(using: .utf8) else {
+            throw GeneratorError.invalidJSON("Cannot convert to data")
+        }
+        
+        let decoder = JSONDecoder()
+        let rawTakes = try decoder.decode([RawTake].self, from: data)
+        
+        return rawTakes.enumerated().map { index, raw in
+            FilmTake(
+                id: UUID(),
+                takeNumber: raw.takeNumber,
+                prompt: raw.prompt,
+                storyContent: raw.storyContent,
+                useSeedImage: index > 0 && config.continuityMode != .none,
+                seedFromTake: index > 0 ? index : nil,
+                estimatedDuration: raw.estimatedDuration,
+                sceneType: FilmTake.SceneType(rawValue: raw.sceneType) ?? .action,
+                hasDialogue: raw.hasDialogue,
+                dialogueLines: raw.dialogueLines?.map {
+                    DialogueLine(
+                        speaker: $0.speaker,
+                        text: $0.text,
+                        emotion: $0.emotion,
+                        visualDescription: $0.visualDescription
+                    )
+                },
+                emotionalTone: raw.emotionalTone,
+                cameraDirection: raw.cameraDirection
+            )
+        }
+    }
+    
+    struct RawTake: Codable {
+        let takeNumber: Int
+        let prompt: String
+        let storyContent: String
+        let estimatedDuration: Double
+        let sceneType: String
+        let hasDialogue: Bool
+        let dialogueLines: [RawDialogue]?
+        let emotionalTone: String
+        let cameraDirection: String?
+    }
+    
+    struct RawDialogue: Codable {
+        let speaker: String
+        let text: String
+        let emotion: String
+        let visualDescription: String
+    }
+    
+    private func buildContinuityChain(_ takes: [FilmTake]) -> [ContinuityLink] {
+        var links: [ContinuityLink] = []
+        
+        for i in 0..<(takes.count - 1) {
+            let current = takes[i]
+            let next = takes[i + 1]
+            
+            links.append(ContinuityLink(
+                fromTake: current.takeNumber,
+                toTake: next.takeNumber,
+                continuityType: "visual",
+                description: "Take \(next.takeNumber) uses last frame from Take \(current.takeNumber) as seed"
+            ))
+        }
+        
+        return links
+    }
+}
+
+// MARK: - DeepSeek Client
+
+final class DeepSeekFilmClient {
+    private let apiKey: String
+    private let endpoint = "https://api.deepseek.com/v1/chat/completions"
+    private(set) var callCount = 0
+    
+    init(apiKey: String) {
+        self.apiKey = apiKey
+    }
+    
+    func complete(prompt: String, temperature: Double = 0.7) async throws -> String {
+        callCount += 1
+        
+        let url = URL(string: endpoint)!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "model": "deepseek-chat",
+            "messages": [
+                ["role": "system", "content": "You are an expert film director who transforms stories into visual sequences."],
+                ["role": "user", "content": prompt]
+            ],
+            "temperature": temperature,
+            "max_tokens": 4096
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw GeneratorError.apiError("HTTP error")
+        }
+        
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let choices = json?["choices"] as? [[String: Any]],
+              let message = choices.first?["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            throw GeneratorError.invalidResponse
+        }
+        
+        return content
+    }
+}
+
+// MARK: - Errors
+
+enum GeneratorError: LocalizedError {
+    case invalidJSON(String)
+    case apiError(String)
+    case invalidResponse
+    case noTakesGenerated
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidJSON(let detail): return "Invalid JSON: \(detail)"
+        case .apiError(let detail): return "API error: \(detail)"
+        case .invalidResponse: return "Invalid response from API"
+        case .noTakesGenerated: return "Failed to generate any takes"
+        }
+    }
+}
+
+// MARK: - Backward Compatibility Types (for legacy UI components)
+
+enum SegmentationMode: String, CaseIterable {
+    case ai = "AI"
+    case hybrid = "Hybrid"
+    case duration = "Duration"
+    case evenSplit = "Even Split"
+    
+    var displayName: String { rawValue }
+    var requiresLLM: Bool { self == .ai || self == .hybrid }
+}
+
+struct SegmentationWarning: Equatable {
+    let message: String
 }
 
 struct SegmentationMetadata: Codable {
@@ -279,27 +343,93 @@ struct SegmentationMetadata: Codable {
     let llmCallCount: Int
     let fallbackUsed: Bool
     let constraintsViolated: [String]
-    
-    // Semantic Expansion Stats
     let expansionStats: ExpansionStats?
 }
 
 struct ExpansionStats: Codable {
     let enabled: Bool
-    let expandedCount: Int              // Number of segments expanded
-    let totalExpansionTokens: Int       // Total tokens added by expansion
-    let averageEmotionScore: Double?    // Average emotion across expanded segments
+    let expandedCount: Int
+    let totalExpansionTokens: Int
+    let averageEmotionScore: Double?
     let expansionStyle: String
-    let expansionTime: TimeInterval     // Time spent on expansion
-    
-    var summary: String {
-        """
-        Expansions: \(expandedCount)
-        Added Tokens: \(totalExpansionTokens)
-        Style: \(expansionStyle)
-        Time: \(String(format: "%.2f", expansionTime))s
-        """
+    let expansionTime: TimeInterval
+}
+
+struct SemanticExpansionConfig {
+    enum ExpansionStyle: String, CaseIterable {
+        case vivid = "Vivid"
+        case emotional = "Emotional"
+        case action = "Action"
+        case atmospheric = "Atmospheric"
+        case balanced = "Balanced"
     }
+}
+
+// MARK: - Old SegmentingModule Interface (for compatibility)
+
+extension StoryToFilmGenerator {
+    /// Compatibility wrapper for old segment() calls
+    func segment(
+        script: String,
+        mode: SegmentationMode,
+        constraints: SegmentationConstraints,
+        llmConfig: LLMConfiguration?
+    ) async throws -> SegmentationResult {
+        // Convert to new system
+        let film = try await generateFilm(from: script)
+        
+        // Convert FilmTakes to old segment format for compatibility
+        let metadata = SegmentationMetadata(
+            mode: mode.displayName,
+            segmentCount: film.takeCount,
+            totalTokens: 0,
+            totalDuration: film.totalDuration,
+            averageConfidence: 1.0,
+            executionTime: film.metadata.processingTime,
+            llmCallCount: film.metadata.apiCalls,
+            fallbackUsed: false,
+            constraintsViolated: [],
+            expansionStats: nil
+        )
+        
+        return SegmentationResult(
+            segments: [],  // Not used in new system
+            metadata: metadata,
+            warnings: film.warnings.map { SegmentationWarning(message: $0) },
+            llmUsage: nil
+        )
+    }
+}
+
+struct SegmentationConstraints {
+    var maxSegments: Int = 50
+    var maxTokensPerSegment: Int = 200
+    var maxDuration: Double = 10.0
+    var minDuration: Double = 5.0
+    var targetDuration: Double = 7.0
+    var enforceStrictLimits: Bool = true
+    var allowAutoAdjustment: Bool = true
+    
+    static let `default` = SegmentationConstraints()
+}
+
+struct LLMConfiguration {
+    var apiKey: String
+    var enableSemanticExpansion: Bool = false
+    var expansionConfig: SemanticExpansionConfig = SemanticExpansionConfig()
+}
+
+struct SegmentationResult {
+    let segments: [CinematicSegment]
+    let metadata: SegmentationMetadata
+    let warnings: [SegmentationWarning]
+    let llmUsage: LLMUsageStats?
+}
+
+struct CinematicSegment: Codable, Identifiable {
+    let id: UUID
+    let text: String
+    let estimatedDuration: Double
 }
 
 struct LLMUsageStats: Codable {
@@ -311,1304 +441,27 @@ struct LLMUsageStats: Codable {
     let cost: Double?
 }
 
-// MARK: - Warnings
+// MARK: - Legacy SegmentingModule Class (for compatibility)
 
-enum SegmentationWarning: Equatable {
-    case tokenLimitExceeded(segmentIndex: Int, tokens: Int, limit: Int)
-    case durationExceeded(segmentIndex: Int, duration: Double, limit: Double)
-    case tooManySegments(count: Int, limit: Int)
-    case lowConfidence(segmentIndex: Int, confidence: Double)
-    case llmFailed(reason: String)
-    case fallbackUsed(from: String, to: String)
-    case autoAdjusted(description: String)
-    case ambiguousBoundary(segmentIndex: Int)
-    
-    // Expansion-specific warnings
-    case expansionFailed(segmentIndex: Int, reason: String)
-    case expansionBudgetExceeded(segmentIndex: Int, tokens: Int, budget: Int)
-    case maxExpansionsReached(limit: Int)
-    case lowExpansionQuality(segmentIndex: Int, confidence: Double)
-    
-    var severity: Severity {
-        switch self {
-        case .tokenLimitExceeded, .durationExceeded, .tooManySegments, .llmFailed:
-            return .error
-        case .lowConfidence, .fallbackUsed, .ambiguousBoundary, 
-             .expansionFailed, .lowExpansionQuality:
-            return .warning
-        case .autoAdjusted, .expansionBudgetExceeded, .maxExpansionsReached:
-            return .info
-        }
-    }
-    
-    enum Severity {
-        case error, warning, info
-    }
-    
-    var message: String {
-        switch self {
-        case .tokenLimitExceeded(let idx, let tokens, let limit):
-            return "Segment #\(idx + 1): \(tokens) tokens exceeds limit of \(limit)"
-        case .durationExceeded(let idx, let duration, let limit):
-            return "Segment #\(idx + 1): \(String(format: "%.1f", duration))s exceeds limit of \(String(format: "%.1f", limit))s"
-        case .tooManySegments(let count, let limit):
-            return "\(count) segments exceeds maximum of \(limit)"
-        case .lowConfidence(let idx, let confidence):
-            return "Segment #\(idx + 1): Low boundary confidence (\(Int(confidence * 100))%)"
-        case .llmFailed(let reason):
-            return "LLM analysis failed: \(reason)"
-        case .fallbackUsed(let from, let to):
-            return "Fallback: \(from) → \(to)"
-        case .autoAdjusted(let description):
-            return "Auto-adjusted: \(description)"
-        case .ambiguousBoundary(let idx):
-            return "Segment #\(idx + 1): Boundary detection was ambiguous"
-        case .expansionFailed(let idx, let reason):
-            return "Segment #\(idx + 1): Expansion failed - \(reason)"
-        case .expansionBudgetExceeded(let idx, let tokens, let budget):
-            return "Segment #\(idx + 1): Expansion added \(tokens) tokens (budget: \(budget))"
-        case .maxExpansionsReached(let limit):
-            return "Reached maximum \(limit) expansions for cost control"
-        case .lowExpansionQuality(let idx, let confidence):
-            return "Segment #\(idx + 1): Low expansion quality (\(Int(confidence * 100))%)"
-        }
-    }
-}
-
-// MARK: - Errors
-
-enum SegmentationError: LocalizedError {
-    case emptyScript
-    case invalidConstraints(String)
-    case llmConnectionFailed(String)
-    case llmResponseInvalid(String)
-    case constraintViolationUnresolvable(String)
-    case noValidSegments
-    
-    var errorDescription: String? {
-        switch self {
-        case .emptyScript:
-            return "Cannot segment an empty script"
-        case .invalidConstraints(let detail):
-            return "Invalid constraints: \(detail)"
-        case .llmConnectionFailed(let detail):
-            return "LLM connection failed: \(detail)"
-        case .llmResponseInvalid(let detail):
-            return "LLM returned invalid response: \(detail)"
-        case .constraintViolationUnresolvable(let detail):
-            return "Cannot resolve constraint violation: \(detail)"
-        case .noValidSegments:
-            return "No valid segments could be created"
-        }
-    }
-}
-
-// MARK: - Main Implementation
-
-final class SegmentingModule: SegmentingModuleProtocol {
-    
-    private let tokenEstimator: TokenEstimator
-    private let llmClient: LLMClient
-    private let expansionProcessor: SemanticExpansionProcessor
-    
-    init(
-        tokenEstimator: TokenEstimator = .shared,
-        llmClient: LLMClient = .shared,
-        expansionProcessor: SemanticExpansionProcessor = .shared
-    ) {
-        self.tokenEstimator = tokenEstimator
-        self.llmClient = llmClient
-        self.expansionProcessor = expansionProcessor
-    }
-    
-    // MARK: - Public API
-    
+final class SegmentingModule {
     func segment(
         script: String,
         mode: SegmentationMode,
         constraints: SegmentationConstraints = .default,
         llmConfig: LLMConfiguration? = nil
     ) async throws -> SegmentationResult {
-        
-        let startTime = Date()
-        
-        // Validate input
-        guard !script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SegmentationError.emptyScript
+        // Redirect to new StoryToFilmGenerator
+        guard let config = llmConfig else {
+            throw GeneratorError.apiError("API key required")
         }
         
-        guard constraints.isValid else {
-            throw SegmentationError.invalidConstraints("Constraints are internally inconsistent")
-        }
-        
-        #if DEBUG
-        SEGLOG("\n" + String(repeating: "=", count: 60))
-        SEGLOG("🎬 [SegmentingModule] SEGMENTATION STARTED")
-        SEGLOG(String(repeating: "=", count: 60))
-        SEGLOG("📝 Script Length: \(script.count) characters")
-        SEGLOG("📝 Script Preview: \(script.prefix(200))...")
-        SEGLOG("🎯 Mode: \(mode.displayName)")
-        SEGLOG("⚙️  Constraints:")
-        SEGLOG("   - Max Segments: \(constraints.maxSegments)")
-        SEGLOG("   - Max Tokens/Segment: \(constraints.maxTokensPerSegment)")
-        SEGLOG("   - Max Duration: \(constraints.maxDuration)s")
-        SEGLOG("   - Target Duration: \(constraints.targetDuration)s")
-        SEGLOG("   - Enforce Strict Limits: \(constraints.enforceStrictLimits)")
-        SEGLOG("🔑 LLM Config: \(llmConfig != nil ? "Provided" : "None")")
-        SEGLOG(String(repeating: "=", count: 60) + "\n")
-        #endif
-        
-        var warnings: [SegmentationWarning] = []
-        var llmUsage: LLMUsageStats?
-        var llmCallCount = 0
-        var fallbackUsed = false
-        var constraintsViolated: [String] = []
-        
-        // Execute segmentation based on mode
-        var segments: [CinematicSegment]
-        
-        switch mode {
-        case .ai:
-            #if DEBUG
-            SEGLOG("🤖 [AI Mode] Starting LLM-based segmentation...")
-            #endif
-            
-            // Primary LLM-based segmentation
-            guard let config = llmConfig else {
-                #if DEBUG
-                SEGLOG("❌ [AI Mode] FAILED: No LLM configuration provided")
-                SEGLOG("💡 User must provide API key for AI mode")
-                #endif
-                throw SegmentationError.llmConnectionFailed("LLM configuration required for AI mode")
-            }
-            
-            #if DEBUG
-            SEGLOG("✅ [AI Mode] LLM config found, calling API...")
-            #endif
-            
-            do {
-                let result = try await segmentWithLLM(
-                    script: script,
-                    config: config,
-                    constraints: constraints
-                )
-                segments = result.segments
-                llmUsage = result.usage
-                llmCallCount = result.callCount
-                warnings.append(contentsOf: result.warnings)
-                
-                #if DEBUG
-                SEGLOG("✅ [AI Mode] Success: Generated \(segments.count) segments")
-                #endif
-                
-            } catch {
-                throw SegmentationError.llmConnectionFailed(error.localizedDescription)
-            }
-            
-        case .hybrid:
-            #if DEBUG
-            SEGLOG("🔀 [Hybrid Mode] Attempting AI with duration fallback...")
-            #endif
-            
-            // Try LLM, fallback to duration on failure
-            if let config = llmConfig {
-                #if DEBUG
-                SEGLOG("✅ [Hybrid Mode] LLM config available, trying AI first...")
-                #endif
-                
-                do {
-                    let result = try await segmentWithLLM(
-                        script: script,
-                        config: config,
-                        constraints: constraints
-                    )
-                    segments = result.segments
-                    llmUsage = result.usage
-                    llmCallCount = result.callCount
-                    warnings.append(contentsOf: result.warnings)
-                    
-                    #if DEBUG
-                    SEGLOG("✅ [Hybrid Mode] AI succeeded: \(segments.count) segments")
-                    #endif
-                    
-                } catch {
-                    #if DEBUG
-                    SEGLOG("⚠️ [Hybrid Mode] AI failed: \(error.localizedDescription)")
-                    SEGLOG("🔄 [Hybrid Mode] Falling back to duration-based segmentation...")
-                    #endif
-                    
-                    warnings.append(.llmFailed(reason: error.localizedDescription))
-                    warnings.append(.fallbackUsed(from: "AI", to: "Duration"))
-                    fallbackUsed = true
-                    segments = segmentByDuration(script: script, constraints: constraints)
-                    
-                    #if DEBUG
-                    SEGLOG("✅ [Hybrid Mode] Fallback succeeded: \(segments.count) segments")
-                    #endif
-                }
-            } else {
-                #if DEBUG
-                SEGLOG("⚠️ [Hybrid Mode] No LLM config, using duration-based directly...")
-                #endif
-                
-                warnings.append(.fallbackUsed(from: "AI", to: "Duration"))
-                fallbackUsed = true
-                segments = segmentByDuration(script: script, constraints: constraints)
-                
-                #if DEBUG
-                SEGLOG("✅ [Hybrid Mode] Duration-based: \(segments.count) segments")
-                #endif
-            }
-            
-        case .duration:
-            #if DEBUG
-            SEGLOG("⏱️  [Duration Mode] Starting duration-based segmentation...")
-            #endif
-            
-            segments = segmentByDuration(script: script, constraints: constraints)
-            
-            #if DEBUG
-            SEGLOG("✅ [Duration Mode] Generated \(segments.count) segments")
-            #endif
-            
-        case .evenSplit:
-            #if DEBUG
-            SEGLOG("📊 [Even Split Mode] Starting even token distribution...")
-            #endif
-            
-            segments = segmentEvenly(script: script, constraints: constraints)
-            
-            #if DEBUG
-            SEGLOG("✅ [Even Split Mode] Generated \(segments.count) segments")
-            #endif
-        }
-        
-        // Validate and enforce constraints
-        #if DEBUG
-        SEGLOG("\n🔍 [Validation] Enforcing constraints on \(segments.count) segments...")
-        #endif
-        
-        segments = try enforceConstraints(
-            segments: segments,
-            constraints: constraints,
-            warnings: &warnings,
-            constraintsViolated: &constraintsViolated
-        )
-        
-        #if DEBUG
-        SEGLOG("✅ [Validation] After enforcement: \(segments.count) segments")
-        if !constraintsViolated.isEmpty {
-            SEGLOG("⚠️ [Validation] Constraints violated:")
-            constraintsViolated.forEach { SEGLOG("   - \($0)") }
-        }
-        #endif
-        
-        guard !segments.isEmpty else {
-            #if DEBUG
-            SEGLOG("❌ [Validation] FATAL: No valid segments after enforcement!")
-            SEGLOG("💡 This usually means:")
-            SEGLOG("   - Script is too short for constraints")
-            SEGLOG("   - Token limits are too restrictive")
-            SEGLOG("   - Duration constraints can't be met")
-            #endif
-            throw SegmentationError.noValidSegments
-        }
-        
-        // Apply semantic expansion if enabled
-        var expansionStats: ExpansionStats?
-        if let config = llmConfig, config.enableSemanticExpansion {
-            #if DEBUG
-            SEGLOG("🎨 [SemanticExpansion] Starting expansion pass")
-            #endif
-            
-            let expansionStartTime = Date()
-            let expansionResult = try await expansionProcessor.expandSegments(
-                segments,
-                config: config,
-                warnings: &warnings
-            )
-            
-            segments = expansionResult.segments
-            let expansionTime = Date().timeIntervalSince(expansionStartTime)
-            
-            let expandedCount = segments.filter { $0.expandedPrompt != nil }.count
-            let totalExpansionTokens = segments.reduce(0) { $0 + ($1.expandedPrompt?.additionalTokens ?? 0) }
-            let emotionScores = segments.compactMap { $0.expandedPrompt?.emotionScore }
-            let avgEmotion = emotionScores.isEmpty ? nil : emotionScores.reduce(0, +) / Double(emotionScores.count)
-            
-            expansionStats = ExpansionStats(
-                enabled: true,
-                expandedCount: expandedCount,
-                totalExpansionTokens: totalExpansionTokens,
-                averageEmotionScore: avgEmotion,
-                expansionStyle: config.expansionConfig.expansionStyle.rawValue,
-                expansionTime: expansionTime
-            )
-            
-            llmCallCount += expandedCount  // Count expansion LLM calls
-            
-            #if DEBUG
-            SEGLOG("✨ [SemanticExpansion] Complete")
-            SEGLOG("   Expanded: \(expandedCount) segments")
-            SEGLOG("   Added Tokens: \(totalExpansionTokens)")
-            SEGLOG("   Time: \(String(format: "%.2f", expansionTime))s")
-            #endif
-        }
-        
-        // Calculate metadata
-        let executionTime = Date().timeIntervalSince(startTime)
-        let avgConfidence = segments.reduce(0.0) { $0 + $1.confidence } / Double(segments.count)
-        
-        let metadata = SegmentationMetadata(
-            mode: mode.displayName,
-            segmentCount: segments.count,
-            totalTokens: segments.reduce(0) { $0 + $1.estimatedTokens },
-            totalDuration: segments.reduce(0) { $0 + $1.estimatedDuration },
-            averageConfidence: avgConfidence,
-            executionTime: executionTime,
-            llmCallCount: llmCallCount,
-            fallbackUsed: fallbackUsed,
-            constraintsViolated: constraintsViolated,
-            expansionStats: expansionStats
-        )
-        
-        #if DEBUG
-        SEGLOG("\n" + String(repeating: "=", count: 60))
-        SEGLOG("✅ [SegmentingModule] SEGMENTATION COMPLETE")
-        print(String(repeating: "=", count: 60))
-        SEGLOG("📊 Results:")
-        SEGLOG("   - Total Segments: \(segments.count)")
-        SEGLOG("   - Total Tokens: \(metadata.totalTokens)")
-        SEGLOG("   - Total Duration: \(String(format: "%.1f", metadata.totalDuration))s")
-        SEGLOG("   - Avg Confidence: \(Int(avgConfidence * 100))%")
-        SEGLOG("   - Execution Time: \(String(format: "%.2f", executionTime))s")
-        SEGLOG("   - LLM Calls: \(llmCallCount)")
-        SEGLOG("   - Fallback Used: \(fallbackUsed)")
-        
-        if !warnings.isEmpty {
-            SEGLOG("\n⚠️  Warnings (\(warnings.count)):")
-            warnings.forEach { SEGLOG("   - \($0.message)") }
-        }
-        
-        if !constraintsViolated.isEmpty {
-            SEGLOG("\n🚨 Constraints Violated (\(constraintsViolated.count)):")
-            constraintsViolated.forEach { SEGLOG("   - \($0)") }
-        }
-        
-        SEGLOG("\n📝 Segment Preview:")
-        for (i, segment) in segments.prefix(3).enumerated() {
-            SEGLOG("   [\(i+1)] \(segment.text.prefix(60))... (\(segment.estimatedTokens)t, \(String(format: "%.1f", segment.estimatedDuration))s)")
-        }
-        if segments.count > 3 {
-            SEGLOG("   ... and \(segments.count - 3) more segments")
-        }
-        
-        print(String(repeating: "=", count: 60) + "\n")
-        #endif
-        
-        return SegmentationResult(
-            segments: segments,
-            metadata: metadata,
-            warnings: warnings,
-            llmUsage: llmUsage
-        )
-    }
-    
-    // MARK: - LLM Segmentation
-    
-    private func segmentWithLLM(
-        script: String,
-        config: LLMConfiguration,
-        constraints: SegmentationConstraints
-    ) async throws -> (segments: [CinematicSegment], usage: LLMUsageStats?, callCount: Int, warnings: [SegmentationWarning]) {
-        
-        let prompt = buildLLMPrompt(script: script, constraints: constraints)
-        
-        #if DEBUG
-        SEGLOG("🤖 [LLM] Sending segmentation request to \(config.provider.rawValue)")
-        #endif
-        
-        let response = try await llmClient.complete(prompt: prompt, config: config)
-        
-        // Parse LLM response
-        let parsed = try parseLLMResponse(response.content, script: script)
-        
-        // Build segments from parsed data
-        var segments: [CinematicSegment] = []
-        var currentToken = 0
-        var warnings: [SegmentationWarning] = []
-        
-        for (index, boundary) in parsed.boundaries.enumerated() {
-            let text = boundary.text
-            let tokens = tokenEstimator.estimate(text)
-            let duration = estimateDuration(text: text, targetDuration: constraints.targetDuration)
-            
-            let segment = CinematicSegment(
-                id: UUID(),
-                segmentIndex: index,
-                text: text,
-                estimatedTokens: tokens,
-                estimatedDuration: duration,
-                globalStartToken: currentToken,
-                globalEndToken: currentToken + tokens,
-                taxonomyHints: boundary.taxonomyHints,
-                splitReason: boundary.reason,
-                confidence: boundary.confidence,
-                fallbackNotes: nil
-            )
-            
-            segments.append(segment)
-            currentToken += tokens
-            
-            // Check confidence
-            if boundary.confidence < 0.6 {
-                warnings.append(.lowConfidence(segmentIndex: index, confidence: boundary.confidence))
-            }
-            
-            if boundary.ambiguous {
-                warnings.append(.ambiguousBoundary(segmentIndex: index))
-            }
-        }
-        
-        let usage = LLMUsageStats(
-            provider: config.provider.rawValue,
-            model: config.model,
-            promptTokens: response.usage.promptTokens,
-            completionTokens: response.usage.completionTokens,
-            totalTokens: response.usage.totalTokens,
-            cost: response.usage.estimatedCost
-        )
-        
-        return (segments, usage, 1, warnings)
-    }
-    
-    private func buildLLMPrompt(script: String, constraints: SegmentationConstraints) -> String {
-        """
-        You are an expert film editor and cinematographer. Analyze the following script and divide it into cinematic segments suitable for AI video generation.
-
-        CONSTRAINTS:
-        - Maximum segments: \(constraints.maxSegments)
-        - Maximum tokens per segment: \(constraints.maxTokensPerSegment)
-        - Target duration per segment: \(constraints.targetDuration) seconds
-        - Duration range: \(constraints.minDuration)-\(constraints.maxDuration) seconds
-
-        SCRIPT:
-        \(script)
-
-        INSTRUCTIONS:
-        1. Process the entire script and identify natural cinematic boundaries based on:
-           - Scene changes (location, time, action)
-           - Pacing shifts (slow to fast, calm to tense)
-           - Narrative beats (introduction, conflict, resolution)
-           - Visual transitions (cuts, fades, dissolves)
-
-        2. For each segment, provide:
-           - The exact text of the segment
-           - Reason for the split (e.g., "scene change", "pacing shift", "dialogue break")
-           - Confidence in the boundary (0.0-1.0)
-           - Taxonomy hints: camera angle, scene type, emotion, pacing, visual complexity, transition type
-
-        3. Resolve ambiguous boundaries with arc-aligned creative fills:
-           - When boundaries are unclear, choose splits that maintain narrative coherence
-           - Consider the overall story arc and character development
-           - Prefer emotional completeness over rigid structural rules
-           - Ensure coherence within 128k token context window
-
-        4. Ensure segments respect constraints:
-           - Max duration: 20 seconds per segment
-           - Token limits per segment
-           - Total duration limits
-        
-        5. Maintain chronological flow while ensuring narrative completeness
-        6. Mark ambiguous boundaries with confidence < 0.8
-
-        OUTPUT FORMAT (valid JSON):
-        {
-          "boundaries": [
-            {
-              "text": "segment text here",
-              "reason": "scene change from interior to exterior",
-              "confidence": 0.95,
-              "ambiguous": false,
-              "taxonomyHints": {
-                "cameraAngle": "wide",
-                "sceneType": "exterior",
-                "emotion": "calm",
-                "pacing": "slow",
-                "visualComplexity": "moderate",
-                "transitionType": "cut"
-              }
-            }
-          ]
-        }
-
-        Return ONLY valid JSON. Do not include any other text.
-        """
-    }
-    
-    // MARK: - Duration-Based Segmentation
-    
-    private func segmentByDuration(script: String, constraints: SegmentationConstraints) -> [CinematicSegment] {
-        #if DEBUG
-        SEGLOG("⏱️  [segmentByDuration] Starting...")
-        SEGLOG("   - Target duration per segment: \(constraints.targetDuration)s")
-        #endif
-        
-        // ~150 words per minute of speech = ~2.5 words per second
-        let wordsPerSecond = 2.5
-        let targetWords = Int(constraints.targetDuration * wordsPerSecond)
-        
-        #if DEBUG
-        SEGLOG("   - Target words per segment: \(targetWords)")
-        #endif
-        
-        let words = script.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-        
-        #if DEBUG
-        SEGLOG("   - Total words in script: \(words.count)")
-        SEGLOG("   - Estimated segments: ~\(words.count / max(targetWords, 1))")
-        #endif
-        
-        var segments: [CinematicSegment] = []
-        var currentChunk: [String] = []
-        var currentToken = 0
-        var segmentIndex = 0
-        
-        for word in words {
-            currentChunk.append(word)
-            
-            if currentChunk.count >= targetWords || word == words.last {
-                let text = currentChunk.joined(separator: " ")
-                let tokens = tokenEstimator.estimate(text)
-                let duration = Double(currentChunk.count) / wordsPerSecond
-                
-                #if DEBUG
-                if segmentIndex < 3 {
-                    SEGLOG("   [Segment \(segmentIndex + 1)] \(currentChunk.count) words, \(tokens) tokens, \(String(format: "%.1f", duration))s")
-                }
-                #endif
-                
-                let segment = CinematicSegment(
-                    id: UUID(),
-                    segmentIndex: segmentIndex,
-                    text: text,
-                    estimatedTokens: tokens,
-                    estimatedDuration: duration,
-                    globalStartToken: currentToken,
-                    globalEndToken: currentToken + tokens,
-                    taxonomyHints: .empty,
-                    splitReason: "duration-based split",
-                    confidence: 0.7,
-                    fallbackNotes: "Fallback: duration-based segmentation"
-                )
-                
-                segments.append(segment)
-                currentToken += tokens
-                segmentIndex += 1
-                currentChunk = []
-            }
-        }
-        
-        #if DEBUG
-        SEGLOG("✅ [segmentByDuration] Created \(segments.count) segments")
-        #endif
-        
-        return segments
-    }
-    
-    // MARK: - Even Split Segmentation
-    
-    private func segmentEvenly(script: String, constraints: SegmentationConstraints) -> [CinematicSegment] {
-        let totalTokens = tokenEstimator.estimate(script)
-        let targetSegments = min(constraints.maxSegments, max(1, totalTokens / constraints.maxTokensPerSegment))
-        
-        let words = script.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-        
-        let wordsPerSegment = words.count / targetSegments
-        
-        var segments: [CinematicSegment] = []
-        var currentToken = 0
-        
-        for i in 0..<targetSegments {
-            let start = i * wordsPerSegment
-            let end = min((i + 1) * wordsPerSegment, words.count)
-            let segmentWords = Array(words[start..<end])
-            let text = segmentWords.joined(separator: " ")
-            let tokens = tokenEstimator.estimate(text)
-            let duration = estimateDuration(text: text, targetDuration: constraints.targetDuration)
-            
-            let segment = CinematicSegment(
-                id: UUID(),
-                segmentIndex: i,
-                text: text,
-                estimatedTokens: tokens,
-                estimatedDuration: duration,
-                globalStartToken: currentToken,
-                globalEndToken: currentToken + tokens,
-                taxonomyHints: .empty,
-                splitReason: "even split",
-                confidence: 0.8,
-                fallbackNotes: "Even distribution split"
-            )
-            
-            segments.append(segment)
-            currentToken += tokens
-        }
-        
-        return segments
-    }
-    
-    // MARK: - Constraint Enforcement
-    
-    private func enforceConstraints(
-        segments: [CinematicSegment],
-        constraints: SegmentationConstraints,
-        warnings: inout [SegmentationWarning],
-        constraintsViolated: inout [String]
-    ) throws -> [CinematicSegment] {
-        
-        var adjustedSegments = segments
-        
-        // Check segment count
-        if adjustedSegments.count > constraints.maxSegments {
-            warnings.append(.tooManySegments(count: adjustedSegments.count, limit: constraints.maxSegments))
-            constraintsViolated.append("maxSegments")
-            
-            if constraints.allowAutoAdjustment {
-                adjustedSegments = mergeSegments(adjustedSegments, targetCount: constraints.maxSegments)
-                warnings.append(.autoAdjusted(description: "Merged to \(constraints.maxSegments) segments"))
-            } else if constraints.enforceStrictLimits {
-                throw SegmentationError.constraintViolationUnresolvable("Too many segments and auto-adjustment disabled")
-            }
-        }
-        
-        // Check token limits
-        for (index, segment) in adjustedSegments.enumerated() {
-            if segment.estimatedTokens > constraints.maxTokensPerSegment {
-                warnings.append(.tokenLimitExceeded(
-                    segmentIndex: index,
-                    tokens: segment.estimatedTokens,
-                    limit: constraints.maxTokensPerSegment
-                ))
-                constraintsViolated.append("maxTokensPerSegment[\(index)]")
-                
-                if constraints.allowAutoAdjustment {
-                    let truncated = tokenEstimator.truncate(segment.text, maxTokens: constraints.maxTokensPerSegment)
-                    adjustedSegments[index] = CinematicSegment(
-                        id: segment.id,
-                        segmentIndex: segment.segmentIndex,
-                        text: truncated,
-                        estimatedTokens: constraints.maxTokensPerSegment,
-                        estimatedDuration: segment.estimatedDuration,
-                        globalStartToken: segment.globalStartToken,
-                        globalEndToken: segment.globalStartToken + constraints.maxTokensPerSegment,
-                        taxonomyHints: segment.taxonomyHints,
-                        splitReason: segment.splitReason,
-                        confidence: segment.confidence * 0.8,
-                        fallbackNotes: "Truncated to fit token limit"
-                    )
-                    warnings.append(.autoAdjusted(description: "Segment #\(index + 1) truncated"))
-                } else if constraints.enforceStrictLimits {
-                    throw SegmentationError.constraintViolationUnresolvable("Token limit exceeded and auto-adjustment disabled")
-                }
-            }
-            
-            // Check duration limits
-            if segment.estimatedDuration > constraints.maxDuration {
-                warnings.append(.durationExceeded(
-                    segmentIndex: index,
-                    duration: segment.estimatedDuration,
-                    limit: constraints.maxDuration
-                ))
-                constraintsViolated.append("maxDuration[\(index)]")
-            }
-        }
-        
-        return adjustedSegments
-    }
-    
-    private func mergeSegments(_ segments: [CinematicSegment], targetCount: Int) -> [CinematicSegment] {
-        guard segments.count > targetCount else { return segments }
-        
-        var merged = segments
-        
-        while merged.count > targetCount {
-            // Find two adjacent segments with lowest combined confidence to merge
-            var minConfidencePairIndex = 0
-            var minConfidence = Double.infinity
-            
-            for i in 0..<(merged.count - 1) {
-                let pairConfidence = (merged[i].confidence + merged[i + 1].confidence) / 2
-                if pairConfidence < minConfidence {
-                    minConfidence = pairConfidence
-                    minConfidencePairIndex = i
-                }
-            }
-            
-            // Merge the pair
-            let first = merged[minConfidencePairIndex]
-            let second = merged[minConfidencePairIndex + 1]
-            
-            let mergedSegment = CinematicSegment(
-                id: UUID(),
-                segmentIndex: first.segmentIndex,
-                text: first.text + " " + second.text,
-                estimatedTokens: first.estimatedTokens + second.estimatedTokens,
-                estimatedDuration: first.estimatedDuration + second.estimatedDuration,
-                globalStartToken: first.globalStartToken,
-                globalEndToken: second.globalEndToken,
-                taxonomyHints: first.taxonomyHints,
-                splitReason: "merged segments",
-                confidence: (first.confidence + second.confidence) / 2,
-                fallbackNotes: "Auto-merged to meet segment limit"
-            )
-            
-            merged.remove(at: minConfidencePairIndex)
-            merged[minConfidencePairIndex] = mergedSegment
-        }
-        
-        // Re-index
-        return merged.enumerated().map { index, segment in
-            CinematicSegment(
-                id: segment.id,
-                segmentIndex: index,
-                text: segment.text,
-                estimatedTokens: segment.estimatedTokens,
-                estimatedDuration: segment.estimatedDuration,
-                globalStartToken: segment.globalStartToken,
-                globalEndToken: segment.globalEndToken,
-                taxonomyHints: segment.taxonomyHints,
-                splitReason: segment.splitReason,
-                confidence: segment.confidence,
-                fallbackNotes: segment.fallbackNotes
-            )
-        }
-    }
-    
-    // MARK: - Helpers
-    
-    private func estimateDuration(text: String, targetDuration: Double) -> Double {
-        let wordCount = text.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }.count
-        return Double(wordCount) / 2.5  // ~2.5 words per second
-    }
-    
-    private func parseLLMResponse(_ content: String, script: String) throws -> ParsedLLMResponse {
-        // Clean response - remove markdown code blocks if present
-        var cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.hasPrefix("```json") {
-            cleaned = cleaned.replacingOccurrences(of: "```json", with: "")
-        }
-        if cleaned.hasPrefix("```") {
-            cleaned = cleaned.replacingOccurrences(of: "```", with: "")
-        }
-        if cleaned.hasSuffix("```") {
-            cleaned = cleaned.replacingOccurrences(of: "```", with: "")
-        }
-        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard let data = cleaned.data(using: .utf8) else {
-            throw SegmentationError.llmResponseInvalid("Cannot convert response to data")
-        }
-        
-        let decoder = JSONDecoder()
-        
-        do {
-            let response = try decoder.decode(ParsedLLMResponse.self, from: data)
-            return response
-        } catch {
-            throw SegmentationError.llmResponseInvalid("JSON parsing failed: \(error.localizedDescription)")
-        }
-    }
-}
-
-// MARK: - LLM Response Parsing
-
-struct ParsedLLMResponse: Codable {
-    let boundaries: [BoundaryInfo]
-}
-
-struct BoundaryInfo: Codable {
-    let text: String
-    let reason: String
-    let confidence: Double
-    let ambiguous: Bool
-    let taxonomyHints: TaxonomyHints
-}
-
-// MARK: - Token Estimator
-
-final class TokenEstimator {
-    static let shared = TokenEstimator()
-    private init() {}
-    
-    func estimate(_ text: String) -> Int {
-        // GPT-style: ~4 characters per token
-        max(1, text.count / 4)
-    }
-    
-    func truncate(_ text: String, maxTokens: Int) -> String {
-        let maxChars = maxTokens * 4
-        guard text.count > maxChars else { return text }
-        let index = text.index(text.startIndex, offsetBy: maxChars)
-        return String(text[..<index]) + "..."
-    }
-}
-
-// MARK: - LLM Client
-
-final class LLMClient {
-    static let shared = LLMClient()
-    private init() {}
-    
-    func complete(prompt: String, config: LLMConfiguration) async throws -> LLMResponse {
-        let url = URL(string: config.endpoint)!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = config.timeoutSeconds
-        
-        let body: [String: Any] = [
-            "model": config.model,
-            "messages": [
-                ["role": "system", "content": "You are an expert film editor analyzing scripts for optimal scene segmentation."],
-                ["role": "user", "content": prompt]
-            ],
-            "temperature": config.temperature,
-            "max_tokens": config.maxTokens,
-            "top_p": 0.9,
-            "stream": false
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        // Create URLSession with proper timeout configuration
-        let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.timeoutIntervalForRequest = config.timeoutSeconds
-        sessionConfig.timeoutIntervalForResource = config.timeoutSeconds * 2
-        let session = URLSession(configuration: sessionConfig)
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SegmentationError.llmConnectionFailed("Invalid response")
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw SegmentationError.llmConnectionFailed("HTTP \(httpResponse.statusCode): \(errorBody)")
-        }
-        
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let choices = json?["choices"] as? [[String: Any]],
-              let firstChoice = choices.first,
-              let message = firstChoice["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            throw SegmentationError.llmResponseInvalid("Missing content in response")
-        }
-        
-        let usage = json?["usage"] as? [String: Any]
-        let promptTokens = usage?["prompt_tokens"] as? Int ?? 0
-        let completionTokens = usage?["completion_tokens"] as? Int ?? 0
-        
-        return LLMResponse(
-            content: content,
-            usage: UsageInfo(
-                promptTokens: promptTokens,
-                completionTokens: completionTokens,
-                totalTokens: promptTokens + completionTokens,
-                estimatedCost: nil
-            )
-        )
-    }
-}
-
-struct LLMResponse {
-    let content: String
-    let usage: UsageInfo
-}
-
-struct UsageInfo {
-    let promptTokens: Int
-    let completionTokens: Int
-    let totalTokens: Int
-    let estimatedCost: Double?
-}
-
-// MARK: - Semantic Expansion Processor
-
-final class SemanticExpansionProcessor {
-    static let shared = SemanticExpansionProcessor()
-    
-    private let llmClient: LLMClient
-    private let tokenEstimator: TokenEstimator
-    
-    init(
-        llmClient: LLMClient = .shared,
-        tokenEstimator: TokenEstimator = .shared
-    ) {
-        self.llmClient = llmClient
-        self.tokenEstimator = tokenEstimator
-    }
-    
-    func expandSegments(
-        _ segments: [CinematicSegment],
-        config: LLMConfiguration,
-        warnings: inout [SegmentationWarning]
-    ) async throws -> (segments: [CinematicSegment], expandedCount: Int) {
-        
-        guard config.expansionConfig.isValid else {
-            warnings.append(.llmFailed(reason: "Invalid expansion configuration"))
-            return (segments, 0)
-        }
-        
-        var expandedSegments = segments
-        var expansionsPerformed = 0
-        let expansionConfig = config.expansionConfig
-        
-        // Identify candidates for expansion
-        let candidates = identifyExpansionCandidates(
-            segments,
-            config: expansionConfig
-        )
-        
-        #if DEBUG
-        SEGLOG("   Expansion candidates: \(candidates.count)")
-        #endif
-        
-        // Limit expansions for cost control
-        let maxToExpand = min(candidates.count, expansionConfig.maxExpansions)
-        
-        if candidates.count > maxToExpand {
-            warnings.append(.maxExpansionsReached(limit: maxToExpand))
-        }
-        
-        // Expand each candidate
-        for index in candidates.prefix(maxToExpand) {
-            let segment = expandedSegments[index]
-            
-            do {
-                let expanded = try await expandSegment(
-                    segment,
-                    config: config,
-                    expansionConfig: expansionConfig
-                )
-                
-                // Validate expansion
-                if expanded.additionalTokens > expansionConfig.tokenBudgetPerSegment {
-                    warnings.append(.expansionBudgetExceeded(
-                        segmentIndex: index,
-                        tokens: expanded.additionalTokens,
-                        budget: expansionConfig.tokenBudgetPerSegment
-                    ))
-                }
-                
-                if expanded.llmConfidence < 0.6 {
-                    warnings.append(.lowExpansionQuality(
-                        segmentIndex: index,
-                        confidence: expanded.llmConfidence
-                    ))
-                }
-                
-                // Update segment with expansion
-                expandedSegments[index] = CinematicSegment(
-                    id: segment.id,
-                    segmentIndex: segment.segmentIndex,
-                    text: segment.text,
-                    estimatedTokens: segment.estimatedTokens,
-                    estimatedDuration: segment.estimatedDuration,
-                    globalStartToken: segment.globalStartToken,
-                    globalEndToken: segment.globalEndToken,
-                    taxonomyHints: expanded.enhancedHints ?? segment.taxonomyHints,
-                    expandedPrompt: expanded,
-                    splitReason: segment.splitReason,
-                    confidence: segment.confidence,
-                    fallbackNotes: segment.fallbackNotes
-                )
-                
-                expansionsPerformed += 1
-                
-            } catch {
-                warnings.append(.expansionFailed(
-                    segmentIndex: index,
-                    reason: error.localizedDescription
-                ))
-            }
-        }
-        
-        return (expandedSegments, expansionsPerformed)
-    }
-    
-    private func identifyExpansionCandidates(
-        _ segments: [CinematicSegment],
-        config: SemanticExpansionConfig
-    ) -> [Int] {
-        var candidates: [Int] = []
-        
-        for (index, segment) in segments.enumerated() {
-            var shouldExpand = false
-            
-            // ALWAYS expand if enabled (for re-articulation)
-            if config.enabled {
-                shouldExpand = true
-            } else {
-                // Original logic for selective expansion
-                // Check if segment is short
-                if config.expandShortSegments {
-                    if segment.text.count < config.minLengthForExpansion {
-                        shouldExpand = true
-                    }
-                }
-                
-                // Check if segment is emotionally charged
-                if config.expandEmotionalSegments {
-                    let emotionScore = detectEmotionalIntensity(segment.text)
-                    if emotionScore > config.emotionThreshold {
-                        shouldExpand = true
-                    }
-                }
-            }
-            
-            if shouldExpand {
-                candidates.append(index)
-            }
-        }
-        
-        return candidates
-    }
-    
-    
-    private func expandSegment(
-        _ segment: CinematicSegment,
-        config: LLMConfiguration,
-        expansionConfig: SemanticExpansionConfig
-    ) async throws -> ExpandedPrompt {
-        
-        let prompt = buildExpansionPrompt(
-            baseText: segment.text,
-            expansionConfig: expansionConfig,
-            existingHints: segment.taxonomyHints
-        )
-        
-        // Use higher temperature for creative expansion
-        var expansionLLMConfig = config
-        expansionLLMConfig.temperature = expansionConfig.expansionTemperature
-        
-        let response = try await llmClient.complete(
-            prompt: prompt,
-            config: expansionLLMConfig
-        )
-        
-        // Parse expansion response
-        let parsed = try parseExpansionResponse(response.content)
-        
-        // Calculate additional tokens
-        let baseTokens = tokenEstimator.estimate(segment.text)
-        let expandedTokens = tokenEstimator.estimate(parsed.expandedText)
-        let additionalTokens = expandedTokens - baseTokens
-        
-        // Detect emotion in original text
-        let emotionScore = detectEmotionalIntensity(segment.text)
-        
-        // Determine expansion reason
-        var reason: String
-        if segment.text.count < expansionConfig.minLengthForExpansion {
-            reason = "Short segment (\(segment.text.count) chars)"
-        } else if emotionScore > expansionConfig.emotionThreshold {
-            reason = "Emotionally charged (score: \(String(format: "%.2f", emotionScore)))"
-        } else {
-            reason = "Selected for enhancement"
-        }
-        
-        // Log dialogue implantation
-        if let dialogueAdded = parsed.dialogueAdded, dialogueAdded {
-            #if DEBUG
-            SEGLOG("💬 [Dialogue Implanted] Segment \(segment.segmentIndex + 1)")
-            SEGLOG("   Original: \(segment.text.prefix(50))...")
-            #endif
-            reason += " + Dialogue added"
-        }
-        
-        return ExpandedPrompt(
-            text: parsed.expandedText,
-            additionalTokens: additionalTokens,
-            expansionReason: reason,
-            emotionScore: emotionScore,
-            expansionStyle: expansionConfig.expansionStyle.rawValue,
-            llmConfidence: parsed.confidence,
-            enhancedHints: parsed.enhancedHints
-        )
-    }
-    
-    private func buildExpansionPrompt(
-        baseText: String,
-        expansionConfig: SemanticExpansionConfig,
-        existingHints: TaxonomyHints
-    ) -> String {
-        """
-        You are an expert cinematographer and creative writer. Expand the following prompt into a vivid, expressive, cinematic description suitable for AI video generation.
-
-        ORIGINAL PROMPT:
-        \(baseText)
-
-        EXPANSION STYLE:
-        \(expansionConfig.expansionStyle.promptGuidance)
-
-        DIALOGUE IMPLANTATION RULES:
-        - If the scene has NO dialogue, ADD natural, contextual dialogue
-        - Identify who would be speaking (e.g., "a young woman", "the detective", "someone in the crowd")
-        - Create 1-3 short, impactful lines that fit the scene
-        - Format dialogue clearly: Character: "Their words"
-        - Make dialogue reveal character, advance story, or enhance mood
-        - If dialogue already exists, enhance it but don't replace it
-
-        CONSTRAINTS:
-        - Target expansion: ~\(expansionConfig.tokenBudgetPerSegment) additional tokens
-        - Preserve core meaning and intent
-        - Add sensory details, visual richness, and cinematic language
-        - Enhance emotional resonance if present
-        - Suggest improved camera angles and framing
-        - Maintain compatibility with video generation
-
-        EXISTING TAXONOMY HINTS (enhance these):
-        \(formatTaxonomyHints(existingHints))
-
-        OUTPUT FORMAT (valid JSON):
-        {
-          "expandedText": "Your expanded, vivid prompt here WITH dialogue if missing",
-          "confidence": 0.95,
-          "hasDialogue": true/false,
-          "dialogueAdded": true/false,
-          "enhancedHints": {
-            "cameraAngle": "improved or suggested camera angle",
-            "sceneType": "enhanced scene type",
-            "emotion": "detected or enhanced emotion",
-            "pacing": "suggested pacing",
-            "visualComplexity": "complexity assessment",
-            "transitionType": "recommended transition"
-          },
-          "analysisNotes": "Brief explanation of your expansion choices"
-        }
-
-        Return ONLY valid JSON. Focus on cinematic quality and visual storytelling.
-        """
-    }
-    
-    private func formatTaxonomyHints(_ hints: TaxonomyHints) -> String {
-        var parts: [String] = []
-        if let angle = hints.cameraAngle { parts.append("Camera: \(angle)") }
-        if let scene = hints.sceneType { parts.append("Scene: \(scene)") }
-        if let emotion = hints.emotion { parts.append("Emotion: \(emotion)") }
-        if let pacing = hints.pacing { parts.append("Pacing: \(pacing)") }
-        return parts.isEmpty ? "None provided" : parts.joined(separator: ", ")
-    }
-    
-    private func parseExpansionResponse(_ content: String) throws -> ParsedExpansion {
-        // Clean response - remove markdown if present
-        var cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.hasPrefix("```json") {
-            cleaned = cleaned.replacingOccurrences(of: "```json", with: "")
-        }
-        if cleaned.hasPrefix("```") {
-            cleaned = cleaned.replacingOccurrences(of: "```", with: "")
-        }
-        if cleaned.hasSuffix("```") {
-            cleaned = cleaned.replacingOccurrences(of: "```", with: "")
-        }
-        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard let data = cleaned.data(using: .utf8) else {
-            throw SegmentationError.llmResponseInvalid("Cannot convert expansion response to data")
-        }
-        
-        let decoder = JSONDecoder()
-        
-        do {
-            let response = try decoder.decode(ParsedExpansion.self, from: data)
-            return response
-        } catch {
-            throw SegmentationError.llmResponseInvalid("Expansion JSON parsing failed: \(error.localizedDescription)")
-        }
-    }
-    
-    private func detectEmotionalIntensity(_ text: String) -> Double {
-        // Simple emotion detection based on keywords
-        // In production, this could use more sophisticated NLP or call LLM
-        
-        let lowercased = text.lowercased()
-        
-        let highEmotionWords = [
-            "scream", "shout", "cry", "tears", "rage", "fury", "terror", "horror",
-            "love", "passion", "hate", "despair", "agony", "ecstasy", "panic",
-            "violent", "explosive", "devastating", "overwhelming", "intense"
-        ]
-        
-        let mediumEmotionWords = [
-            "angry", "sad", "happy", "excited", "worried", "nervous", "afraid",
-            "surprised", "shocked", "confused", "frustrated", "anxious", "tense"
-        ]
-        
-        var score = 0.0
-        
-        for word in highEmotionWords {
-            if lowercased.contains(word) {
-                score += 0.3
-            }
-        }
-        
-        for word in mediumEmotionWords {
-            if lowercased.contains(word) {
-                score += 0.15
-            }
-        }
-        
-        // Check for punctuation intensity
-        let exclamationCount = text.filter { $0 == "!" }.count
-        let questionCount = text.filter { $0 == "?" }.count
-        score += Double(exclamationCount) * 0.1
-        score += Double(questionCount) * 0.05
-        
-        // Check for capitalization (shouting)
-        let uppercaseRatio = Double(text.filter { $0.isUppercase }.count) / Double(max(text.count, 1))
-        if uppercaseRatio > 0.5 {
-            score += 0.2
-        }
-        
-        return min(score, 1.0)  // Cap at 1.0
-    }
-}
-
-// MARK: - Expansion Response Parsing
-
-struct ParsedExpansion: Codable {
-    let expandedText: String
-    let confidence: Double
-    let hasDialogue: Bool?
-    let dialogueAdded: Bool?
-    let enhancedHints: TaxonomyHints?
-    let analysisNotes: String?
-}
-
-// MARK: - Convenience API
-
-extension SegmentingModule {
-    /// Convenience method for quick segmentation with defaults
-    static func quickSegment(
-        script: String,
-        apiKey: String,
-        mode: SegmentationMode = .hybrid
-    ) async throws -> [CinematicSegment] {
-        let module = SegmentingModule()
-        let config = LLMConfiguration(apiKey: apiKey)
-        let result = try await module.segment(
+        let generator = StoryToFilmGenerator(apiKey: config.apiKey)
+        return try await generator.segment(
             script: script,
             mode: mode,
-            constraints: .default,
+            constraints: constraints,
             llmConfig: config
         )
-        return result.segments
     }
 }
+

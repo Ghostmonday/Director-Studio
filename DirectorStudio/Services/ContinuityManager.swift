@@ -56,43 +56,17 @@ class ContinuityManager: ContinuityManagerProtocol {
     }
     
     /// Stage 2: Inject continuity elements into the prompt
+    /// REMOVED: injectContinuity - now handled by PromptGeneratorModule
+    /// Old continuity injection logic replaced with new prompt generation system
     func injectContinuity(
         prompt: String,
         analysis: ContinuityAnalysis,
         referenceImage: Data? = nil
     ) -> String {
-        
-        // First clip just needs establishing shot instructions
-        if analysis.isFirstClip {
-            let enhancedPrompt = establishBaseline(prompt: prompt)
-            recordClipContext(prompt: enhancedPrompt, referenceImage: referenceImage)
-            return enhancedPrompt
-        }
-        
-        // Apply continuity enhancements
-        var enhancedPrompt = prompt
-        
-        // Add continuity instructions
-        enhancedPrompt = addContinuityInstructions(to: enhancedPrompt)
-        
-        // Inject persistent elements
-        enhancedPrompt = injectPersistentElements(into: enhancedPrompt)
-        
-        // Maintain visual style
-        enhancedPrompt = maintainVisualStyle(in: enhancedPrompt)
-        
-        // Add any suggested elements from analysis
-        if !analysis.suggestedElements.isEmpty {
-            let suggestions = analysis.suggestedElements.joined(separator: ". ")
-            enhancedPrompt += " \(suggestions)"
-        }
-        
-        // Record this clip's context
-        recordClipContext(prompt: enhancedPrompt, referenceImage: referenceImage)
-        
-        print("🎬 Continuity Score: \(analysis.continuityScore)")
-        
-        return enhancedPrompt
+        // Passthrough - continuity will be handled by new generator module
+        print("⚠️ [ContinuityManager] Passthrough mode - continuity now handled by PromptGenerator")
+        recordClipContext(prompt: prompt, referenceImage: referenceImage)
+        return prompt
     }
     
     // MARK: - Continuity Methods
