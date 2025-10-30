@@ -41,7 +41,7 @@ class SupabaseAPIKeyService {
         guard let url = URL(string: fullURLString) else {
             print("❌ Failed to create URL for service: \(service)")
             print("❌ URL string was: \(fullURLString)")
-            throw APIKeyError.invalidResponse
+            throw APIKeyError.httpError(0, service: service, details: "Invalid URL format: \(fullURLString)")
         }
         
         print("🔗 Request URL: \(url.absoluteString)")
@@ -59,7 +59,7 @@ class SupabaseAPIKeyService {
         
         guard let httpResponse = response as? HTTPURLResponse else {
             print("❌ Invalid HTTP response")
-            throw APIKeyError.invalidResponse
+            throw APIKeyError.httpError(0, service: service, details: "Invalid HTTP response type")
         }
         
         print("📥 Response status: \(httpResponse.statusCode)")
@@ -69,20 +69,27 @@ class SupabaseAPIKeyService {
             print("❌ Failed to fetch \(service) key: HTTP \(httpResponse.statusCode)")
             print("📦 Response body: \(responseBody)")
             print("🔗 Requested URL: \(url.absoluteString)")
+            print("📤 Headers sent: apikey=\(supabaseAnonKey.prefix(20))..., Authorization=Bearer \(supabaseAnonKey.prefix(20))...")
             
+            var diagnosticMessage: String?
             if httpResponse.statusCode == 400 {
-                print("💡 HTTP 400 Bad Request - Check:")
-                print("   1) Service name matches exactly: '\(service)'")
-                print("   2) Row exists in api_keys table")
-                print("   3) RLS policy allows anon read access")
-                print("   4) URL format is correct: service=eq.{service_name}")
+                diagnosticMessage = "HTTP 400 Bad Request - Most likely RLS policy issue. Check: 1) Run SETUP_RLS.sql in Supabase 2) Service name matches exactly: '\(service)' 3) Verify policy allows 'anon' role SELECT access"
+                print("💡 HTTP 400 Bad Request - Most common causes:")
+                print("   ❌ RLS policy not allowing 'anon' SELECT access")
+                print("   ❌ Service name mismatch (case-sensitive: '\(service)')")
+                print("   ❌ Table structure or column name incorrect")
+                print("   💡 SOLUTION: Run SETUP_RLS.sql in Supabase SQL Editor")
             } else if httpResponse.statusCode == 401 {
-                print("💡 HTTP 401 Unauthorized - Check Supabase anon key is correct")
+                diagnosticMessage = "HTTP 401 Unauthorized - Supabase anon key invalid or expired. Check the anon key in SupabaseAPIKeyService.swift"
+                print("💡 HTTP 401 Unauthorized - Check Supabase anon key is correct and not expired")
             } else if httpResponse.statusCode == 404 {
+                diagnosticMessage = "HTTP 404 Not Found - Table or row missing. Check: 1) api_keys table exists 2) Row exists for service '\(service)'"
                 print("💡 HTTP 404 Not Found - Check api_keys table exists and has row for '\(service)'")
+            } else {
+                diagnosticMessage = "HTTP \(httpResponse.statusCode) - Unexpected error. Response: \(responseBody.prefix(200))"
             }
             
-            throw APIKeyError.httpError(httpResponse.statusCode)
+            throw APIKeyError.httpError(httpResponse.statusCode, service: service, details: diagnosticMessage)
         }
         
         // Parse the response array
@@ -90,7 +97,7 @@ class SupabaseAPIKeyService {
         
         guard let record = results.first else {
             print("❌ No API key found for service: \(service)")
-            throw APIKeyError.missingKey
+            throw APIKeyError.missingKey(service: service)
         }
         
         // Cache the key
@@ -130,17 +137,21 @@ struct APIKeyRecord: Codable {
 
 enum APIKeyError: Error, LocalizedError {
     case invalidResponse
-    case httpError(Int)
-    case missingKey
+    case httpError(Int, service: String, details: String?)
+    case missingKey(service: String)
     
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
             return "Invalid response from server"
-        case .httpError(let code):
-            return "HTTP error: \(code)"
-        case .missingKey:
-            return "API key not found"
+        case .httpError(let code, let service, let details):
+            var message = "Failed to fetch \(service) API key from Supabase (HTTP \(code))"
+            if let details = details, !details.isEmpty {
+                message += ": \(details)"
+            }
+            return message
+        case .missingKey(let service):
+            return "\(service) API key not found in Supabase database"
         }
     }
 }

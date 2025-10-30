@@ -11,30 +11,27 @@ struct OnboardingView: View {
             title: "Welcome to DirectorStudio",
             description: "Transform your words into cinematic video clips",
             icon: "wand.and.stars",
-            color: .blue
+            color: DirectorStudioTheme.Colors.primary
         ),
         OnboardingPageData(
             title: "AI-Powered Generation",
             description: "Create videos from text prompts in seconds",
             icon: "sparkles",
-            color: .purple
+            color: DirectorStudioTheme.Colors.accent
         ),
         OnboardingPageData(
             title: "Record Voiceovers",
             description: "Sync your voice with perfect timing",
             icon: "mic.fill",
-            color: .red
+            color: DirectorStudioTheme.Colors.primary
         )
     ]
     
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.6)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Cinema dark background matching app theme
+            DirectorStudioTheme.Colors.backgroundGradient
+                .ignoresSafeArea()
             
             tourView
         }
@@ -47,7 +44,8 @@ struct OnboardingView: View {
                 Button("Skip") {
                     completeOnboarding()
                 }
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(DirectorStudioTheme.Colors.accent.opacity(0.9))
+                .font(DirectorStudioTheme.Typography.subheadline)
                 .padding()
             }
             
@@ -63,11 +61,10 @@ struct OnboardingView: View {
             VStack(spacing: 20) {
                 HStack(spacing: 8) {
                     ForEach(0..<pages.count, id: \.self) { index in
-                        Circle()
-                            .fill(currentPage == index ? Color.white : Color.white.opacity(0.4))
-                            .frame(width: 8, height: 8)
-                            .scaleEffect(currentPage == index ? 1.2 : 1.0)
-                            .animation(.spring(response: 0.3), value: currentPage)
+                        Capsule()
+                            .fill(currentPage == index ? DirectorStudioTheme.Colors.accent : DirectorStudioTheme.Colors.accent.opacity(0.3))
+                            .frame(width: currentPage == index ? 32 : 8, height: 8)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
                     }
                 }
                 .padding(.bottom, 10)
@@ -82,13 +79,13 @@ struct OnboardingView: View {
                     }
                 }) {
                     Text(currentPage == pages.count - 1 ? "Get Started" : "Continue")
-                        .font(.headline)
-                        .foregroundColor(.blue)
+                        .font(DirectorStudioTheme.Typography.headline)
+                        .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.white)
-                        .cornerRadius(15)
-                        .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
+                        .background(DirectorStudioTheme.Colors.accent)
+                        .cornerRadius(DirectorStudioTheme.CornerRadius.large)
+                        .shadow(color: DirectorStudioTheme.Colors.accent.opacity(0.4), radius: 16, x: 0, y: 8)
                 }
                 .padding(.horizontal, 40)
             }
@@ -137,14 +134,13 @@ struct OnboardingPageView: View {
             
             VStack(spacing: 16) {
                 Text(page.title)
-                    .font(.title)
-                    .fontWeight(.bold)
+                    .font(DirectorStudioTheme.Typography.title)
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
                 Text(page.description)
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.9))
+                    .font(DirectorStudioTheme.Typography.body)
+                    .foregroundColor(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }

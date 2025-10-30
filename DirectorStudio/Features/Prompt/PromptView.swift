@@ -12,7 +12,6 @@ struct PromptView: View {
     @StateObject private var viewModel = PromptViewModel()
     @ObservedObject private var creditsManager = CreditsManager.shared
     @State private var showImagePicker = false
-    @State private var showTemplates = false
     @State private var showSegmentEditor = false
     @State private var showVideoGenerationScreen = false
     @State private var scriptForGeneration = ""
@@ -31,15 +30,6 @@ struct PromptView: View {
     private var quickActionButtons: some View {
         HStack(spacing: 12) {
             // Demo button removed - all users have full access
-            
-            Button(action: {
-                showTemplates = true
-            }) {
-                Label("Templates", systemImage: "doc.text.fill")
-                    .font(.subheadline)
-            }
-            .buttonStyle(.bordered)
-            .tint(.blue)
             
             Button(action: {
                 viewModel.applyOptimalSettings()
@@ -161,24 +151,6 @@ struct PromptView: View {
                     }
                 }
                 
-                Button(action: {
-                    showTemplates = true
-                    HapticFeedback.impact(.light)
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                            .font(.caption)
-                        Text("Use Template")
-                            .font(.caption2)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(DirectorStudioTheme.Colors.primaryGradient)
-                    )
-                    .foregroundColor(.white)
-                }
             }
             .padding(.horizontal)
             
@@ -1028,9 +1000,6 @@ struct PromptView: View {
             } message: {
                 Text(viewModel.generationError?.localizedDescription ?? "An error occurred")
             }
-            .sheet(isPresented: $showTemplates) {
-                TemplatesSheet(viewModel: viewModel, isPresented: $showTemplates)
-            }
             // .sheet(isPresented: $viewModel.showingCostBreakdown) {
             //     CostBreakdownSheet(viewModel: viewModel)
             // }
@@ -1311,127 +1280,6 @@ struct ImagePicker: View {
     }
 }
 
-// MARK: - Templates Sheet
-
-struct TemplatesSheet: View {
-    @ObservedObject var viewModel: PromptViewModel
-    @Binding var isPresented: Bool
-    @State private var selectedCategory: String = "All"
-    
-    var categories: [String] {
-        ["All"] + Array(Set(PromptViewModel.promptTemplates.map { $0.category })).sorted()
-    }
-    
-    var filteredTemplates: [PromptTemplate] {
-        if selectedCategory == "All" {
-            return PromptViewModel.promptTemplates
-        }
-        return PromptViewModel.promptTemplates.filter { $0.category == selectedCategory }
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Category picker
-                Picker("Category", selection: $selectedCategory) {
-                    ForEach(categories, id: \.self) { category in
-                        Text(category).tag(category)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding()
-                
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(filteredTemplates) { template in
-                            TemplateCard(template: template) {
-                                viewModel.applyTemplate(template)
-                                isPresented = false
-                            }
-                        }
-                    }
-                    .padding()
-                }
-            }
-            .navigationTitle("Prompt Templates")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        isPresented = false
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct TemplateCard: View {
-    let template: PromptTemplate
-    let onSelect: () -> Void
-    
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(template.title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        HStack {
-                            Label(template.category, systemImage: "tag.fill")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            
-                            Spacer()
-                            
-                            Label("\(Int(template.suggestedDuration))s", systemImage: "timer")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                }
-                
-                Text(template.prompt)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-                
-                // Suggested stages
-                HStack {
-                    ForEach(Array(template.suggestedStages.prefix(3)), id: \.self) { stage in
-                        Text(stage.displayName)
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundColor(.blue)
-                            .cornerRadius(4)
-                    }
-                    
-                    if template.suggestedStages.count > 3 {
-                        Text("+\(template.suggestedStages.count - 3)")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // MARK: - Cost Breakdown Sheet
 

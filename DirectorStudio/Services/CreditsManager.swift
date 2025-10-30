@@ -70,7 +70,7 @@ public final class CreditsManager: ObservableObject {
     private func loadTokens() {
         // DEV MODE: Give unlimited tokens for testing
         #if DEBUG
-        if userDefaults.bool(forKey: "DEV_MODE_ENABLED") {
+        if isDevMode || userDefaults.bool(forKey: "DEV_MODE_ENABLED") {
             tokens = 999999
             credits = 9999
             print("💰 DEV MODE: Granted unlimited tokens")

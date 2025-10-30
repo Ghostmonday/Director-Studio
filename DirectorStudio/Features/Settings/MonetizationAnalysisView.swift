@@ -99,7 +99,8 @@ struct MonetizationAnalysisView: View {
                             Text("Quality Tier")
                                 .font(.headline)
                             Picker("Quality", selection: $selectedQuality) {
-                                ForEach(VideoQualityTier.allCases, id: \.self) { tier in
+                                // Only show offered tiers (exclude Premium/Runway)
+                                ForEach([VideoQualityTier.economy, .basic, .pro], id: \.self) { tier in
                                     Text(tier.displayName).tag(tier)
                                 }
                             }

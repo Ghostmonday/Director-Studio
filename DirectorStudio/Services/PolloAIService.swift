@@ -22,42 +22,135 @@ extension UIImage {
 
 // MARK: - Pollo API Models
 
+/// Pollo 1.6 input structure
 struct PolloInput: Codable {
     let prompt: String
     let resolution: String
     let length: Int
     let mode: String
     let image: String? // Base64 image data with format prefix
+    let imageTail: String? // Tail image for continuity
+    let seed: Int? // Random seed for reproducibility
     
-    init(prompt: String, resolution: String, length: Int, mode: String = "basic", seedImage: String? = nil) {
+    init(
+        prompt: String,
+        resolution: String,
+        length: Int,
+        mode: String = "basic",
+        image: String? = nil,
+        imageTail: String? = nil,
+        seed: Int? = nil
+    ) {
         self.prompt = prompt
         self.resolution = resolution
         self.length = length
         self.mode = mode
-        self.image = seedImage
+        self.image = image
+        self.imageTail = imageTail
+        self.seed = seed
     }
 }
 
+/// Kling 1.6 input structure (matches API documentation)
+struct KlingInput: Codable {
+    let prompt: String
+    let length: Int
+    let mode: String
+    let strength: Int? // Default 50, optional
+    let image: String? // Base64 image data with format prefix
+    let imageTail: String? // Tail image for continuity
+    let negativePrompt: String? // Optional negative prompt
+    
+    init(
+        prompt: String,
+        length: Int,
+        mode: String = "std",
+        strength: Int? = 50,
+        image: String? = nil,
+        imageTail: String? = nil,
+        negativePrompt: String? = nil
+    ) {
+        self.prompt = prompt
+        self.length = length
+        self.mode = mode
+        self.strength = strength
+        self.image = image
+        self.imageTail = imageTail
+        self.negativePrompt = negativePrompt
+    }
+}
+
+/// Kling 2.5 Turbo input structure (matches API documentation)
+/// Note: Does NOT include `mode` or `imageTail` fields
+struct Kling25TurboInput: Codable {
+    let prompt: String
+    let length: Int
+    let strength: Int? // Default 50, optional
+    let image: String? // Image URL (HTTPS preferred, no base64)
+    let negativePrompt: String? // Optional negative prompt
+    
+    init(
+        prompt: String,
+        length: Int,
+        strength: Int? = 50,
+        image: String? = nil,
+        negativePrompt: String? = nil
+    ) {
+        self.prompt = prompt
+        self.length = length
+        self.strength = strength
+        self.image = image
+        self.negativePrompt = negativePrompt
+    }
+}
+
+/// Pollo 1.6 request wrapper
 struct PolloRequest: Codable {
     let input: PolloInput
+    let webhookUrl: String? // Optional webhook URL
 }
 
+/// Kling 1.6 request wrapper
+struct KlingRequest: Codable {
+    let input: KlingInput
+    let webhookUrl: String? // Optional webhook URL
+}
+
+/// Kling 2.5 Turbo request wrapper
+struct Kling25TurboRequest: Codable {
+    let input: Kling25TurboInput
+    let webhookUrl: String? // Optional webhook URL
+}
+
+// MARK: - Pollo API Response Models (matching actual API documentation)
+
+/// Successful response from Pollo API (flat structure, no wrapper)
 struct PolloResponse: Codable {
-    struct Data: Codable {
-        let taskId: String
-        let status: String  // "waiting"
-    }
-    let code: String
-    let data: Data
+    let taskId: String
+    let status: String  // "waiting", "processing", "succeed", "failed"
+    let videoUrl: String?  // Present when status is "succeed"
 }
 
-struct StatusResponse: Codable {
-    struct Data: Codable {
-        let status: String  // "processing", "succeed", "failed"
-        let videoUrl: String?  // On "succeed"
-    }
+/// Kling API wrapped response structure (code, message, data)
+struct KlingWrappedResponse: Codable {
     let code: String
-    let data: Data
+    let message: String
+    let data: PolloResponse  // The actual response data
+    
+    // Extract the inner response
+    var response: PolloResponse {
+        return data
+    }
+}
+
+/// Error response from Pollo API
+struct PolloErrorResponse: Codable {
+    struct Issue: Codable {
+        let message: String
+    }
+    let message: String
+    let code: String
+    let issues: [Issue]?
 }
 
 // MARK: - Pollo AI Service
@@ -115,6 +208,10 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             logger.debug("✅ Pollo API key fetched successfully")
             print("✅ [Pollo] API key fetched successfully: \(fetchedKey.prefix(20))...")
             return fetchedKey
+        } catch let error as APIKeyError {
+            logger.error("❌ Failed to fetch Pollo API key: \(error.localizedDescription ?? "Unknown error")")
+            print("❌ [Pollo] Failed to fetch API key: \(error.localizedDescription ?? "Unknown error")")
+            throw APIError.authError("Failed to fetch Pollo API key from Supabase. \(error.localizedDescription ?? "Please verify your API keys are configured in Supabase.")")
         } catch {
             logger.error("❌ Failed to fetch Pollo API key: \(error.localizedDescription)")
             print("❌ [Pollo] Failed to fetch API key: \(error.localizedDescription)")
@@ -123,10 +220,16 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     }
     
     /// Generate video with specific quality tier
+    /// - Parameters:
+    ///   - prompt: Text prompt for video generation
+    ///   - duration: Duration in seconds
+    ///   - tier: Quality tier (Economy/Basic/Pro)
+    ///   - imageTail: Optional last frame from previous video for continuity (for Kling 1.6/Pollo 1.6)
     public func generateVideo(
         prompt: String,
         duration: TimeInterval,
-        tier: VideoQualityTier = .basic
+        tier: VideoQualityTier = .basic,
+        imageTail: String? = nil
     ) async throws -> URL {
         // Premium tier (Runway Gen-4) requires user's own API key and uses RunwayGen4Service
         if tier == .premium {
@@ -143,15 +246,19 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             logger.debug("🧑‍💻 DEV MODE: Making real API call (no credits charged)")
         }
         
-        // Validate duration for tier
+        // Validate and round duration for tier-specific API constraints
         let maxDuration = Double(tier.maxDuration)
-        let validDuration = min(duration, maxDuration)
+        let cappedDuration = min(duration, maxDuration)
+        let validDurationSeconds = roundDurationForTier(Int(cappedDuration), tier: tier)
         
         if duration > maxDuration {
-            logger.warning("⚠️ Duration \(duration)s exceeds \(tier.shortName) limit of \(maxDuration)s")
+            logger.warning("⚠️ Duration \(duration)s exceeds \(tier.shortName) limit of \(maxDuration)s, capped to \(maxDuration)s")
+        }
+        if Int(cappedDuration) != validDurationSeconds {
+            logger.info("📐 Rounded duration from \(Int(cappedDuration))s to \(validDurationSeconds)s (API requirement)")
         }
         
-        logger.debug("📊 Using \(tier.modelName) - Duration: \(Int(validDuration))s, Cost: $\(String(format: "%.2f", validDuration * tier.customerPricePerSecond))")
+        logger.debug("📊 Using \(tier.modelName) - Duration: \(validDurationSeconds)s, Cost: $\(String(format: "%.2f", Double(validDurationSeconds) * tier.customerPricePerSecond))")
         
         // Create request for specific tier
         let url = URL(string: tier.apiEndpoint)!
@@ -160,74 +267,172 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
-        // Build tier-specific request body
-        let body = try buildRequestBody(for: tier, prompt: prompt, duration: Int(validDuration))
-        request.httpBody = try JSONEncoder().encode(body)
+        // Build tier-specific request body (with optional imageTail for continuity)
+        request.httpBody = try buildRequestBody(for: tier, prompt: prompt, duration: validDurationSeconds, image: nil, imageTail: imageTail)
         
         // Log cost calculation
-        let cost = validDuration * tier.customerPricePerSecond
-        let profit = validDuration * (tier.customerPricePerSecond - tier.baseCostPerSecond)
+        let cost = Double(validDurationSeconds) * tier.customerPricePerSecond
+        let profit = Double(validDurationSeconds) * (tier.customerPricePerSecond - tier.baseCostPerSecond)
         logger.debug("💰 Customer charge: $\(String(format: "%.2f", cost)), Profit: $\(String(format: "%.2f", profit))")
         
         // Make request
         logger.debug("🔄 Making \(tier.modelName) API request to: \(url.absoluteString)")
-        logger.debug("📋 Request body: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "nil")")
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            logger.debug("📋 Request body: \(bodyString)")
+            print("📤 [\(tier.modelName)] Request Body:\n\(bodyString)")
+        }
         logger.debug("🔑 API Key present: \(!apiKey.isEmpty)")
+        print("🔑 [\(tier.modelName)] API Key: \(apiKey.prefix(20))...")
         
         do {
-            let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
+            // All Kling APIs (1.6 and 2.5 Turbo) return wrapped response structure
+            // Pollo 1.6 returns flat structure
+            let response: PolloResponse
+            if tier == .economy || tier == .pro {
+                // Kling 1.6 and 2.5 Turbo use wrapped format: {code, message, data: {taskId, status}}
+                let wrappedResponse: KlingWrappedResponse = try await client.performRequest(request, expectedType: KlingWrappedResponse.self)
+                
+                // Check if wrapper indicates success
+                guard wrappedResponse.code.uppercased() == "SUCCESS" else {
+                    logger.error("❌ \(tier.modelName) API returned error code: \(wrappedResponse.code)")
+                    throw APIError.authError("\(tier.modelName) API error: \(wrappedResponse.message)")
+                }
+                
+                response = wrappedResponse.response
+                logger.debug("✅ Extracted response from Kling wrapped format: taskId=\(response.taskId), status=\(response.status)")
+            } else {
+                // Pollo 1.6 uses flat format: {taskId, status}
+                response = try await client.performRequest(request, expectedType: PolloResponse.self)
+            }
             
-            guard response.code == "SUCCESS" else {
-                logger.error("❌ \(tier.modelName) API returned code: \(response.code)")
-                throw APIError.authError("\(tier.modelName) API error: \(response.code)")
+            // Check if response indicates error status
+            guard response.status != "failed" else {
+                logger.error("❌ \(tier.modelName) API returned failed status")
+                throw APIError.authError("\(tier.modelName) API error: Video generation failed")
+            }
+            
+            guard response.status == "waiting" else {
+                logger.error("❌ Unexpected init status: \(response.status)")
+                throw APIError.authError("Unexpected init status: \(response.status)")
             }
             
             return try await continueWithValidResponse(response, apiKey: apiKey)
         } catch let error as APIError {
-            logger.error("❌ \(tier.shortName) generation failed: \(error.localizedDescription)")
-            // Add more context for debugging
-            if case .invalidResponse(let code) = error {
-                logger.error("💡 Check: 1) API key fetched from Supabase, 2) Endpoint URL correct, 3) Request body format valid")
+            logger.error("❌ \(tier.shortName) (\(tier.modelName)) generation failed: \(error.localizedDescription)")
+            
+            // Provide specific guidance based on error type
+            switch error {
+            case .decodingError:
+                logger.error("💡 For Kling 1.6 - Check: Response format matches {taskId, status}. Verify API endpoint: \(tier.apiEndpoint)")
+                logger.error("💡 Request body was: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "nil")")
+            case .invalidResponse(let code, _):
+                logger.error("💡 HTTP \(code) - Check: 1) API key fetched from Supabase, 2) Endpoint URL correct, 3) Request body format valid for Kling 1.6")
+            case .authError(let msg):
+                logger.error("💡 Auth Error: \(msg)")
+            default:
+                break
             }
             throw error
         } catch {
-            logger.error("❌ Unexpected error: \(error)")
-            throw error
+            logger.error("❌ Unexpected error in \(tier.modelName): \(error)")
+            throw APIError.unknown(error)
         }
     }
     
-    /// Build tier-specific request body
-    private func buildRequestBody(for tier: VideoQualityTier, prompt: String, duration: Int, image: String? = nil) throws -> PolloRequest {
-        var input: PolloInput
-        
-        // Create base input based on tier
+    /// Round duration to API-supported values for each tier
+    /// - Pollo 1.6 (Basic): Only accepts 5 or 10 seconds
+    /// - Kling 1.6 (Economy): Accepts 5 or 10 seconds
+    /// - Kling 2.5 Turbo (Pro): Accepts 5 or 10 seconds
+    private func roundDurationForTier(_ duration: Int, tier: VideoQualityTier) -> Int {
         switch tier {
-        case .economy, .pro:
-            // Kling models use similar structure
-            input = PolloInput(
+        case .basic, .economy, .pro:
+            // All these APIs only accept 5 or 10 seconds
+            // Round to nearest valid value
+            if duration <= 5 {
+                return 5
+            } else if duration <= 10 {
+                return 10
+            } else {
+                // Cap at 10 if exceeds
+                return 10
+            }
+        case .premium:
+            // Runway accepts more values, but we don't handle it here
+            return duration
+        }
+    }
+    
+    /// Build tier-specific request body matching API format (Pollo 1.6 or Kling 1.6)
+    private func buildRequestBody(
+        for tier: VideoQualityTier,
+        prompt: String,
+        duration: Int,
+        image: String? = nil,
+        imageTail: String? = nil,
+        seed: Int? = nil
+    ) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+        
+        switch tier {
+        case .economy:
+            // Kling 1.6 (Economy tier) - matches API documentation
+            // Build input dictionary manually to ensure correct field ordering and omit nil values
+            var inputDict: [String: Any] = [
+                "prompt": prompt,
+                "length": duration,
+                "mode": "std",
+                "strength": 50
+            ]
+            
+            // Only add optional fields if they have values
+            if let image = image {
+                inputDict["image"] = image
+            }
+            if let imageTail = imageTail {
+                inputDict["imageTail"] = imageTail
+            }
+            // negativePrompt is omitted if nil
+            
+            let requestDict: [String: Any] = ["input": inputDict]
+            // webhookUrl omitted if nil
+            
+            // Convert to JSON Data
+            let jsonData = try JSONSerialization.data(withJSONObject: requestDict, options: [.prettyPrinted])
+            logger.debug("📋 Kling 1.6 Request JSON: \(String(data: jsonData, encoding: .utf8) ?? "nil")")
+            return jsonData
+            
+        case .pro:
+            // Kling 2.5 Turbo - matches API documentation
+            // Note: NO mode or imageTail fields for 2.5 Turbo
+            let kling25Input = Kling25TurboInput(
                 prompt: prompt,
-                resolution: tier == .premium ? "1080p" : "480p",
                 length: duration,
-                mode: tier == .economy ? "std" : "turbo",
-                seedImage: image
+                strength: 50,
+                image: image,
+                negativePrompt: nil
             )
+            let kling25Request = Kling25TurboRequest(input: kling25Input, webhookUrl: nil)
+            return try encoder.encode(kling25Request)
             
         case .basic:
-            // Pollo model
-            input = PolloInput(
+            // Pollo 1.6 model - correct format
+            let polloInput = PolloInput(
                 prompt: prompt,
                 resolution: "480p",
                 length: duration,
                 mode: "basic",
-                seedImage: image
+                image: image,
+                imageTail: imageTail,
+                seed: seed
             )
+            let polloRequest = PolloRequest(input: polloInput, webhookUrl: nil)
+            return try encoder.encode(polloRequest)
             
         case .premium:
             // Premium tier should not reach here - it uses RunwayGen4Service
             throw APIError.authError("Premium tier requires RunwayGen4Service with user's own API key")
         }
-        
-        return PolloRequest(input: input)
     }
     
     // Keep existing method for backward compatibility
@@ -238,15 +443,15 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     
     private func continueWithValidResponse(_ response: PolloResponse, apiKey: String) async throws -> URL {
         
-        guard response.data.status == "waiting" else {
-            logger.error("❌ Unexpected init status: \(response.data.status)")
-            throw APIError.authError("Unexpected init status: \(response.data.status)")
+        guard response.status == "waiting" else {
+            logger.error("❌ Unexpected init status: \(response.status)")
+            throw APIError.authError("Unexpected init status: \(response.status)")
         }
         
-        logger.debug("✅ Task created: \(response.data.taskId)")
+        logger.debug("✅ Task created: \(response.taskId)")
         
         // Poll for completion
-        return try await pollForVideo(taskId: response.data.taskId, apiKey: apiKey)
+        return try await pollForVideo(taskId: response.taskId, apiKey: apiKey)
     }
     
     private func pollForVideo(taskId: String, apiKey: String) async throws -> URL {
@@ -267,17 +472,20 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             logger.debug("🔄 Polling attempt \(attempts)/\(maxAttempts) for task: \(taskId)")
             
             do {
-                let status: StatusResponse = try await client.performRequest(request, expectedType: StatusResponse.self)
-                
-                guard status.code == "SUCCESS" else {
-                    throw APIError.authError("Status check failed: \(status.code)")
+                // For status polling, we need to handle wrapped vs flat responses
+                // Try wrapped first (Kling format), then fall back to flat (Pollo format)
+                let status: PolloResponse
+                if let wrapped: KlingWrappedResponse = try? await client.performRequest(request, expectedType: KlingWrappedResponse.self) {
+                    status = wrapped.response
+                } else {
+                    status = try await client.performRequest(request, expectedType: PolloResponse.self)
                 }
                 
-                switch status.data.status {
+                switch status.status {
                 case "succeed":
-                    guard let videoUrlString = status.data.videoUrl,
+                    guard let videoUrlString = status.videoUrl,
                           let videoURL = URL(string: videoUrlString) else {
-                        throw APIError.invalidResponse(statusCode: 200, message: "Unexpected response format")
+                        throw APIError.invalidResponse(statusCode: 200, message: "Unexpected response format - missing videoUrl")
                     }
                     logger.debug("✅ Video ready: \(videoURL)")
                     removeTaskID(taskId) // Clear on success
@@ -445,11 +653,18 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     }
     
     /// Generate video from an image with specific quality tier
+    /// - Parameters:
+    ///   - imageData: Seed image data (first frame or continuity frame)
+    ///   - prompt: Text prompt for video generation
+    ///   - duration: Duration in seconds
+    ///   - tier: Quality tier (Economy/Basic/Pro)
+    ///   - imageTail: Optional last frame from previous video for continuity (for Kling 1.6/Pollo 1.6)
     public func generateVideoFromImage(
         imageData: Data,
         prompt: String,
         duration: TimeInterval = 5.0,
-        tier: VideoQualityTier = .basic
+        tier: VideoQualityTier = .basic,
+        imageTail: String? = nil
     ) async throws -> URL {
         logger.debug("🎬 Starting \(tier.shortName) image-to-video generation - Prompt: '\(prompt)', Duration: \(duration)s")
         
@@ -470,15 +685,19 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         let seedImageData = try await perfectSeed(image)
         logger.debug("🔗 Seed image prepared as base64")
         
-        // Validate duration for tier
+        // Validate and round duration for tier-specific API constraints
         let maxDuration = Double(tier.maxDuration)
-        let validDuration = min(duration, maxDuration)
+        let cappedDuration = min(duration, maxDuration)
+        let validDurationSeconds = roundDurationForTier(Int(cappedDuration), tier: tier)
         
         if duration > maxDuration {
-            logger.warning("⚠️ Duration \(duration)s exceeds \(tier.shortName) limit of \(maxDuration)s")
+            logger.warning("⚠️ Duration \(duration)s exceeds \(tier.shortName) limit of \(maxDuration)s, capped to \(maxDuration)s")
+        }
+        if Int(cappedDuration) != validDurationSeconds {
+            logger.info("📐 Rounded duration from \(Int(cappedDuration))s to \(validDurationSeconds)s (API requirement)")
         }
         
-        logger.debug("📊 Using \(tier.modelName) - Duration: \(Int(validDuration))s, With seed image")
+        logger.debug("📊 Using \(tier.modelName) - Duration: \(validDurationSeconds)s, With seed image")
         
         // Create request for specific tier
         let url = URL(string: tier.apiEndpoint)!
@@ -487,27 +706,57 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
-        // Build tier-specific request body with image
-        let body = try buildRequestBody(for: tier, prompt: prompt, duration: Int(validDuration), image: seedImageData)
-        request.httpBody = try JSONEncoder().encode(body)
+        // Build tier-specific request body with image and optional imageTail
+        // For Kling 2.5 Turbo (Pro tier), imageTail parameter is ignored (not supported by API)
+        // seedImageData IS the last frame from previous video (passed for continuity)
+        let finalImage: String?
+        let finalImageTail: String?
+        
+        if tier == .pro {
+            // Kling 2.5 Turbo doesn't support imageTail - use seedImageData (last frame) as image for continuity
+            finalImage = seedImageData // Last frame from previous video
+            finalImageTail = nil // Not supported by API
+            logger.debug("🔄 Kling 2.5 Turbo: Using last frame as image (continuity mode)")
+        } else {
+            // For Kling 1.6 and Pollo 1.6, use seedImageData as seed image and imageTail for last frame continuity
+            finalImage = seedImageData // Seed/first frame
+            finalImageTail = imageTail // Last frame from previous video (for continuity)
+            if imageTail != nil {
+                logger.debug("🔗 Using imageTail for continuity (last frame from previous video)")
+            }
+        }
+        
+        request.httpBody = try buildRequestBody(for: tier, prompt: prompt, duration: validDurationSeconds, image: finalImage, imageTail: finalImageTail)
         
         // Log cost calculation
-        let cost = validDuration * tier.customerPricePerSecond
-        let profit = validDuration * (tier.customerPricePerSecond - tier.baseCostPerSecond)
+        let cost = Double(validDurationSeconds) * tier.customerPricePerSecond
+        let profit = Double(validDurationSeconds) * (tier.customerPricePerSecond - tier.baseCostPerSecond)
         logger.debug("💰 Customer charge: $\(String(format: "%.2f", cost)), Profit: $\(String(format: "%.2f", profit))")
         
         logger.debug("📤 Image-to-video request with base64 seed (no upload needed!)")
         
         do {
-            let response: PolloResponse = try await client.performRequest(request, expectedType: PolloResponse.self)
+            // Handle wrapped response format for Kling APIs
+            let response: PolloResponse
+            if let wrapped: KlingWrappedResponse = try? await client.performRequest(request, expectedType: KlingWrappedResponse.self) {
+                response = wrapped.response
+            } else {
+                response = try await client.performRequest(request, expectedType: PolloResponse.self)
+            }
             
-            guard response.code == "SUCCESS" else {
-                logger.error("❌ Pollo API returned code: \(response.code)")
-                throw APIError.authError("Pollo API error: \(response.code)")
+            // Check if response indicates error status
+            guard response.status != "failed" else {
+                logger.error("❌ Pollo API returned failed status")
+                throw APIError.authError("Pollo API error: Video generation failed")
+            }
+            
+            guard response.status == "waiting" else {
+                logger.error("❌ Unexpected init status: \(response.status)")
+                throw APIError.authError("Unexpected init status: \(response.status)")
             }
             
             // Log chain info for recovery
-            logChainInfo(seedImage: seedImageData, taskId: response.data.taskId)
+            logChainInfo(seedImage: seedImageData, taskId: response.taskId)
             
             return try await continueWithValidResponse(response, apiKey: apiKey)
         } catch let error as APIError {

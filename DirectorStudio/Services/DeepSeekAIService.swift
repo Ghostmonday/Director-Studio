@@ -86,6 +86,9 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
             self.apiKey = fetchedKey
             logger.debug("✅ DeepSeek API key fetched successfully")
             return fetchedKey
+        } catch let error as APIKeyError {
+            logger.error("❌ Failed to fetch DeepSeek API key: \(error.localizedDescription ?? "Unknown error")")
+            throw APIError.authError("Failed to fetch DeepSeek API key from Supabase. \(error.localizedDescription ?? "Please verify your API keys are configured in Supabase.")")
         } catch {
             logger.error("❌ Failed to fetch DeepSeek API key: \(error.localizedDescription)")
             throw APIError.authError("Failed to fetch DeepSeek API key: \(error.localizedDescription)")

@@ -3,10 +3,19 @@
 // PURPOSE: Main app entry point for DirectorStudio - Script → Video → Voiceover → Storage
 
 import SwiftUI
+import UIKit
 
 @main
 struct DirectorStudioApp: App {
     @StateObject private var coordinator = AppCoordinator()
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "HasCompletedOnboarding")
+    
+    init() {
+        // Clear API key cache on app start to ensure fresh keys are fetched
+        // This helps when keys are updated in Supabase
+        SupabaseAPIKeyService.shared.clearCache()
+        print("🔄 Cleared API key cache on app launch")
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -14,6 +23,9 @@ struct DirectorStudioApp: App {
                 .environmentObject(coordinator)
                 .preferredColorScheme(.dark)
                 .ignoresSafeArea(.keyboard) // Critical for Prompt input
+                .fullScreenCover(isPresented: $showOnboarding) {
+                    OnboardingView()
+                }
         }
     }
 }
@@ -30,28 +42,24 @@ struct ContentView: View {
         }
         .tabViewStyle(.automatic)
         .background(DirectorStudioTheme.Colors.cinemaGrey)
-        .overlay(alignment: .bottom) {
-            CompactPillIndicator(selection: coordinator.selectedTab)
-                .padding(.bottom, 6)
+        .onAppear {
+            // Customize tab bar appearance with blue/orange theme
+            let appearance = UITabBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor(red: 25/255, green: 25/255, blue: 25/255, alpha: 1.0) // Dark background
+            
+            // Selected tab color (blue)
+            appearance.stackedLayoutAppearance.selected.iconColor = UIColor(red: 74/255, green: 143/255, blue: 232/255, alpha: 1.0) // #4A8FE8
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(red: 74/255, green: 143/255, blue: 232/255, alpha: 1.0)]
+            
+            // Unselected tab color (gray)
+            appearance.stackedLayoutAppearance.normal.iconColor = UIColor.white.withAlphaComponent(0.6)
+            appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.white.withAlphaComponent(0.6)]
+            
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
         }
     }
 }
 
-// MARK: - Compact Pill Indicator (iPhone-Optimized)
-struct CompactPillIndicator: View {
-    @Namespace private var ns
-    let selection: AppTab
-    
-    var body: some View {
-        HStack(spacing: 48) {
-            ForEach([AppTab.prompt, AppTab.studio, AppTab.library], id: \.self) { tab in
-                Capsule()
-                    .fill(tab == selection ? DirectorStudioTheme.Colors.accent : Color.clear)
-                    .frame(width: tab == selection ? 32 : 6, height: 6)
-                    .matchedGeometryEffect(id: tab, in: ns)
-            }
-        }
-        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: selection)
-    }
-}
 

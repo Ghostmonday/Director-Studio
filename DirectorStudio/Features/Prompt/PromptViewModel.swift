@@ -254,20 +254,6 @@ class PromptViewModel: ObservableObject {
         }
     }
     
-    /// Get filtered prompt templates based on expertise
-    var filteredPromptTemplates: [PromptTemplate] {
-        let allTemplates = Self.promptTemplates
-        
-        switch expertiseLevel {
-        case .beginner:
-            return Array(allTemplates.prefix(3))
-        case .regular:
-            return Array(allTemplates.prefix(5))
-        case .power:
-            return allTemplates
-        }
-    }
-    
     /// Should show advanced features
     var shouldShowAdvancedFeatures: Bool {
         expertiseLevel != .beginner
@@ -423,63 +409,4 @@ class PromptViewModel: ObservableObject {
     }
 }
 
-// MARK: - Prompt Templates
-
-struct PromptTemplate: Identifiable {
-    let id = UUID()
-    let category: String
-    let title: String
-    let prompt: String
-    let suggestedDuration: Double
-    let suggestedStages: Set<PipelineStage>
-}
-
-extension PromptViewModel {
-    static let promptTemplates = [
-        PromptTemplate(
-            category: "Action",
-            title: "Epic Chase Scene",
-            prompt: "An intense motorcycle chase through neon-lit Tokyo streets at night. The protagonist weaves between traffic as rain reflects the city lights. Sparks fly as metal scrapes asphalt.",
-            suggestedDuration: 15,
-            suggestedStages: [.enhancement, .cameraDirection, .lighting]
-        ),
-        PromptTemplate(
-            category: "Drama",
-            title: "Emotional Farewell",
-            prompt: "A tearful goodbye at a rain-soaked train station. Two silhouettes embrace on the platform as steam rises from the tracks. The departure bell echoes through the misty air.",
-            suggestedDuration: 10,
-            suggestedStages: [.continuityAnalysis, .continuityInjection, .enhancement, .lighting]
-        ),
-        PromptTemplate(
-            category: "Sci-Fi",
-            title: "Space Discovery",
-            prompt: "A massive alien spacecraft emerges from a swirling purple nebula. Its crystalline hull reflects distant stars as smaller ships scatter like fireflies.",
-            suggestedDuration: 12,
-            suggestedStages: [.enhancement, .cameraDirection]
-        ),
-        PromptTemplate(
-            category: "Horror",
-            title: "Abandoned Hospital",
-            prompt: "Flickering fluorescent lights illuminate a long hospital corridor. Shadows move between doorways as a wheelchair slowly rolls past, its wheels squeaking eerily.",
-            suggestedDuration: 8,
-            suggestedStages: [.enhancement, .lighting]
-        ),
-        PromptTemplate(
-            category: "Fantasy",
-            title: "Dragon's Awakening",
-            prompt: "An ancient dragon stirs in its mountain lair. Golden eyes open as treasure cascades from its scales. Smoke curls from its nostrils, illuminated by pools of molten gold.",
-            suggestedDuration: 10,
-            suggestedStages: [.enhancement, .cameraDirection, .lighting]
-        )
-    ]
-    
-    func applyTemplate(_ template: PromptTemplate) {
-        promptText = template.prompt
-        videoDuration = template.suggestedDuration
-        enabledStages = template.suggestedStages
-        
-        // Haptic feedback
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-    }
-}
 

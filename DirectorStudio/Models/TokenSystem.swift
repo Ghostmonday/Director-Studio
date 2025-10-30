@@ -74,20 +74,20 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     /// Display name for UI
     public var displayName: String {
         switch self {
-        case .economy: return "Economy - Budget Friendly"
-        case .basic: return "Basic - Fast & Reliable"
-        case .pro: return "Pro - Director's Choice"
-        case .premium: return "Premium - Hollywood Quality"
+        case .economy: return "Starter"
+        case .basic: return "Standard"
+        case .pro: return "Premium"
+        case .premium: return "Runway Gen-4 (Your Key Required)"
         }
     }
     
     /// Short name for compact UI
     public var shortName: String {
         switch self {
-        case .economy: return "💰 Economy"
-        case .basic: return "⚡ Basic"
-        case .pro: return "🎬 Pro"
-        case .premium: return "👑 Premium"
+        case .economy: return "Starter"
+        case .basic: return "Standard"
+        case .pro: return "Premium"
+        case .premium: return "Runway (Your Key)"
         }
     }
     
@@ -104,10 +104,10 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     /// Description for tooltips
     public var description: String {
         switch self {
-        case .economy: return "Perfect for drafts and testing ideas"
-        case .basic: return "Quick generation with good quality"
-        case .pro: return "Cinematic quality for serious creators"
-        case .premium: return "Film-grade quality for final production"
+        case .economy: return "Great for rapid prototyping and quick iterations"
+        case .basic: return "Perfect balance of speed and quality for everyday content"
+        case .pro: return "Cinematic excellence for your most important projects"
+        case .premium: return "Unparalleled video quality with Runway Gen-4 (pricey but exceptional)"
         }
     }
     
@@ -115,13 +115,13 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     public var features: [String] {
         switch self {
         case .economy:
-            return ["Budget-friendly pricing", "Good motion quality", "Up to 10 seconds", "Text & Image input"]
+            return ["Fast generation", "Great for drafts", "Up to 10 seconds", "Text & Image input"]
         case .basic:
-            return ["Fast generation", "Reliable quality", "Up to 8 seconds", "Perfect for social media"]
+            return ["Best value", "Reliable quality", "Up to 8 seconds", "Perfect for content creation"]
         case .pro:
-            return ["Director-level cinematics", "Pro camera controls", "Enhanced motion", "Up to 10 seconds"]
+            return ["Cinematic quality", "Enhanced motion", "Professional results", "Up to 10 seconds"]
         case .premium:
-            return ["Hollywood quality", "Ultra-realistic", "4K support", "Maximum detail"]
+            return ["Unparalleled quality", "Runway Gen-4 Turbo", "Your own API key", "Premium pricing"]
         }
     }
     
@@ -147,7 +147,7 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     
     /// Is this tier most popular?
     public var isPopular: Bool {
-        self == .pro
+        self == .basic  // Standard tier is most popular
     }
 }
 

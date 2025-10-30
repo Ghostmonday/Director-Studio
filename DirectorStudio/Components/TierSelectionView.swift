@@ -33,9 +33,9 @@ public struct TierSelectionView: View {
                 selectedTier: selectedTier
             )
             
-            // Tier Cards
+            // Tier Cards - Only show offered tiers (exclude Premium/Runway)
             VStack(spacing: 16) {
-                ForEach(VideoQualityTier.allCases, id: \.self) { tier in
+                ForEach([VideoQualityTier.economy, .basic, .pro], id: \.self) { tier in
                     TierCard(
                         tier: tier,
                         isSelected: selectedTier == tier,
@@ -43,12 +43,8 @@ public struct TierSelectionView: View {
                         estimatedDuration: estimatedDuration,
                         takeCount: takeCount,
                         credits: creditsManager.tokens,
-                        isAvailable: tier == .premium ? hasRunwayKey : true,
+                        isAvailable: true,
                         onTap: { 
-                            // Premium tier requires Runway key
-                            if tier == .premium && !hasRunwayKey {
-                                return // Don't allow selection without key
-                            }
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 selectedTier = tier
                             }
@@ -258,22 +254,7 @@ struct TierCard: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                     
-                    // Premium tier warning if no Runway key
-                    if tier == .premium && !isAvailable {
-                        HStack(spacing: 6) {
-                            Image(systemName: "key.fill")
-                                .font(.caption2)
-                            Text("Requires your own Runway API key")
-                                .font(.caption2)
-                        }
-                        .foregroundColor(.orange)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(
-                            Capsule()
-                                .fill(Color.orange.opacity(0.2))
-                        )
-                    }
+                    // Premium/Runway tier removed from main offering
                 }
                 
                 // Features with checkmarks

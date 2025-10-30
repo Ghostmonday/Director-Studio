@@ -491,9 +491,8 @@ struct ClipThumbnail: View {
     var body: some View {
         ZStack {
             // Use placeholder or thumbnail if available
-            if let thumbnailURL = clip.thumbnailURL,
-               let url = URL(string: thumbnailURL.absoluteString) {
-                AsyncImage(url: url) { image in
+            if let thumbnailURL = clip.thumbnailURL {
+                AsyncImage(url: thumbnailURL) { image in
                     image
                         .resizable()
                         .aspectRatio(1, contentMode: .fill)

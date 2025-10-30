@@ -45,13 +45,14 @@ struct VideoGenerationScreen: View {
                     if let filmBreakdown = filmGeneratorViewModel.film {
                         TakesPreviewView(
                             film: filmBreakdown,
-                            onGenerate: { selectedTakes, editedPrompts in
+                            onGenerate: { selectedTakes, editedPrompts, tier in
                                 currentStep = .generating
                                 Task {
                                     await filmGeneratorViewModel.generateVideos(
                                         coordinator: coordinator,
                                         selectedTakeIds: selectedTakes,
-                                        editedPrompts: editedPrompts
+                                        editedPrompts: editedPrompts,
+                                        tier: tier
                                     )
                                     if filmGeneratorViewModel.error == nil {
                                         currentStep = .complete
@@ -179,10 +180,12 @@ class FilmGeneratorViewModel: ObservableObject {
     ///   - coordinator: App coordinator for accessing clip repository
     ///   - selectedTakeIds: Set of take IDs to generate (only selected prompts)
     ///   - editedPrompts: Dictionary mapping take IDs to edited prompt text
+    ///   - tier: Selected video quality tier
     func generateVideos(
         coordinator: AppCoordinator,
         selectedTakeIds: Set<UUID>,
-        editedPrompts: [UUID: String]
+        editedPrompts: [UUID: String],
+        tier: VideoQualityTier = .basic
     ) async {
         guard let filmBreakdown = film else {
             error = NSError(domain: "FilmGenerator", code: -1, userInfo: [NSLocalizedDescriptionKey: "No film breakdown available"])
@@ -197,11 +200,13 @@ class FilmGeneratorViewModel: ObservableObject {
             return
         }
         
-        // Calculate total token cost from selected takes using correct pricing
+        // Check if chained prompts are enabled (from current project if available)
+        let usesChainedPrompts = coordinator.currentProject?.usesChainedPrompts ?? false
+        
+        // Calculate total token cost from selected takes using selected tier pricing
         let totalTokenCost = selectedTakes.reduce(0) { total, take in
-            // Use MonetizationConfig for accurate token calculation (0.5 tokens per second)
-            let credits = MonetizationConfig.creditsForSeconds(take.estimatedDuration)
-            let tokensForDuration = MonetizationConfig.tokensToDebit(credits)
+            // Use tier-specific token pricing
+            let tokensForDuration = Int(ceil(take.estimatedDuration * Double(tier.tokensPerSecond)))
             return total + tokensForDuration
         }
         
@@ -212,21 +217,32 @@ class FilmGeneratorViewModel: ObservableObject {
             try await generationTransaction.begin(totalCost: totalTokenCost)
             
             // Generate each selected take sequentially to maintain continuity
+            var previousPrompt: String? = nil
             for (takeIndex, take) in selectedTakes.enumerated() {
                 currentTakeIndex = takeIndex
                 progress = Double(takeIndex) / Double(selectedTakes.count)
                 status = "Generating Take \(take.takeNumber) of \(selectedTakes.count)..."
                 
                 // Use edited prompt if available, otherwise use original
-                let promptToUse = editedPrompts[take.id] ?? take.prompt
+                var promptToUse = editedPrompts[take.id] ?? take.prompt
+                
+                // Apply five-word continuity rule if enabled (skip first prompt)
+                if usesChainedPrompts && takeIndex > 0, let previous = previousPrompt {
+                    promptToUse = applyFiveWordChain(to: promptToUse, previousPrompt: previous)
+                    print("🔗 [Take \(take.takeNumber)] Applied 5-word chain rule")
+                }
                 
                 do {
                     let generatedClip = try await generateTake(
                         take: take,
                         takeIndex: takeIndex,
-                        prompt: promptToUse
+                        prompt: promptToUse,
+                        tier: tier
                     )
                     try await generationTransaction.addPending(generatedClip)
+                    
+                    // Store current prompt for next iteration
+                    previousPrompt = promptToUse
                 } catch {
                     // If generation fails, rollback the entire transaction
                     await generationTransaction.rollback()
@@ -248,19 +264,80 @@ class FilmGeneratorViewModel: ObservableObject {
         status = "Complete! Generated \(generatedClips.count) videos"
     }
     
+    // MARK: - Five-Word Continuity Rule
+    
+    /// Extracts the last five words from a prompt string
+    /// - Parameter prompt: The prompt text to extract from
+    /// - Returns: The last five words as a string, or empty string if prompt has fewer than 5 words
+    private func extractLastFiveWords(from prompt: String) -> String {
+        let words = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+        
+        guard words.count >= 5 else {
+            // If prompt has fewer than 5 words, return all words
+            return words.joined(separator: " ")
+        }
+        
+        return words.suffix(5).joined(separator: " ")
+    }
+    
+    /// Applies the five-word continuity rule to a prompt
+    /// Ensures the prompt starts with the last five words of the previous prompt
+    /// - Parameters:
+    ///   - prompt: The current prompt to modify
+    ///   - previousPrompt: The previous prompt to extract last five words from
+    /// - Returns: The modified prompt with continuity chain applied
+    private func applyFiveWordChain(to prompt: String, previousPrompt: String) -> String {
+        let lastFiveWords = extractLastFiveWords(from: previousPrompt)
+        
+        guard !lastFiveWords.isEmpty else {
+            // If previous prompt doesn't have enough words, return original
+            return prompt
+        }
+        
+        // Check if prompt already starts with the last five words
+        let promptWords = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+        
+        let promptStartsWith = promptWords.prefix(5).joined(separator: " ")
+        
+        if promptStartsWith.lowercased() == lastFiveWords.lowercased() {
+            // Already starts with the chain words, return as-is
+            return prompt
+        }
+        
+        // Prepend the last five words to the current prompt
+        return "\(lastFiveWords) \(prompt)".trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     /// Generates a single video take, handling continuity seeds for subsequent takes
     /// - Parameters:
     ///   - take: The film take to generate
     ///   - takeIndex: Zero-based index of this take in the sequence
     ///   - prompt: The prompt text to use (may be edited)
+    ///   - tier: Quality tier for generation (defaults to .basic)
     /// - Returns: The generated clip
-    private func generateTake(take: FilmTake, takeIndex: Int, prompt: String) async throws -> GeneratedClip {
+    private func generateTake(take: FilmTake, takeIndex: Int, prompt: String, tier: VideoQualityTier = .basic) async throws -> GeneratedClip {
         let videoPrompt = prompt
         
         // For takes after the first, we require a seed image for visual continuity
         if takeIndex > 0 && lastExtractedFrame == nil {
             throw GeneratorError.noTakesGenerated
         }
+        
+        // Convert last frame to base64 for imageTail (continuity)
+        // Only available for takes after the first (takeIndex > 0)
+        let imageTailBase64: String? = {
+            guard takeIndex > 0, let lastFrame = lastExtractedFrame,
+                  let imageData = lastFrame.jpegData(compressionQuality: 0.85) else {
+                return nil
+            }
+            // Convert to base64 with format prefix
+            let base64String = imageData.base64EncodedString()
+            return "data:image/jpeg;base64,\(base64String)"
+        }()
         
         // Generate video based on whether this is the first take or a subsequent one
         let generatedVideoURL: URL
@@ -269,7 +346,9 @@ class FilmGeneratorViewModel: ObservableObject {
             print("🎬 [Take \(take.takeNumber)] First take - generating from text")
             generatedVideoURL = try await polloVideoService.generateVideo(
                 prompt: videoPrompt,
-                duration: take.estimatedDuration
+                duration: take.estimatedDuration,
+                tier: tier,
+                imageTail: nil // No previous frame for first take
             )
         } else {
             // Subsequent takes: use seed image from previous take for continuity
@@ -282,11 +361,13 @@ class FilmGeneratorViewModel: ObservableObject {
                 )
             }
             
-            print("🔗 [Take \(take.takeNumber)] Using seed image from Take \(takeIndex)")
+            print("🔗 [Take \(take.takeNumber)] Using seed image + imageTail for continuity (tier: \(tier.shortName))")
             generatedVideoURL = try await polloVideoService.generateVideoFromImage(
                 imageData: seedImageData,
                 prompt: videoPrompt,
-                duration: take.estimatedDuration
+                duration: take.estimatedDuration,
+                tier: tier,
+                imageTail: imageTailBase64 // Pass last frame as imageTail for continuity
             )
         }
         
@@ -381,13 +462,15 @@ struct AnalyzingView: View {
 
 struct TakesPreviewView: View {
     let film: FilmBreakdown
-    let onGenerate: (Set<UUID>, [UUID: String]) -> Void
+    let onGenerate: (Set<UUID>, [UUID: String], VideoQualityTier) -> Void
     let onCancel: () -> Void
     
     @State private var selectedTakes: Set<UUID> = Set()
     @State private var editingTakeId: UUID?
     @State private var editedPrompts: [UUID: String] = [:]
     @State private var showEditWarning = false
+    @State private var selectedTier: VideoQualityTier = .basic
+    private var creditsManager: CreditsManager { CreditsManager.shared }
     
     var body: some View {
         GeometryReader { geometry in
@@ -471,8 +554,103 @@ struct TakesPreviewView: View {
                     )
                 )
                 
+                // Tier Selection & Cost Calculation
+                VStack(spacing: 16) {
+                    // Tier Selection
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Select Model")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        HStack(spacing: 12) {
+                            ForEach([VideoQualityTier.economy, .basic, .pro], id: \.self) { tier in
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        selectedTier = tier
+                                    }
+                                }) {
+                                    VStack(spacing: 4) {
+                                        Text(tier.shortName)
+                                            .font(.system(size: 14, weight: .semibold))
+                                        Text("\(tier.customerPricePerSecond, specifier: "%.2f")/sec")
+                                            .font(.system(size: 11, weight: .regular))
+                                            .opacity(0.8)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        selectedTier == tier ?
+                                        LinearGradient(
+                                            colors: [Color(hex: "4A8FE8"), Color(hex: "357ABD")],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ) :
+                                        LinearGradient(
+                                            colors: [Color(hex: "2A2A2A"), Color(hex: "222222")],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .foregroundColor(selectedTier == tier ? .white : .gray)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(selectedTier == tier ? Color(hex: "4A8FE8") : Color.clear, lineWidth: 2)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Cost Calculation
+                    Group {
+                        let selectedDuration = film.takes.filter { selectedTakes.contains($0.id) }
+                            .reduce(0.0) { $0 + $1.estimatedDuration }
+                        let totalCost = selectedDuration * selectedTier.customerPricePerSecond
+                        let totalTokens = Int(ceil(selectedDuration * Double(selectedTier.tokensPerSecond)))
+                        
+                        VStack(spacing: 8) {
+                            HStack {
+                            Text("Estimated Cost")
+                .font(.subheadline)
+                                .foregroundColor(Color(hex: "4A8FE8").opacity(0.7))
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("$\(totalCost, specifier: "%.2f")")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color(hex: "4A8FE8"))
+                                Text("\(totalTokens) tokens")
+                                    .font(.caption)
+                                    .foregroundColor(Color(hex: "4A8FE8").opacity(0.8))
+                            }
+                        }
+                        
+                        if totalTokens > creditsManager.tokens {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(Color(hex: "FF9E0A"))
+                                Text("Insufficient credits (\(creditsManager.tokens) available)")
+                                    .font(.caption)
+                                    .foregroundColor(Color(hex: "FF9E0A"))
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(hex: "FF9E0A").opacity(0.2))
+                            .cornerRadius(8)
+                        }
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(Color(hex: "1A1A1A"))
+                        .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                
                 // Generate Button - Only enabled if prompts selected
-                VStack(spacing: 12) {
+            VStack(spacing: 12) {
                     Button(action: {
                         // Check if any prompts were edited
                         let hasEdits = film.takes.contains { take in
@@ -485,7 +663,7 @@ struct TakesPreviewView: View {
                         if hasEdits {
                             showEditWarning = true
                         } else {
-                            onGenerate(selectedTakes, editedPrompts)
+                            onGenerate(selectedTakes, editedPrompts, selectedTier)
                         }
                     }) {
                         HStack {
@@ -519,9 +697,9 @@ struct TakesPreviewView: View {
                         )
                     }
                     .disabled(selectedTakes.isEmpty)
-                    
-                    Button("Cancel", action: onCancel)
-                        .foregroundColor(.secondary)
+                
+                Button("Cancel", action: onCancel)
+                        .foregroundColor(Color(hex: "4A8FE8").opacity(0.7))
                         .padding(.bottom, 8)
                 }
                 .padding(.horizontal, 24)
@@ -545,7 +723,7 @@ struct TakesPreviewView: View {
         }
         .alert("Edit Warning", isPresented: $showEditWarning) {
             Button("Continue Anyway") {
-                onGenerate(selectedTakes, editedPrompts)
+                onGenerate(selectedTakes, editedPrompts, selectedTier)
             }
             Button("Review Again", role: .cancel) {}
         } message: {
@@ -567,7 +745,7 @@ struct PremiumHeaderView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
-                            .foregroundColor(Color(hex: "FFD700"))
+                            .foregroundColor(Color(hex: "FF9E0A"))
                             .font(.title2)
                         Text("Your Premium Prompts")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -576,7 +754,7 @@ struct PremiumHeaderView: View {
                     
                     Text("\(selectedCount) of \(takeCount) selected • \(Int(totalDuration))s total")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color(hex: "4A8FE8").opacity(0.8))
                 }
                 
                 Spacer()
@@ -616,7 +794,7 @@ struct StoryPositionIndicator: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "FF9E0A"), Color(hex: "FFD700")],
+                                colors: [Color(hex: "4A8FE8"), Color(hex: "FF9E0A")],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -651,13 +829,13 @@ struct PremiumPromptCard: View {
                 Button(action: onToggle) {
                     ZStack {
                         Circle()
-                            .fill(isSelected ? Color(hex: "FFD700") : Color.white.opacity(0.2))
+                            .fill(isSelected ? Color(hex: "FF9E0A") : Color(hex: "4A8FE8").opacity(0.3))
                             .frame(width: 24, height: 24)
                         
                         if isSelected {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.black)
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -672,23 +850,23 @@ struct PremiumPromptCard: View {
                             Text("Take \(take.takeNumber)")
                                 .font(.system(size: 14, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: "FFD700"))
+                        .foregroundColor(Color(hex: "FF9E0A"))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color(hex: "FFD700").opacity(0.2))
+                                .fill(Color(hex: "FF9E0A").opacity(0.2))
                         )
                         
                         // Scene type badge
                         Text(take.sceneType.rawValue)
                             .font(.caption2)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(Color(hex: "4A8FE8"))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(
                                 Capsule()
-                                    .fill(Color.white.opacity(0.15))
+                                    .fill(Color(hex: "4A8FE8").opacity(0.2))
                             )
                         
                         Spacer()
@@ -696,7 +874,7 @@ struct PremiumPromptCard: View {
                         // Duration
                         Text("\(Int(take.estimatedDuration))s")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(Color(hex: "4A8FE8").opacity(0.7))
                     }
                     
                     // Story content (what this moment captures)
@@ -734,10 +912,10 @@ struct PremiumPromptCard: View {
                 HStack {
                     Image(systemName: "sparkles")
                         .font(.caption)
-                        .foregroundColor(Color(hex: "FFD700"))
+                        .foregroundColor(Color(hex: "FF9E0A"))
                     Text("Video Prompt")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color(hex: "4A8FE8").opacity(0.8))
                         .textCase(.uppercase)
                 }
                 
@@ -754,7 +932,7 @@ struct PremiumPromptCard: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(hex: "FFD700").opacity(0.3), lineWidth: 1)
+                                .stroke(Color(hex: "4A8FE8").opacity(0.4), lineWidth: 1)
                         )
                         .focused($isFocused)
                         .onChange(of: localEditedText) { _, newValue in
@@ -791,7 +969,7 @@ struct PremiumPromptCard: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color(hex: "FFD700").opacity(0.15),
+                                            Color(hex: "4A8FE8").opacity(0.15),
                                             Color(hex: "FF9E0A").opacity(0.1)
                                         ],
                                         startPoint: .topLeading,
@@ -804,7 +982,7 @@ struct PremiumPromptCard: View {
                                 .stroke(
                                     LinearGradient(
                                         colors: [
-                                            Color(hex: "FFD700").opacity(0.4),
+                                            Color(hex: "4A8FE8").opacity(0.4),
                                             Color(hex: "FF9E0A").opacity(0.3)
                                         ],
                                         startPoint: .topLeading,

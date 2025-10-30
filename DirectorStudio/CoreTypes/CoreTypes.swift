@@ -206,6 +206,7 @@ public struct Project: Codable, Identifiable {
     public var updatedAt: Date
     public var clipCount: Int
     public var voiceoverCount: Int
+    public var usesChainedPrompts: Bool  // Enable five-word continuity rule
     
     public init(
         id: UUID = UUID(),
@@ -215,7 +216,8 @@ public struct Project: Codable, Identifiable {
         lastModified: Date = Date(),
         updatedAt: Date = Date(),
         clipCount: Int = 0,
-        voiceoverCount: Int = 0
+        voiceoverCount: Int = 0,
+        usesChainedPrompts: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -225,6 +227,7 @@ public struct Project: Codable, Identifiable {
         self.updatedAt = updatedAt
         self.clipCount = clipCount
         self.voiceoverCount = voiceoverCount
+        self.usesChainedPrompts = usesChainedPrompts
     }
     
     /// Generate next clip name based on project name and count
