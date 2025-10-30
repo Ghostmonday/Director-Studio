@@ -102,7 +102,7 @@ struct CostEstimateHeader: View {
             HStack {
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundColor(Color(hex: "FF9E0A"))  // Warm amber
+                    .foregroundColor(Color(hex: "FF6B35"))  // Buttery orange
                     .rotationEffect(.degrees(pulseAnimation ? 10 : -10))
                     .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: pulseAnimation)
                 
@@ -112,7 +112,7 @@ struct CostEstimateHeader: View {
                 
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundColor(Color(hex: "FF9E0A"))
+                    .foregroundColor(Color(hex: "FF6B35"))
                     .rotationEffect(.degrees(pulseAnimation ? -10 : 10))
                     .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: pulseAnimation)
             }
@@ -130,7 +130,7 @@ struct CostEstimateHeader: View {
                 Text(totalCost.dollars)
                     .font(.system(.title3, design: .rounded))
                     .fontWeight(.semibold)
-                    .foregroundColor(Color(hex: "4A8FE8"))  // Cool blue
+                    .foregroundColor(Color(hex: "2563EB"))  // Professional blue
                 
                 Text("(\(totalCost.tokens) tokens)")
                     .font(.caption)
@@ -180,9 +180,9 @@ struct TierCard: View {
         case .economy:
             return Color(hex: "7FB3D5")  // Soft blue
         case .basic:
-            return Color(hex: "FF9E0A")  // Warm amber
+            return Color(hex: "FF6B35")  // Buttery orange
         case .pro:
-            return Color(hex: "4A8FE8")  // Cool blue (most popular)
+            return Color(hex: "2563EB")  // Professional blue (most popular)
         case .premium:
             return Color(hex: "FFD700")  // Gold
         }
@@ -216,8 +216,8 @@ struct TierCard: View {
                                     .padding(.vertical, 4)
                                     .background(
                                         Capsule()
-                                            .fill(Color(hex: "FF9E0A"))
-                                            .shadow(color: Color(hex: "FF9E0A").opacity(0.5), radius: 4)
+                                            .fill(Color(hex: "FF6B35"))
+                                            .shadow(color: Color(hex: "FF6B35").opacity(0.5), radius: 4)
                                     )
                                     .foregroundColor(.white)
                             }
@@ -372,7 +372,7 @@ struct AnimatedCostSummary: View {
                     Label(showBreakdown ? "Hide Details" : "Show Details", 
                           systemImage: showBreakdown ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
                         .font(.caption)
-                        .foregroundColor(Color(hex: "4A8FE8"))
+                        .foregroundColor(Color(hex: "2563EB"))
                 }
             }
             .padding()
@@ -440,7 +440,7 @@ struct AnimatedCostSummary: View {
                     .font(.caption)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color(hex: "FF9E0A"))
+                    .background(Color(hex: "FF6B35"))
                     .foregroundColor(.white)
                     .cornerRadius(6)
                 }

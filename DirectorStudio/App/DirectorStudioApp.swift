@@ -48,9 +48,9 @@ struct ContentView: View {
             appearance.configureWithOpaqueBackground()
             appearance.backgroundColor = UIColor(red: 25/255, green: 25/255, blue: 25/255, alpha: 1.0) // Dark background
             
-            // Selected tab color (blue)
-            appearance.stackedLayoutAppearance.selected.iconColor = UIColor(red: 74/255, green: 143/255, blue: 232/255, alpha: 1.0) // #4A8FE8
-            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(red: 74/255, green: 143/255, blue: 232/255, alpha: 1.0)]
+            // Selected tab color (professional blue)
+            appearance.stackedLayoutAppearance.selected.iconColor = UIColor(red: 37/255, green: 99/255, blue: 235/255, alpha: 1.0) // #2563EB - Professional blue
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(red: 37/255, green: 99/255, blue: 235/255, alpha: 1.0)]
             
             // Unselected tab color (gray)
             appearance.stackedLayoutAppearance.normal.iconColor = UIColor.white.withAlphaComponent(0.6)

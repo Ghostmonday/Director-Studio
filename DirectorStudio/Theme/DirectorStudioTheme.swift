@@ -29,14 +29,44 @@ struct DirectorStudioTheme {
     // MARK: - Colors
     
     struct Colors {
-        // Primary brand colors - Premium feel
-        static let primary = Color(red: 0, green: 102/255, blue: 255/255)  // #0066FF - Deeper blue
-        static let secondary = Color(red: 142/255, green: 68/255, blue: 173/255)  // #8E44AD - Richer purple
-        static let accent = Color(red: 255/255, green: 149/255, blue: 0/255)  // #FF9500 - Warmer orange
+        // Professional Blue-Orange Color Scheme
+        // Primary: Rich professional blue - smooth and trustworthy
+        static let primary = Color(red: 37/255, green: 99/255, blue: 235/255)  // #2563EB - Professional blue
         
-        // Gradient definitions with better color stops
+        // Secondary: Buttery warm orange - smooth and inviting
+        static let secondary = Color(red: 255/255, green: 107/255, blue: 53/255)  // #FF6B35 - Buttery orange
+        
+        // Accent: Same as secondary for consistency
+        static let accent = Color(red: 255/255, green: 107/255, blue: 53/255)  // #FF6B35 - Buttery orange
+        
+        // Gradient definitions with smooth, buttery transitions
         static let primaryGradient = LinearGradient(
-            colors: [primary, primary.opacity(0.9), secondary.opacity(0.8)],
+            colors: [
+                primary,
+                Color(red: 59/255, green: 130/255, blue: 246/255),  // Slightly lighter blue
+                secondary.opacity(0.85)  // Buttery orange blend
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        
+        // Additional gradient variants for different use cases
+        static let blueGradient = LinearGradient(
+            colors: [
+                primary,
+                Color(red: 59/255, green: 130/255, blue: 246/255),  // #3B82F6
+                Color(red: 96/255, green: 165/255, blue: 250/255)   // #60A5FA - Lighter blue
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        
+        static let orangeGradient = LinearGradient(
+            colors: [
+                secondary,
+                Color(red: 255/255, green: 138/255, blue: 101/255),  // #FF8A65 - Softer orange
+                Color(red: 255/255, green: 171/255, blue: 145/255)   // #FFAB91 - Light orange
+            ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -134,9 +164,11 @@ struct DirectorStudioTheme {
         static let large = (color: Color.black.opacity(0.16), radius: 16.0, x: 0.0, y: 8.0)
         static let xlarge = (color: Color.black.opacity(0.20), radius: 24.0, x: 0.0, y: 12.0)
         
-        // Colored shadows for primary elements
-        static let primaryGlow = (color: Colors.primary.opacity(0.3), radius: 16.0, x: 0.0, y: 8.0)
-        static let secondaryGlow = (color: Colors.secondary.opacity(0.3), radius: 16.0, x: 0.0, y: 8.0)
+        // Colored shadows for primary elements - smooth buttery glows
+        static let primaryGlow = (color: Colors.primary.opacity(0.35), radius: 18.0, x: 0.0, y: 8.0)
+        static let secondaryGlow = (color: Colors.secondary.opacity(0.35), radius: 18.0, x: 0.0, y: 8.0)
+        static let orangeGlow = (color: Colors.secondary.opacity(0.4), radius: 20.0, x: 0.0, y: 10.0)
+        static let blueGlow = (color: Colors.primary.opacity(0.4), radius: 20.0, x: 0.0, y: 10.0)
     }
 }
 
@@ -157,7 +189,7 @@ struct CardStyle: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DirectorStudioTheme.CornerRadius.large)
-                    .stroke(isSelected ? DirectorStudioTheme.Colors.primary : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? DirectorStudioTheme.Colors.secondary : Color.clear, lineWidth: 2)
             )
     }
 }
@@ -173,9 +205,9 @@ struct PrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, DirectorStudioTheme.Spacing.small)
             .background(
                 ZStack {
-                    // Base gradient
+                    // Base gradient - professional blue
                     if isEnabled {
-                        DirectorStudioTheme.Colors.primaryGradient
+                        DirectorStudioTheme.Colors.blueGradient
                     } else {
                         LinearGradient(colors: [Color.gray.opacity(0.6), Color.gray.opacity(0.4)], 
                                      startPoint: .topLeading, 
@@ -211,12 +243,12 @@ struct PrimaryButtonStyle: ButtonStyle {
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundColor(DirectorStudioTheme.Colors.primary)
+            .foregroundColor(DirectorStudioTheme.Colors.secondary)
             .padding(.horizontal, DirectorStudioTheme.Spacing.medium)
             .padding(.vertical, DirectorStudioTheme.Spacing.small)
             .background(
                 RoundedRectangle(cornerRadius: DirectorStudioTheme.CornerRadius.medium)
-                    .stroke(DirectorStudioTheme.Colors.primary, lineWidth: 1.5)
+                    .stroke(DirectorStudioTheme.Colors.secondary, lineWidth: 1.5)
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(DirectorStudioTheme.Animation.quick, value: configuration.isPressed)
@@ -239,7 +271,7 @@ struct FloatingLabelTextFieldStyle: ViewModifier {
             // Floating label
             Text(title)
                 .font(shouldFloat ? .caption : .body)
-                .foregroundColor(shouldFloat ? DirectorStudioTheme.Colors.primary : Color(.placeholderText))
+                .foregroundColor(shouldFloat ? DirectorStudioTheme.Colors.secondary : Color(.placeholderText))
                 .offset(y: shouldFloat ? -20 : 0)
                 .scaleEffect(shouldFloat ? 0.8 : 1, anchor: .leading)
                 .animation(DirectorStudioTheme.Animation.smooth, value: shouldFloat)
@@ -252,7 +284,7 @@ struct FloatingLabelTextFieldStyle: ViewModifier {
         .overlay(
             Rectangle()
                 .frame(height: 2)
-                .foregroundColor(isFocused ? DirectorStudioTheme.Colors.primary : Color(.separator))
+                .foregroundColor(isFocused ? DirectorStudioTheme.Colors.secondary : Color(.separator))
                 .animation(DirectorStudioTheme.Animation.quick, value: isFocused),
             alignment: .bottom
         )
