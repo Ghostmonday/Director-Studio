@@ -22,13 +22,17 @@ class SupabaseAPIKeyService {
     /// - Parameter service: Service name (e.g. "Pollo", "DeepSeek")
     /// - Returns: The API key for the service
     func getAPIKey(service: String) async throws -> String {
+        let requestId = UUID().uuidString.prefix(8)
+        let startTime = Date()
+        
         // Return cached key if available
         if let cached = keyCache[service] {
-            print("🔑 Using cached \(service) key")
+            let cacheDuration = Date().timeIntervalSince(startTime)
+            print("🔑 [Supabase][\(requestId)] Using cached \(service) key (fetched in \(String(format: "%.3f", cacheDuration))s)")
             return cached
         }
         
-        print("🔑 Fetching \(service) key from hosted Supabase...")
+        print("🔑 [Supabase][\(requestId)] Fetching \(service) key from hosted Supabase...")
         
         // Use Supabase REST API to query the api_keys table
         // PostgREST uses special query format: service=eq.Pollo
@@ -39,12 +43,12 @@ class SupabaseAPIKeyService {
         let fullURLString = "\(baseURL)?\(queryString)"
         
         guard let url = URL(string: fullURLString) else {
-            print("❌ Failed to create URL for service: \(service)")
-            print("❌ URL string was: \(fullURLString)")
+            print("❌ [Supabase][\(requestId)] Failed to create URL for service: \(service)")
+            print("❌ [Supabase][\(requestId)] URL string was: \(fullURLString)")
             throw APIKeyError.httpError(0, service: service, details: "Invalid URL format: \(fullURLString)")
         }
         
-        print("🔗 Request URL: \(url.absoluteString)")
+        print("🔗 [Supabase][\(requestId)] Request URL: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -53,22 +57,25 @@ class SupabaseAPIKeyService {
         request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(supabaseAnonKey)", forHTTPHeaderField: "Authorization")
         
-        print("📤 Headers: apikey=\(supabaseAnonKey.prefix(20))..., Authorization=Bearer \(supabaseAnonKey.prefix(20))...")
+        print("📤 [Supabase][\(requestId)] Headers: apikey=\(supabaseAnonKey.prefix(20))..., Authorization=Bearer \(supabaseAnonKey.prefix(20))...")
         
+        let requestStartTime = Date()
         let (data, response) = try await URLSession.shared.data(for: request)
+        let requestDuration = Date().timeIntervalSince(requestStartTime)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            print("❌ Invalid HTTP response")
+            print("❌ [Supabase][\(requestId)] Invalid HTTP response")
             throw APIKeyError.httpError(0, service: service, details: "Invalid HTTP response type")
         }
         
-        print("📥 Response status: \(httpResponse.statusCode)")
+        print("📥 [Supabase][\(requestId)] Response status: \(httpResponse.statusCode) in \(String(format: "%.2f", requestDuration))s")
         
         guard httpResponse.statusCode == 200 else {
             let responseBody = String(data: data, encoding: .utf8) ?? "No response body"
-            print("❌ Failed to fetch \(service) key: HTTP \(httpResponse.statusCode)")
-            print("📦 Response body: \(responseBody)")
-            print("🔗 Requested URL: \(url.absoluteString)")
+            let totalDuration = Date().timeIntervalSince(startTime)
+            print("❌ [Supabase][\(requestId)] Failed to fetch \(service) key: HTTP \(httpResponse.statusCode) after \(String(format: "%.2f", totalDuration))s")
+            print("📦 [Supabase][\(requestId)] Response body: \(responseBody)")
+            print("🔗 [Supabase][\(requestId)] Requested URL: \(url.absoluteString)")
             print("📤 Headers sent: apikey=\(supabaseAnonKey.prefix(20))..., Authorization=Bearer \(supabaseAnonKey.prefix(20))...")
             
             var diagnosticMessage: String?
@@ -103,7 +110,8 @@ class SupabaseAPIKeyService {
         // Cache the key
         keyCache[service] = record.key
         
-        print("✅ Successfully fetched \(service) key from hosted Supabase")
+        let totalDuration = Date().timeIntervalSince(startTime)
+        print("✅ [Supabase][\(requestId)] Successfully fetched \(service) key (\(record.key.prefix(20))...) in \(String(format: "%.2f", totalDuration))s")
         return record.key
     }
     

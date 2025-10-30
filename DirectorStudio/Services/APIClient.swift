@@ -114,42 +114,113 @@ public class APIClient: APIClientProtocol {
     }
     
     public func performRequest<T: Codable>(_ request: URLRequest, expectedType: T.Type) async throws -> T {
+        let requestId = UUID().uuidString.prefix(8)
+        let startTime = Date()
         var lastError: Error?
+        
+        // Log full request details
+        let urlString = request.url?.absoluteString ?? "unknown"
+        let method = request.httpMethod ?? "GET"
+        
+        logger.info("🚀 [\(requestId)] API Request Started")
+        logger.info("🚀 [\(requestId)] Method: \(method)")
+        logger.info("🚀 [\(requestId)] URL: \(urlString)")
+        print("🚀 [APIClient][\(requestId)] \(method) \(urlString)")
+        writeToLog("🚀 ====== REQUEST START [\(requestId)] ======")
+        writeToLog("🚀 [\(requestId)] Method: \(method)")
+        writeToLog("🚀 [\(requestId)] URL: \(urlString)")
+        
+        // Log all headers (except sensitive auth tokens)
+        if let headers = request.allHTTPHeaderFields {
+            var safeHeaders: [String: String] = [:]
+            for (key, value) in headers {
+                if key.lowercased().contains("authorization") || key.lowercased().contains("apikey") {
+                    safeHeaders[key] = "\(value.prefix(20))...[REDACTED]"
+                } else {
+                    safeHeaders[key] = value
+                }
+            }
+            logger.debug("🚀 [\(requestId)] Headers: \(safeHeaders)")
+            writeToLog("🚀 [\(requestId)] Headers: \(safeHeaders)")
+        }
+        
+        // Log request body
+        if let bodyData = request.httpBody {
+            let bodySize = bodyData.count
+            if let bodyString = String(data: bodyData, encoding: .utf8) {
+                // Truncate very large bodies but log first/last 500 chars
+                if bodyString.count > 1000 {
+                    let truncated = bodyString.prefix(500) + "\n...[TRUNCATED \(bodyString.count - 1000) chars]...\n" + bodyString.suffix(500)
+                    logger.debug("🚀 [\(requestId)] Request Body (\(bodySize) bytes): \(truncated)")
+                    writeToLog("🚀 [\(requestId)] REQUEST BODY (\(bodySize) bytes):\n\(truncated)")
+                } else {
+                    logger.debug("🚀 [\(requestId)] Request Body (\(bodySize) bytes): \(bodyString)")
+                    writeToLog("🚀 [\(requestId)] REQUEST BODY (\(bodySize) bytes):\n\(bodyString)")
+                }
+                print("📤 [APIClient][\(requestId)] Request Body (\(bodySize) bytes)")
+            } else {
+                logger.debug("🚀 [\(requestId)] Request Body (\(bodySize) bytes): [BINARY DATA]")
+                writeToLog("🚀 [\(requestId)] REQUEST BODY (\(bodySize) bytes): [BINARY DATA]")
+            }
+        }
         
         for attempt in 1...maxRetries {
             do {
-                let urlString = request.url?.absoluteString ?? "unknown"
-                logger.debug("🔄 Attempt \(attempt) for \(urlString)")
-                writeToLog("🔄 Attempt \(attempt)/\(maxRetries) - \(urlString)")
-                
-                if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
-                    writeToLog("📤 REQUEST BODY:\n\(bodyString)")
-                }
+                let attemptStartTime = Date()
+                logger.info("🔄 [\(requestId)] Attempt \(attempt)/\(self.maxRetries)")
+                writeToLog("🔄 [\(requestId)] Attempt \(attempt)/\(self.maxRetries)")
                 
                 let (data, response) = try await session.data(for: request)
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
+                    logger.error("❌ [\(requestId)] Invalid HTTP response type")
+                    writeToLog("❌ [\(requestId)] Invalid HTTP response type")
                     throw APIError.invalidResponse(statusCode: 0, message: nil)
                 }
                 
-                logger.debug("📡 Response Status: \(httpResponse.statusCode)")
-                writeToLog("📡 Response Status: \(httpResponse.statusCode), Size: \(data.count) bytes")
+                let attemptDuration = Date().timeIntervalSince(attemptStartTime)
+                let totalDuration = Date().timeIntervalSince(startTime)
+                
+                logger.info("📡 [\(requestId)] Response Status: \(httpResponse.statusCode)")
+                logger.info("📡 [\(requestId)] Duration: \(String(format: "%.2f", attemptDuration))s (total: \(String(format: "%.2f", totalDuration))s)")
+                logger.info("📡 [\(requestId)] Response Size: \(data.count) bytes")
+                
+                print("📥 [APIClient][\(requestId)] HTTP \(httpResponse.statusCode) - \(data.count) bytes in \(String(format: "%.2f", attemptDuration))s")
+                writeToLog("📡 [\(requestId)] Response Status: \(httpResponse.statusCode)")
+                writeToLog("📡 [\(requestId)] Duration: \(String(format: "%.2f", attemptDuration))s (total: \(String(format: "%.2f", totalDuration))s)")
+                writeToLog("📡 [\(requestId)] Response Size: \(data.count) bytes")
+                
+                // Log response headers
+                let responseHeaders = httpResponse.allHeaderFields
+                logger.debug("📡 [\(requestId)] Response Headers: \(responseHeaders)")
+                writeToLog("📡 [\(requestId)] Response Headers: \(responseHeaders)")
                 
                 // Log response body for debugging - ALWAYS print full response
                 if let responseString = String(data: data, encoding: .utf8) {
-                    logger.debug("📦 Response Body: \(responseString)")
-                    print("📥 [APIClient] Response (\(data.count) bytes): \(responseString)")
-                    writeToLog("📥 RESPONSE BODY:\n\(responseString)")
+                    // Truncate very large responses but log first/last 1000 chars
+                    if responseString.count > 2000 {
+                        let truncated = responseString.prefix(1000) + "\n...[TRUNCATED \(responseString.count - 2000) chars]...\n" + responseString.suffix(1000)
+                        logger.debug("📦 [\(requestId)] Response Body (truncated): \(truncated)")
+                        print("📥 [APIClient][\(requestId)] Response (\(data.count) bytes, truncated): \(truncated.prefix(500))...")
+                        writeToLog("📥 [\(requestId)] RESPONSE BODY (truncated):\n\(truncated)")
+                    } else {
+                        logger.debug("📦 [\(requestId)] Response Body: \(responseString)")
+                        print("📥 [APIClient][\(requestId)] Response (\(data.count) bytes): \(responseString)")
+                        writeToLog("📥 [\(requestId)] RESPONSE BODY:\n\(responseString)")
+                    }
                 } else {
-                    print("📥 [APIClient] Response (\(data.count) bytes): [NOT UTF-8 ENCODED]")
-                    writeToLog("📥 RESPONSE: [NOT UTF-8 ENCODED, \(data.count) bytes]")
+                    logger.warning("📦 [\(requestId)] Response (\(data.count) bytes): [NOT UTF-8 ENCODED]")
+                    print("📥 [APIClient][\(requestId)] Response (\(data.count) bytes): [NOT UTF-8 ENCODED]")
+                    writeToLog("📥 [\(requestId)] RESPONSE: [NOT UTF-8 ENCODED, \(data.count) bytes]")
                 }
                 
                 guard 200...299 ~= httpResponse.statusCode else {
                     // Extract error message from response body for better debugging
                     var errorMessage = "HTTP \(httpResponse.statusCode)"
                     if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
-                        logger.error("❌ HTTP Error \(httpResponse.statusCode): \(responseString.prefix(200))")
+                        logger.error("❌ [\(requestId)] HTTP Error \(httpResponse.statusCode): \(responseString.prefix(500))")
+                        writeToLog("❌ [\(requestId)] HTTP ERROR \(httpResponse.statusCode)")
+                        writeToLog("❌ [\(requestId)] Error Response: \(responseString)")
                         
                         // Try to parse Pollo API error response structure
                         // PolloErrorResponse is defined in PolloAIService.swift - parse manually here
@@ -187,27 +258,30 @@ public class APIClient: APIClientProtocol {
                     throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: errorMessage.isEmpty ? nil : errorMessage)
                 }
                 
-                logger.debug("✅ Success: \(httpResponse.statusCode) bytes: \(data.count)")
-                
                 // Check if data is empty before decoding
                 guard !data.isEmpty else {
-                    logger.error("❌ Empty response data received")
+                    logger.error("❌ [\(requestId)] Empty response data received")
+                    writeToLog("❌ [\(requestId)] Empty response data received")
                     throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: "Empty response from server - Check API endpoint and request format")
-                }
-                
-                // Log the raw response for debugging
-                if let responseString = String(data: data, encoding: .utf8) {
-                    logger.debug("📦 Raw JSON Response: \(responseString)")
-                    print("📦 [APIClient] Full Response: \(responseString)")
                 }
                 
                 // Try to decode, but provide better error messages
                 do {
+                    let decodeStartTime = Date()
                     let decoded = try JSONDecoder().decode(expectedType, from: data)
-                    writeToLog("✅ Successfully decoded as \(String(describing: expectedType))")
+                    let decodeDuration = Date().timeIntervalSince(decodeStartTime)
+                    
+                    let totalDuration = Date().timeIntervalSince(startTime)
+                    logger.info("✅ [\(requestId)] Success: Decoded \(String(describing: expectedType)) in \(String(format: "%.3f", decodeDuration))s (total: \(String(format: "%.2f", totalDuration))s)")
+                    print("✅ [APIClient][\(requestId)] Success - HTTP \(httpResponse.statusCode), \(data.count) bytes, decoded in \(String(format: "%.3f", decodeDuration))s")
+                    writeToLog("✅ [\(requestId)] Successfully decoded as \(String(describing: expectedType))")
+                    writeToLog("✅ [\(requestId)] Total request time: \(String(format: "%.2f", totalDuration))s")
+                    writeToLog("✅ [\(requestId)] ====== REQUEST COMPLETE ======")
                     return decoded
                 } catch let decodeError as DecodingError {
-                    writeToLog("❌ DECODE ERROR: \(decodeError)")
+                    logger.error("❌ [\(requestId)] DECODE ERROR: \(decodeError)")
+                    print("❌ [APIClient][\(requestId)] Decode Error: \(decodeError)")
+                    writeToLog("❌ [\(requestId)] DECODE ERROR: \(decodeError)")
                     
                     // If decoding fails, try to parse as error response (any API error format)
                     // BUT: Check if code is "SUCCESS" - if so, this is a wrapped success response, not an error!
@@ -217,31 +291,42 @@ public class APIClient: APIClientProtocol {
                         
                         // Don't treat SUCCESS codes as errors!
                         if code.uppercased() == "SUCCESS" {
-                            writeToLog("⚠️ Response has code=SUCCESS but failed to decode. This is likely a wrapped response format issue.")
-                            writeToLog("⚠️ Full JSON: \(json)")
+                            logger.warning("⚠️ [\(requestId)] Response has code=SUCCESS but failed to decode. This is likely a wrapped response format issue.")
+                            writeToLog("⚠️ [\(requestId)] Response has code=SUCCESS but failed to decode. This is likely a wrapped response format issue.")
+                            writeToLog("⚠️ [\(requestId)] Full JSON: \(json)")
                         } else if !message.isEmpty {
-                            logger.error("❌ API returned error response: \(message) (code: \(code))")
-                            print("❌ [APIClient] Error Response: \(json)")
-                            writeToLog("❌ API ERROR RESPONSE: message=\(message), code=\(code)")
+                            logger.error("❌ [\(requestId)] API returned error response: \(message) (code: \(code))")
+                            print("❌ [APIClient][\(requestId)] Error Response: \(json)")
+                            writeToLog("❌ [\(requestId)] API ERROR RESPONSE: message=\(message), code=\(code)")
+                            writeToLog("❌ [\(requestId)] Full error JSON: \(json)")
                             throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: "API Error: \(message)")
                         }
                     }
                     
                     // Log the actual decoding error details
-                    logger.error("❌ Failed to decode as \(expectedType): \(decodeError)")
-                    print("❌ [APIClient] Decode Error: \(decodeError)")
+                    logger.error("❌ [\(requestId)] Failed to decode as \(expectedType): \(decodeError)")
                     
                     // Detailed decode error logging
                     if case .keyNotFound(let key, let context) = decodeError {
-                        writeToLog("❌ Missing key: '\(key.stringValue)' at \(context.debugDescription)")
+                        logger.error("❌ [\(requestId)] Missing key: '\(key.stringValue)' at \(context.debugDescription)")
+                        logger.error("❌ [\(requestId)] Coding path: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
+                        writeToLog("❌ [\(requestId)] Missing key: '\(key.stringValue)' at \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Coding path: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
                     } else if case .typeMismatch(let type, let context) = decodeError {
-                        writeToLog("❌ Type mismatch: expected \(type) at \(context.debugDescription)")
+                        logger.error("❌ [\(requestId)] Type mismatch: expected \(type) at \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Type mismatch: expected \(type) at \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Coding path: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
                     } else if case .valueNotFound(let type, let context) = decodeError {
-                        writeToLog("❌ Value not found: \(type) at \(context.debugDescription)")
+                        logger.error("❌ [\(requestId)] Value not found: \(type) at \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Value not found: \(type) at \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Coding path: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
                     } else if case .dataCorrupted(let context) = decodeError {
-                        writeToLog("❌ Data corrupted: \(context.debugDescription)")
+                        logger.error("❌ [\(requestId)] Data corrupted: \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Data corrupted: \(context.debugDescription)")
+                        writeToLog("❌ [\(requestId)] Coding path: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
                     }
                     
+                    writeToLog("❌ [\(requestId)] ====== REQUEST FAILED (DECODE ERROR) ======")
                     throw APIError.decodingError(decodeError)
                 }
                 
@@ -261,19 +346,42 @@ public class APIClient: APIClientProtocol {
                 }
             } catch let urlError as URLError {
                 lastError = APIError.networkError(urlError)
-                logger.error("🌐 Network Error: \(urlError.localizedDescription)")
+                logger.error("🌐 [\(requestId)] Network Error: \(urlError.localizedDescription)")
+                logger.error("🌐 [\(requestId)] URLError code: \(urlError.code.rawValue)")
+                logger.error("🌐 [\(requestId)] URLError domain: \(urlError.localizedDescription)")
+                print("🌐 [APIClient][\(requestId)] Network Error: \(urlError.localizedDescription) (code: \(urlError.code.rawValue))")
+                writeToLog("🌐 [\(requestId)] Network Error: \(urlError.localizedDescription)")
+                writeToLog("🌐 [\(requestId)] URLError code: \(urlError.code.rawValue)")
+                writeToLog("🌐 [\(requestId)] URLError domain: \(urlError.localizedDescription)")
+            } catch let apiError as APIError {
+                lastError = apiError
+                logger.error("❌ [\(requestId)] Attempt \(attempt) failed: \(apiError.localizedDescription)")
+                print("❌ [APIClient][\(requestId)] Attempt \(attempt) failed: \(apiError.localizedDescription)")
+                writeToLog("❌ [\(requestId)] Attempt \(attempt) failed: \(apiError.localizedDescription)")
             } catch {
                 lastError = error
-                logger.error("❌ Attempt \(attempt) failed: \(error.localizedDescription)")
+                logger.error("❌ [\(requestId)] Attempt \(attempt) failed: \(error.localizedDescription)")
+                logger.error("❌ [\(requestId)] Error type: \(type(of: error))")
+                print("❌ [APIClient][\(requestId)] Attempt \(attempt) failed: \(error.localizedDescription)")
+                writeToLog("❌ [\(requestId)] Attempt \(attempt) failed: \(error.localizedDescription)")
+                writeToLog("❌ [\(requestId)] Error type: \(type(of: error))")
             }
             
             if attempt < maxRetries {
                 let delay = baseDelay * pow(2.0, Double(attempt - 1))
-                logger.debug("⏳ Retrying in \(delay) seconds...")
+                logger.info("⏳ [\(requestId)] Retrying in \(String(format: "%.1f", delay)) seconds...")
+                print("⏳ [APIClient][\(requestId)] Retrying in \(String(format: "%.1f", delay))s...")
+                writeToLog("⏳ [\(requestId)] Retrying in \(String(format: "%.1f", delay)) seconds...")
                 try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
         }
         
+        let totalDuration = Date().timeIntervalSince(startTime)
+        logger.error("❌ [\(requestId)] All retry attempts exhausted after \(String(format: "%.2f", totalDuration))s")
+        print("❌ [APIClient][\(requestId)] All retries exhausted after \(String(format: "%.2f", totalDuration))s")
+        writeToLog("❌ [\(requestId)] All retry attempts exhausted after \(String(format: "%.2f", totalDuration))s")
+        writeToLog("❌ [\(requestId)] Final error: \(lastError?.localizedDescription ?? "Unknown")")
+        writeToLog("❌ [\(requestId)] ====== REQUEST FAILED (RETRIES EXHAUSTED) ======")
         throw lastError ?? APIError.unknown(NSError(domain: "RetryExhausted", code: 0))
     }
 }

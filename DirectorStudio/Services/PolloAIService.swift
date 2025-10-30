@@ -236,10 +236,21 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             throw APIError.authError("Premium tier (Runway Gen-4) requires your own API key. Please use RunwayGen4Service or add your Runway API key in Settings.")
         }
         
-        logger.debug("🚀 Starting \(tier.shortName) video generation - Prompt: '\(prompt)', Duration: \(duration)s")
+        let operationId = UUID().uuidString.prefix(8)
+        let startTime = Date()
+        
+        logger.info("🚀 [Pollo][\(operationId)] Starting \(tier.shortName) video generation")
+        logger.info("🚀 [Pollo][\(operationId)] Prompt: '\(prompt.prefix(100))\(prompt.count > 100 ? "..." : "")'")
+        logger.info("🚀 [Pollo][\(operationId)] Duration: \(duration)s, Tier: \(tier.shortName)")
+        print("🚀 [Pollo][\(operationId)] Starting \(tier.shortName) generation - Prompt: '\(prompt.prefix(50))...'")
         
         // Ensure we have API key
+        logger.debug("🔑 [Pollo][\(operationId)] Fetching API key...")
+        let apiKeyFetchStart = Date()
         let apiKey = try await ensureAPIKey()
+        let apiKeyFetchDuration = Date().timeIntervalSince(apiKeyFetchStart)
+        logger.info("🔑 [Pollo][\(operationId)] API key fetched in \(String(format: "%.3f", apiKeyFetchDuration))s")
+        print("🔑 [Pollo][\(operationId)] API key ready (\(apiKey.prefix(20))...)")
         
         // In dev mode, log but still make real API calls
         if CreditsManager.shared.isDevMode {
@@ -276,57 +287,82 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         logger.debug("💰 Customer charge: $\(String(format: "%.2f", cost)), Profit: $\(String(format: "%.2f", profit))")
         
         // Make request
-        logger.debug("🔄 Making \(tier.modelName) API request to: \(url.absoluteString)")
+        logger.info("🔄 [Pollo][\(operationId)] Making \(tier.modelName) API request")
+        logger.info("🔄 [Pollo][\(operationId)] Endpoint: \(url.absoluteString)")
         if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
-            logger.debug("📋 Request body: \(bodyString)")
-            print("📤 [\(tier.modelName)] Request Body:\n\(bodyString)")
+            logger.debug("📋 [Pollo][\(operationId)] Request body (\(bodyData.count) bytes): \(bodyString.prefix(500))\(bodyString.count > 500 ? "..." : "")")
+            print("📤 [Pollo][\(operationId)] Request Body (\(bodyData.count) bytes)")
         }
-        logger.debug("🔑 API Key present: \(!apiKey.isEmpty)")
-        print("🔑 [\(tier.modelName)] API Key: \(apiKey.prefix(20))...")
+        logger.debug("🔑 [Pollo][\(operationId)] API Key present: \(!apiKey.isEmpty)")
         
+        let apiCallStart = Date()
         do {
             // All Kling APIs (1.6 and 2.5 Turbo) return wrapped response structure
             // Pollo 1.6 returns flat structure
             let response: PolloResponse
             if tier == .economy || tier == .pro {
                 // Kling 1.6 and 2.5 Turbo use wrapped format: {code, message, data: {taskId, status}}
+                logger.info("📥 [Pollo][\(operationId)] Calling Kling API (wrapped format)")
                 let wrappedResponse: KlingWrappedResponse = try await client.performRequest(request, expectedType: KlingWrappedResponse.self)
+                
+                let apiCallDuration = Date().timeIntervalSince(apiCallStart)
+                logger.info("📥 [Pollo][\(operationId)] API call completed in \(String(format: "%.2f", apiCallDuration))s")
+                print("📥 [Pollo][\(operationId)] API response received in \(String(format: "%.2f", apiCallDuration))s")
                 
                 // Check if wrapper indicates success
                 guard wrappedResponse.code.uppercased() == "SUCCESS" else {
-                    logger.error("❌ \(tier.modelName) API returned error code: \(wrappedResponse.code)")
+                    logger.error("❌ [Pollo][\(operationId)] \(tier.modelName) API returned error code: \(wrappedResponse.code)")
+                    logger.error("❌ [Pollo][\(operationId)] Error message: \(wrappedResponse.message)")
+                    print("❌ [Pollo][\(operationId)] API Error: \(wrappedResponse.code) - \(wrappedResponse.message)")
                     throw APIError.authError("\(tier.modelName) API error: \(wrappedResponse.message)")
                 }
                 
                 response = wrappedResponse.response
-                logger.debug("✅ Extracted response from Kling wrapped format: taskId=\(response.taskId), status=\(response.status)")
+                logger.info("✅ [Pollo][\(operationId)] Extracted response: taskId=\(response.taskId), status=\(response.status)")
+                print("✅ [Pollo][\(operationId)] Task created: \(response.taskId)")
             } else {
                 // Pollo 1.6 uses flat format: {taskId, status}
+                logger.info("📥 [Pollo][\(operationId)] Calling Pollo API (flat format)")
                 response = try await client.performRequest(request, expectedType: PolloResponse.self)
+                
+                let apiCallDuration = Date().timeIntervalSince(apiCallStart)
+                logger.info("📥 [Pollo][\(operationId)] API call completed in \(String(format: "%.2f", apiCallDuration))s")
+                print("📥 [Pollo][\(operationId)] API response received in \(String(format: "%.2f", apiCallDuration))s")
             }
             
             // Check if response indicates error status
             guard response.status != "failed" else {
-                logger.error("❌ \(tier.modelName) API returned failed status")
+                logger.error("❌ [Pollo][\(operationId)] \(tier.modelName) API returned failed status")
                 throw APIError.authError("\(tier.modelName) API error: Video generation failed")
             }
             
-            guard response.status == "waiting" else {
-                logger.error("❌ Unexpected init status: \(response.status)")
+            // Accept both "waiting" and "processing" as valid initial statuses
+            guard response.status == "waiting" || response.status == "processing" else {
+                logger.error("❌ [Pollo][\(operationId)] Unexpected init status: '\(response.status)'")
+                logger.error("❌ [Pollo][\(operationId)] Expected: 'waiting' or 'processing', got: '\(response.status)'")
+                print("❌ [Pollo][\(operationId)] Unexpected status: '\(response.status)'")
                 throw APIError.authError("Unexpected init status: \(response.status)")
             }
             
+            logger.info("✅ [Pollo][\(operationId)] Task created successfully with status: '\(response.status)'")
             return try await continueWithValidResponse(response, apiKey: apiKey)
         } catch let error as APIError {
-            logger.error("❌ \(tier.shortName) (\(tier.modelName)) generation failed: \(error.localizedDescription)")
+            let totalDuration = Date().timeIntervalSince(startTime)
+            logger.error("❌ [Pollo][\(operationId)] \(tier.shortName) (\(tier.modelName)) generation failed after \(String(format: "%.2f", totalDuration))s")
+            logger.error("❌ [Pollo][\(operationId)] Error: \(error.localizedDescription ?? "Unknown")")
+            print("❌ [Pollo][\(operationId)] Generation failed: \(error.localizedDescription ?? "Unknown")")
             
             // Provide specific guidance based on error type
             switch error {
             case .decodingError:
-                logger.error("💡 For Kling 1.6 - Check: Response format matches {taskId, status}. Verify API endpoint: \(tier.apiEndpoint)")
-                logger.error("💡 Request body was: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "nil")")
-            case .invalidResponse(let code, _):
-                logger.error("💡 HTTP \(code) - Check: 1) API key fetched from Supabase, 2) Endpoint URL correct, 3) Request body format valid for Kling 1.6")
+                logger.error("💡 [Pollo][\(operationId)] Decoding error - Check: Response format matches expected structure")
+                logger.error("💡 [Pollo][\(operationId)] Endpoint: \(tier.apiEndpoint)")
+                if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+                    logger.error("💡 [Pollo][\(operationId)] Request body: \(bodyString.prefix(200))")
+                }
+            case .invalidResponse(let code, let message):
+                logger.error("💡 [Pollo][\(operationId)] HTTP \(code) - \(message ?? "No message")")
+                logger.error("💡 [Pollo][\(operationId)] Check: 1) API key fetched from Supabase, 2) Endpoint URL correct, 3) Request body format valid")
             case .authError(let msg):
                 logger.error("💡 Auth Error: \(msg)")
             default:
@@ -443,12 +479,13 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
     
     private func continueWithValidResponse(_ response: PolloResponse, apiKey: String) async throws -> URL {
         
-        guard response.status == "waiting" else {
-            logger.error("❌ Unexpected init status: \(response.status)")
+        // Accept both "waiting" and "processing" as valid initial statuses
+        guard response.status == "waiting" || response.status == "processing" else {
+            logger.error("❌ Unexpected init status: '\(response.status)' (expected 'waiting' or 'processing')")
             throw APIError.authError("Unexpected init status: \(response.status)")
         }
         
-        logger.debug("✅ Task created: \(response.taskId)")
+        logger.debug("✅ Task created: \(response.taskId) with status: \(response.status)")
         
         // Poll for completion
         return try await pollForVideo(taskId: response.taskId, apiKey: apiKey)
@@ -750,8 +787,9 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
                 throw APIError.authError("Pollo API error: Video generation failed")
             }
             
-            guard response.status == "waiting" else {
-                logger.error("❌ Unexpected init status: \(response.status)")
+            // Accept both "waiting" and "processing" as valid initial statuses
+            guard response.status == "waiting" || response.status == "processing" else {
+                logger.error("❌ Unexpected init status: '\(response.status)' (expected 'waiting' or 'processing')")
                 throw APIError.authError("Unexpected init status: \(response.status)")
             }
             
