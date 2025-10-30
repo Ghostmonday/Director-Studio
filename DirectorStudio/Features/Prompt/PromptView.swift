@@ -1742,3 +1742,68 @@ struct PromptHelpSheet: View {
     }
 }
 
+// MARK: - iPhone Floating Prompt Card (One-Hand Ready)
+struct PromptCard: View {
+    @Binding var prompt: String
+    @FocusState private var isFocused: Bool
+    @State private var cardHeight: CGFloat = 200
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            TextEditor(text: $prompt)
+                .focused($isFocused)
+                .scrollContentBackground(.hidden)
+                .foregroundColor(DirectorStudioTheme.Colors.primary)
+                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .frame(height: max(120, cardHeight))
+            
+            if isFocused { LiveVoiceWaveform() }
+        }
+        .padding(16)
+        .background(DirectorStudioTheme.Colors.darkSurface, in: RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(DirectorStudioTheme.Colors.accent.opacity(0.4), lineWidth: 1)
+        )
+        .shadow(color: DirectorStudioTheme.Colors.accent.opacity(0.2), radius: 16, x: 0, y: 8)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: isFocused)
+        .background(
+            GeometryReader { geo in
+                Color.clear.onChange(of: geo.size.height) { _, newHeight in
+                    cardHeight = newHeight
+                }
+            }
+        )
+    }
+}
+
+// MARK: - Live Voice Waveform (iPhone Height-Capped)
+struct LiveVoiceWaveform: View {
+    @State private var phase: CGFloat = 0
+    
+    var body: some View {
+        GeometryReader { geo in
+            Path { path in
+                let mid = geo.size.height / 2
+                let width = geo.size.width
+                let step: CGFloat = 3
+                for x in stride(from: 0, to: width, by: step) {
+                    let norm = x / width
+                    let amp = sin(norm * .pi * 5 + phase) * 6
+                    path.addRect(CGRect(x: x, y: mid - amp, width: 2, height: amp * 2))
+                }
+            }
+            .fill(LinearGradient(colors: [DirectorStudioTheme.Colors.accent, DirectorStudioTheme.Colors.accent.opacity(0.6)], startPoint: .leading, endPoint: .trailing))
+        }
+        .frame(height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear {
+            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                phase += .pi * 2
+            }
+        }
+    }
+}
+

@@ -75,9 +75,9 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
     // Chain tracking for continuity
     private static var currentChain: String?
     
-    // Service availability
+    // Service availability - only available if user has provided their own API key
     public var isAvailable: Bool {
-        return true  // Will check API key when called
+        return UserAPIKeysManager.shared.hasRunwayKey
     }
     
     public init(client: APIClientProtocol = APIClient()) {
@@ -93,31 +93,16 @@ public final class RunwayGen4Service: AIServiceProtocol, VideoGenerationProtocol
             return apiKey
         }
         
-        // First, check if user has provided their own Runway API key
-        if let userKey = UserAPIKeysManager.shared.getRunwayAPIKey() {
-            logger.debug("🔑 Using user-provided Runway API key")
-            self.apiKey = userKey
-            return userKey
+        // Runway Gen-4 is ONLY available with user-provided API keys
+        // No Supabase fallback - users must provide their own key
+        guard let userKey = UserAPIKeysManager.shared.getRunwayAPIKey() else {
+            logger.error("❌ Runway API key not available - user must provide their own key")
+            throw APIError.authError("Runway Gen-4 requires your own API key. Please add your Runway API key in Settings → Preferences → Runway API Key.")
         }
         
-        // Fallback to Supabase (if available)
-        logger.debug("📱 Fetching API key from Supabase...")
-        
-        // In dev mode, we still need real API keys to make actual calls
-        if CreditsManager.shared.isDevMode {
-            logger.debug("🧑‍💻 DEV MODE: Fetching real Runway API key for testing")
-        }
-        
-        do {
-            let key = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Runway")
-            self.apiKey = key
-            logger.debug("✅ API key fetched successfully from Supabase")
-            return key
-        } catch {
-            logger.error("❌ Failed to fetch API key: \(error.localizedDescription)")
-            // If Supabase fails and user hasn't provided a key, throw helpful error
-            throw APIError.authError("Runway API key not available. Please add your own Runway API key in Settings, or configure Runway key in Supabase.")
-        }
+        logger.debug("🔑 Using user-provided Runway API key")
+        self.apiKey = userKey
+        return userKey
     }
     
     // MARK: - Video Generation

@@ -39,7 +39,8 @@ class PipelineServiceBridge {
         enabledStages: Set<PipelineStage>,
         referenceImageData: Data? = nil,
         duration: TimeInterval = 10.0,
-        isFirstClip: Bool = false
+        isFirstClip: Bool = false,
+        tier: VideoQualityTier = .basic
     ) async throws -> GeneratedClip {
         print("🎬 Starting clip generation...")
         print("   Clip: \(clipName)")
@@ -97,14 +98,28 @@ class PipelineServiceBridge {
         print("📝 [Pipeline] Using prompt as-is (enhancement handled by PromptGenerator)")
         print("🔄 Progress: Prompt ready (60%)")
         
-        // Generate video
+        // Generate video - Premium tier uses RunwayGen4Service (requires user's own API key)
         var videoURL: URL
+        let serviceToUse: VideoGenerationProtocol
+        
+        if tier == .premium {
+            // Premium tier requires Runway Gen-4 with user's own API key
+            guard UserAPIKeysManager.shared.hasRunwayKey else {
+                throw APIError.authError("Premium tier (Runway Gen-4) requires your own API key. Please add your Runway API key in Settings → Preferences → Runway API Key.")
+            }
+            serviceToUse = RunwayGen4Service()
+            print("👑 Using Runway Gen-4 Turbo (Premium tier) - requires user's own API key")
+        } else {
+            // Use PolloAIService for Economy, Basic, and Pro tiers
+            serviceToUse = PolloAIService()
+            print("🚀 Using \(tier.shortName) tier (\(tier.modelName))")
+        }
         
         if let imageData = referenceImageData {
             // Image-to-video generation
             print("🔄 Progress: Generating video from image... (70%)")
             print("🖼️ Generating video from image...")
-            videoURL = try await videoService.generateVideoFromImage(
+            videoURL = try await serviceToUse.generateVideoFromImage(
                 imageData: imageData,
                 prompt: enhancedPrompt,
                 duration: duration
@@ -114,7 +129,7 @@ class PipelineServiceBridge {
             // Text-to-video generation
             print("🔄 Progress: Generating video from text... (70%)")
             print("📝 Generating video from text...")
-            videoURL = try await videoService.generateVideo(
+            videoURL = try await serviceToUse.generateVideo(
                 prompt: enhancedPrompt,
                 duration: duration
             )

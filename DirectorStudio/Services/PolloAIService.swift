@@ -102,6 +102,7 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         }
         
         logger.debug("🔑 Fetching Pollo API key from Supabase...")
+        print("🔑 [Pollo] Fetching API key from Supabase...")
         
         // In dev mode, we still need real API keys to make actual calls
         if CreditsManager.shared.isDevMode {
@@ -112,9 +113,11 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             let fetchedKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
             self.apiKey = fetchedKey
             logger.debug("✅ Pollo API key fetched successfully")
+            print("✅ [Pollo] API key fetched successfully: \(fetchedKey.prefix(20))...")
             return fetchedKey
         } catch {
             logger.error("❌ Failed to fetch Pollo API key: \(error.localizedDescription)")
+            print("❌ [Pollo] Failed to fetch API key: \(error.localizedDescription)")
             throw APIError.authError("Failed to fetch Pollo API key: \(error.localizedDescription)")
         }
     }
@@ -125,6 +128,11 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
         duration: TimeInterval,
         tier: VideoQualityTier = .basic
     ) async throws -> URL {
+        // Premium tier (Runway Gen-4) requires user's own API key and uses RunwayGen4Service
+        if tier == .premium {
+            throw APIError.authError("Premium tier (Runway Gen-4) requires your own API key. Please use RunwayGen4Service or add your Runway API key in Settings.")
+        }
+        
         logger.debug("🚀 Starting \(tier.shortName) video generation - Prompt: '\(prompt)', Duration: \(duration)s")
         
         // Ensure we have API key
@@ -215,14 +223,8 @@ public final class PolloAIService: AIServiceProtocol, VideoGenerationProtocol, @
             )
             
         case .premium:
-            // Runway Gen-4 uses higher resolution
-            input = PolloInput(
-                prompt: prompt,
-                resolution: "1080p",
-                length: duration,
-                mode: "turbo",
-                seedImage: image
-            )
+            // Premium tier should not reach here - it uses RunwayGen4Service
+            throw APIError.authError("Premium tier requires RunwayGen4Service with user's own API key")
         }
         
         return PolloRequest(input: input)

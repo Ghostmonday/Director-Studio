@@ -32,14 +32,15 @@ class SupabaseAPIKeyService {
         
         // Use Supabase REST API to query the api_keys table
         // PostgREST uses special query format: service=eq.Pollo
-        // Only encode the service name value, not the operators
-        guard let encodedService = service.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            print("❌ Failed to encode service name: \(service)")
-            throw APIKeyError.invalidResponse
-        }
-        let urlString = "\(supabaseURL)/rest/v1/api_keys?service=eq.\(encodedService)&select=key"
-        guard let url = URL(string: urlString) else {
+        // The "eq." prefix is part of PostgREST's query syntax, not a URL encoding issue
+        let baseURL = "\(supabaseURL)/rest/v1/api_keys"
+        // Construct query string directly - PostgREST expects: service=eq.{value}
+        let queryString = "service=eq.\(service)&select=key"
+        let fullURLString = "\(baseURL)?\(queryString)"
+        
+        guard let url = URL(string: fullURLString) else {
             print("❌ Failed to create URL for service: \(service)")
+            print("❌ URL string was: \(fullURLString)")
             throw APIKeyError.invalidResponse
         }
         
@@ -48,26 +49,37 @@ class SupabaseAPIKeyService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(supabaseAnonKey)", forHTTPHeaderField: "Authorization")
+        
+        print("📤 Headers: apikey=\(supabaseAnonKey.prefix(20))..., Authorization=Bearer \(supabaseAnonKey.prefix(20))...")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ Invalid HTTP response")
             throw APIKeyError.invalidResponse
         }
+        
+        print("📥 Response status: \(httpResponse.statusCode)")
         
         guard httpResponse.statusCode == 200 else {
             let responseBody = String(data: data, encoding: .utf8) ?? "No response body"
             print("❌ Failed to fetch \(service) key: HTTP \(httpResponse.statusCode)")
-            print("📦 Response: \(responseBody.prefix(200))")
+            print("📦 Response body: \(responseBody)")
+            print("🔗 Requested URL: \(url.absoluteString)")
             
             if httpResponse.statusCode == 400 {
-                print("💡 Check: 1) Service name matches Supabase ('Pollo', 'DeepSeek', etc.), 2) Row exists in api_keys table")
+                print("💡 HTTP 400 Bad Request - Check:")
+                print("   1) Service name matches exactly: '\(service)'")
+                print("   2) Row exists in api_keys table")
+                print("   3) RLS policy allows anon read access")
+                print("   4) URL format is correct: service=eq.{service_name}")
             } else if httpResponse.statusCode == 401 {
-                print("💡 Check: Supabase anon key is correct")
+                print("💡 HTTP 401 Unauthorized - Check Supabase anon key is correct")
             } else if httpResponse.statusCode == 404 {
-                print("💡 Check: api_keys table exists and has a row for service '\(service)'")
+                print("💡 HTTP 404 Not Found - Check api_keys table exists and has row for '\(service)'")
             }
             
             throw APIKeyError.httpError(httpResponse.statusCode)
@@ -97,7 +109,14 @@ class SupabaseAPIKeyService {
     
     /// Clear the key cache (e.g. on logout)
     func clearCache() {
+        print("🗑️ Clearing Supabase API key cache")
         keyCache.removeAll()
+    }
+    
+    /// Force refresh a specific service key (clear cache for that service)
+    func forceRefresh(service: String) {
+        print("🔄 Force refreshing \(service) API key cache")
+        keyCache.removeValue(forKey: service)
     }
 }
 

@@ -45,10 +45,14 @@ struct VideoGenerationScreen: View {
                     if let filmBreakdown = filmGeneratorViewModel.film {
                         TakesPreviewView(
                             film: filmBreakdown,
-                            onGenerate: {
+                            onGenerate: { selectedTakes, editedPrompts in
                                 currentStep = .generating
                                 Task {
-                                    await filmGeneratorViewModel.generateVideos(coordinator: coordinator)
+                                    await filmGeneratorViewModel.generateVideos(
+                                        coordinator: coordinator,
+                                        selectedTakeIds: selectedTakes,
+                                        editedPrompts: editedPrompts
+                                    )
                                     if filmGeneratorViewModel.error == nil {
                                         currentStep = .complete
                                     }
@@ -171,15 +175,30 @@ class FilmGeneratorViewModel: ObservableObject {
     }
     
     /// Generates all videos for the film breakdown within a transaction
-    /// - Parameter coordinator: App coordinator for accessing clip repository
-    func generateVideos(coordinator: AppCoordinator) async {
+    /// - Parameters:
+    ///   - coordinator: App coordinator for accessing clip repository
+    ///   - selectedTakeIds: Set of take IDs to generate (only selected prompts)
+    ///   - editedPrompts: Dictionary mapping take IDs to edited prompt text
+    func generateVideos(
+        coordinator: AppCoordinator,
+        selectedTakeIds: Set<UUID>,
+        editedPrompts: [UUID: String]
+    ) async {
         guard let filmBreakdown = film else {
             error = NSError(domain: "FilmGenerator", code: -1, userInfo: [NSLocalizedDescriptionKey: "No film breakdown available"])
             return
         }
         
-        // Calculate total token cost from all takes using correct pricing
-        let totalTokenCost = filmBreakdown.takes.reduce(0) { total, take in
+        // Filter to only selected takes, maintaining order
+        let selectedTakes = filmBreakdown.takes.filter { selectedTakeIds.contains($0.id) }
+        
+        guard !selectedTakes.isEmpty else {
+            error = NSError(domain: "FilmGenerator", code: -1, userInfo: [NSLocalizedDescriptionKey: "No takes selected"])
+            return
+        }
+        
+        // Calculate total token cost from selected takes using correct pricing
+        let totalTokenCost = selectedTakes.reduce(0) { total, take in
             // Use MonetizationConfig for accurate token calculation (0.5 tokens per second)
             let credits = MonetizationConfig.creditsForSeconds(take.estimatedDuration)
             let tokensForDuration = MonetizationConfig.tokensToDebit(credits)
@@ -192,14 +211,21 @@ class FilmGeneratorViewModel: ObservableObject {
             // Begin transaction and reserve credits
             try await generationTransaction.begin(totalCost: totalTokenCost)
             
-            // Generate each take sequentially to maintain continuity
-            for (takeIndex, take) in filmBreakdown.takes.enumerated() {
+            // Generate each selected take sequentially to maintain continuity
+            for (takeIndex, take) in selectedTakes.enumerated() {
                 currentTakeIndex = takeIndex
-                progress = Double(takeIndex) / Double(filmBreakdown.takes.count)
-                status = "Generating Take \(take.takeNumber) of \(filmBreakdown.takeCount)..."
+                progress = Double(takeIndex) / Double(selectedTakes.count)
+                status = "Generating Take \(take.takeNumber) of \(selectedTakes.count)..."
+                
+                // Use edited prompt if available, otherwise use original
+                let promptToUse = editedPrompts[take.id] ?? take.prompt
                 
                 do {
-                    let generatedClip = try await generateTake(take: take, takeIndex: takeIndex)
+                    let generatedClip = try await generateTake(
+                        take: take,
+                        takeIndex: takeIndex,
+                        prompt: promptToUse
+                    )
                     try await generationTransaction.addPending(generatedClip)
                 } catch {
                     // If generation fails, rollback the entire transaction
@@ -226,9 +252,10 @@ class FilmGeneratorViewModel: ObservableObject {
     /// - Parameters:
     ///   - take: The film take to generate
     ///   - takeIndex: Zero-based index of this take in the sequence
+    ///   - prompt: The prompt text to use (may be edited)
     /// - Returns: The generated clip
-    private func generateTake(take: FilmTake, takeIndex: Int) async throws -> GeneratedClip {
-        let videoPrompt = take.prompt
+    private func generateTake(take: FilmTake, takeIndex: Int, prompt: String) async throws -> GeneratedClip {
+        let videoPrompt = prompt
         
         // For takes after the first, we require a seed image for visual continuity
         if takeIndex > 0 && lastExtractedFrame == nil {
@@ -354,55 +381,516 @@ struct AnalyzingView: View {
 
 struct TakesPreviewView: View {
     let film: FilmBreakdown
-    let onGenerate: () -> Void
+    let onGenerate: (Set<UUID>, [UUID: String]) -> Void
     let onCancel: () -> Void
     
+    @State private var selectedTakes: Set<UUID> = Set()
+    @State private var editingTakeId: UUID?
+    @State private var editedPrompts: [UUID: String] = [:]
+    @State private var showEditWarning = false
+    
     var body: some View {
-        VStack(spacing: 20) {
-            // Summary
-            VStack(spacing: 8) {
-                Text("Your Film")
-                    .font(.title2)
-                    .fontWeight(.bold)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // Premium Header
+                PremiumHeaderView(
+                    takeCount: film.takeCount,
+                    totalDuration: film.totalDuration,
+                    selectedCount: selectedTakes.count
+                )
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "1A1A1A"),
+                            Color(hex: "252525")
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 
-                HStack(spacing: 20) {
-                    Label("\(film.takeCount) takes", systemImage: "film")
-                    Label("\(Int(film.totalDuration))s", systemImage: "timer")
-                }
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            }
-            .padding()
-            
-            // Takes list
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(film.takes) { take in
-                        TakePreviewCard(take: take)
+                // Story Position Indicator
+                StoryPositionIndicator(
+                    totalTakes: film.takeCount,
+                    currentIndex: 0
+                )
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color(hex: "191919"))
+                
+                // Prompts Showcase - The Gold Content
+                ScrollView {
+                    LazyVStack(spacing: 20) {
+                        ForEach(Array(film.takes.enumerated()), id: \.element.id) { index, take in
+                            PremiumPromptCard(
+                                take: take,
+                                index: index,
+                                totalTakes: film.takes.count,
+                                isSelected: selectedTakes.contains(take.id),
+                                isEditing: editingTakeId == take.id,
+                                editedPrompt: editedPrompts[take.id] ?? take.prompt,
+                                onToggle: {
+                                    if selectedTakes.contains(take.id) {
+                                        selectedTakes.remove(take.id)
+                                    } else {
+                                        selectedTakes.insert(take.id)
+                                    }
+                                },
+                                onEdit: {
+                                    if editingTakeId == take.id {
+                                        // Save edit
+                                        if let edited = editedPrompts[take.id], edited != take.prompt {
+                                            showEditWarning = true
+                                        }
+                                        editingTakeId = nil
+                                    } else {
+                                        editingTakeId = take.id
+                                        editedPrompts[take.id] = take.prompt
+                                    }
+                                },
+                                onPromptChange: { newPrompt in
+                                    editedPrompts[take.id] = newPrompt
+                                }
+                            )
+                        }
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 20)
                 }
-                .padding()
-            }
-            
-            // Actions
-            VStack(spacing: 12) {
-                Button(action: onGenerate) {
-                    Label("Generate Film", systemImage: "wand.and.stars")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                }
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "191919"),
+                            Color(hex: "161616")
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 
-                Button("Cancel", action: onCancel)
-                    .foregroundColor(.secondary)
+                // Generate Button - Only enabled if prompts selected
+                VStack(spacing: 12) {
+                    Button(action: {
+                        // Check if any prompts were edited
+                        let hasEdits = film.takes.contains { take in
+                            if let edited = editedPrompts[take.id] {
+                                return edited != take.prompt
+                            }
+                            return false
+                        }
+                        
+                        if hasEdits {
+                            showEditWarning = true
+                        } else {
+                            onGenerate(selectedTakes, editedPrompts)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "wand.and.stars.fill")
+                                .font(.title3)
+                            Text("Generate \(selectedTakes.count) Selected Prompts")
+                                .font(.headline)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            Group {
+                                if selectedTakes.isEmpty {
+                                    Color.gray.opacity(0.3)
+                                } else {
+                                    LinearGradient(
+                                        colors: [Color(hex: "FF9E0A"), Color(hex: "FF8C00")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                }
+                            }
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(16)
+                        .shadow(
+                            color: selectedTakes.isEmpty ? .clear : Color(hex: "FF9E0A").opacity(0.4),
+                            radius: 12,
+                            x: 0,
+                            y: 6
+                        )
+                    }
+                    .disabled(selectedTakes.isEmpty)
+                    
+                    Button("Cancel", action: onCancel)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 8)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "161616"),
+                            Color(hex: "1A1A1A")
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
-            .padding()
+        }
+        .onAppear {
+            // Select all prompts by default
+            selectedTakes = Set(film.takes.map { $0.id })
+        }
+        .alert("Edit Warning", isPresented: $showEditWarning) {
+            Button("Continue Anyway") {
+                onGenerate(selectedTakes, editedPrompts)
+            }
+            Button("Review Again", role: .cancel) {}
+        } message: {
+            Text("Editing prompts late in the process can create hard pivots in storytelling. Consider keeping your AI-generated prompts as-is for smoother narrative flow.")
         }
     }
 }
 
+// MARK: - Premium Components
+
+struct PremiumHeaderView: View {
+    let takeCount: Int
+    let totalDuration: Double
+    let selectedCount: Int
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(Color(hex: "FFD700"))
+                            .font(.title2)
+                        Text("Your Premium Prompts")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    
+                    Text("\(selectedCount) of \(takeCount) selected • \(Int(totalDuration))s total")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+            }
+        }
+    }
+}
+
+struct StoryPositionIndicator: View {
+    let totalTakes: Int
+    let currentIndex: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Story Position")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+                    .textCase(.uppercase)
+                
+                Spacer()
+                
+                Text("\(currentIndex + 1) of \(totalTakes)")
+                    .font(.caption)
+                    .foregroundColor(Color(hex: "FF9E0A"))
+            }
+            
+            // Progress bar showing story position
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background track
+                    Capsule()
+                        .fill(Color.white.opacity(0.1))
+                        .frame(height: 4)
+                    
+                    // Progress indicator
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "FF9E0A"), Color(hex: "FFD700")],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geometry.size.width * CGFloat(currentIndex + 1) / CGFloat(totalTakes), height: 4)
+                }
+            }
+            .frame(height: 4)
+        }
+    }
+}
+
+struct PremiumPromptCard: View {
+    let take: FilmTake
+    let index: Int
+    let totalTakes: Int
+    let isSelected: Bool
+    let isEditing: Bool
+    let editedPrompt: String
+    let onToggle: () -> Void
+    let onEdit: () -> Void
+    let onPromptChange: (String) -> Void
+    
+    @State private var localEditedText: String = ""
+    @FocusState private var isFocused: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header with take number and controls
+            HStack(alignment: .top) {
+                // Selection checkbox
+                Button(action: onToggle) {
+                    ZStack {
+                        Circle()
+                            .fill(isSelected ? Color(hex: "FFD700") : Color.white.opacity(0.2))
+                            .frame(width: 24, height: 24)
+                        
+                        if isSelected {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.black)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        // Premium badge
+                        HStack(spacing: 4) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                            Text("Take \(take.takeNumber)")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: "FFD700"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color(hex: "FFD700").opacity(0.2))
+                        )
+                        
+                        // Scene type badge
+                        Text(take.sceneType.rawValue)
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(Color.white.opacity(0.15))
+                            )
+                        
+                        Spacer()
+                        
+                        // Duration
+                        Text("\(Int(take.estimatedDuration))s")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    
+                    // Story content (what this moment captures)
+                    Text(take.storyContent)
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.9))
+                        .lineLimit(2)
+                }
+                
+                // Edit button (appears on tap/long press)
+                if !isEditing {
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding(8)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.1))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+            
+            Divider()
+                .background(Color.white.opacity(0.1))
+                .padding(.horizontal, 20)
+            
+            // The GOLD PROMPT - The actual video generation prompt
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "sparkles")
+                        .font(.caption)
+                        .foregroundColor(Color(hex: "FFD700"))
+                    Text("Video Prompt")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .textCase(.uppercase)
+                }
+                
+                if isEditing {
+                    TextEditor(text: $localEditedText)
+                        .font(.system(.body, design: .rounded))
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 100)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.05))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color(hex: "FFD700").opacity(0.3), lineWidth: 1)
+                        )
+                        .focused($isFocused)
+                        .onChange(of: localEditedText) { _, newValue in
+                            onPromptChange(newValue)
+                        }
+                        .onAppear {
+                            localEditedText = editedPrompt
+                            isFocused = true
+                        }
+                        .onDisappear {
+                            onPromptChange(localEditedText)
+                        }
+                    
+                    HStack {
+                        Button("Done") {
+                            onEdit()
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(Color(hex: "FF9E0A"))
+                        
+                        Spacer()
+                    }
+                    .padding(.top, 4)
+                } else {
+                    Text(editedPrompt)
+                        .font(.system(.body, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(hex: "FFD700").opacity(0.15),
+                                            Color(hex: "FF9E0A").opacity(0.1)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(hex: "FFD700").opacity(0.4),
+                                            Color(hex: "FF9E0A").opacity(0.3)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                        .onTapGesture {
+                            // Intuitive: tap to edit
+                            onEdit()
+                        }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            
+            // Continuity indicator
+            if take.useSeedImage, let seedFrom = take.seedFromTake {
+                HStack(spacing: 6) {
+                    Image(systemName: "link.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(Color(hex: "4A8FE8"))
+                    Text("Visual continuity from Take \(seedFrom)")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    isSelected ?
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "2A2A2A"),
+                            Color(hex: "252525")
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ) :
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "252525"),
+                            Color(hex: "1F1F1F")
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    isSelected ?
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "FFD700").opacity(0.6),
+                            Color(hex: "FF9E0A").opacity(0.4)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ) :
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.1),
+                            Color.white.opacity(0.05)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isSelected ? 2 : 1
+                )
+        )
+        .shadow(
+            color: isSelected ? Color(hex: "FFD700").opacity(0.2) : Color.black.opacity(0.3),
+            radius: isSelected ? 16 : 8,
+            x: 0,
+            y: isSelected ? 8 : 4
+        )
+    }
+}
+
+// Legacy card kept for reference
 struct TakePreviewCard: View {
     let take: FilmTake
     

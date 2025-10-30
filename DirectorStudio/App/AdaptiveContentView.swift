@@ -4,59 +4,13 @@
 
 import SwiftUI
 
-/// Content view optimized for iPhone
+/// Content view optimized for iPhone (now uses ContentView from DirectorStudioApp)
 struct AdaptiveContentView: View {
     @EnvironmentObject var coordinator: AppCoordinator
-    @State private var showingSettings = false
     
     var body: some View {
-        iPhoneLayout
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-                    .environmentObject(coordinator)
-            }
-            .keyboardShortcuts()
-    }
-    
-    // MARK: - iPhone Layout
-    @ViewBuilder
-    private var iPhoneLayout: some View {
-        ZStack {
-            DirectorStudioTheme.Colors.cinemaGrey
-                .ignoresSafeArea()
-            
-            TabView(selection: $coordinator.selectedTab) {
-                PromptView()
-                    .tabItem {
-                        Label("Create", systemImage: "wand.and.stars")
-                    }
-                    .tag(AppTab.prompt)
-                
-                StudioView()
-                    .tabItem {
-                        Label("Studio", systemImage: "film.stack")
-                    }
-                    .tag(AppTab.studio)
-                
-                LibraryView()
-                    .tabItem {
-                        Label("Library", systemImage: "photo.stack")
-                    }
-                    .tag(AppTab.library)
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            Button(action: { showingSettings = true }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.title2)
-                    .foregroundColor(DirectorStudioTheme.Colors.primary)
-                    .padding()
-                    .background(Circle().fill(DirectorStudioTheme.Colors.stainlessSteel))
-                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
-            }
-            .padding()
-            .padding(.top, 40)
-        }
+        ContentView()
+            .environmentObject(coordinator)
     }
 }
 

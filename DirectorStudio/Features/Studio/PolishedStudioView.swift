@@ -458,3 +458,70 @@ struct StatBadge: View {
         }
     }
 }
+
+// MARK: - Studio Grid – iPhone 3-Column (390pt Optimized)
+struct StudioGrid: View {
+    @Binding var clips: [GeneratedClip]
+    @EnvironmentObject var coordinator: AppCoordinator
+    
+    var body: some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+        
+        LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(clips) { clip in
+                ClipThumbnail(clip: clip)
+                    .onTapGesture(count: 2) {
+                        coordinator.path.append(.editRoom(clip: clip))
+                    }
+                    .onLongPressGesture {
+                        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                        // Start drag reorder
+                    }
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Clip Thumbnail with Micro-Reflection
+struct ClipThumbnail: View {
+    let clip: GeneratedClip
+    @State private var isSelected = false
+    
+    var body: some View {
+        ZStack {
+            // Use placeholder or thumbnail if available
+            if let thumbnailURL = clip.thumbnailURL,
+               let url = URL(string: thumbnailURL.absoluteString) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(1, contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(DirectorStudioTheme.Colors.darkSurface)
+                }
+                .clipped()
+            } else {
+                Rectangle()
+                    .fill(DirectorStudioTheme.Colors.darkSurface)
+                    .overlay(
+                        Image(systemName: "film")
+                            .foregroundColor(.secondary)
+                    )
+            }
+            
+            // Micro-reflection
+            LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: 40)
+            
+            if isSelected {
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(DirectorStudioTheme.Colors.accent, lineWidth: 1)
+                    .animation(.easeInOut(duration: 0.2), value: isSelected)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .onTapGesture { isSelected.toggle() }
+    }
+}

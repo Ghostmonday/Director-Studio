@@ -461,3 +461,33 @@ extension StorageLocation {
         }
     }
 }
+
+// MARK: - Export Orb – Bottom-Right Fixed (iPhone Safe Area)
+struct ExportOrbButton: View {
+    @State private var pulse = false
+    
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            // Trigger share sheet
+        } label: {
+            Circle()
+                .fill(DirectorStudioTheme.Colors.accent)
+                .frame(width: 64, height: 64)
+                .shadow(color: DirectorStudioTheme.Colors.accent.opacity(0.7), radius: pulse ? 24 : 12)
+                .overlay(
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 26, weight: .medium))
+                        .foregroundColor(.black)
+                )
+                .scaleEffect(pulse ? 1.12 : 1.0)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                pulse.toggle()
+            }
+        }
+    }
+}

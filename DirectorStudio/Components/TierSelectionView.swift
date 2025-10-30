@@ -17,6 +17,7 @@ public struct TierSelectionView: View {
     
     @State private var showingDetails = false
     @State private var hoveredTier: VideoQualityTier?
+    @State private var hasRunwayKey = UserAPIKeysManager.shared.hasRunwayKey
     
     private let gradientColors = [
         Color(red: 0.18, green: 0.18, blue: 0.18),  // Dark base
@@ -42,7 +43,12 @@ public struct TierSelectionView: View {
                         estimatedDuration: estimatedDuration,
                         takeCount: takeCount,
                         credits: creditsManager.tokens,
+                        isAvailable: tier == .premium ? hasRunwayKey : true,
                         onTap: { 
+                            // Premium tier requires Runway key
+                            if tier == .premium && !hasRunwayKey {
+                                return // Don't allow selection without key
+                            }
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 selectedTier = tier
                             }
@@ -56,6 +62,9 @@ public struct TierSelectionView: View {
                     .scaleEffect(selectedTier == tier ? 1.02 : 1.0)
                     .animation(.spring(response: 0.3), value: selectedTier)
                 }
+            }
+            .onAppear {
+                hasRunwayKey = UserAPIKeysManager.shared.hasRunwayKey
             }
             
             // Cost Summary
@@ -155,6 +164,7 @@ struct TierCard: View {
     let estimatedDuration: TimeInterval
     let takeCount: Int
     let credits: Int
+    let isAvailable: Bool
     let onTap: () -> Void
     
     private var cost: Int {
@@ -163,6 +173,10 @@ struct TierCard: View {
     
     private var canAfford: Bool {
         credits >= cost
+    }
+    
+    private var isEnabled: Bool {
+        canAfford && isAvailable
     }
     
     private var cardColor: Color {
@@ -237,11 +251,30 @@ struct TierCard: View {
                 }
                 
                 // Description
-                Text(tier.description)
-                    .font(.callout)
-                    .opacity(0.9)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(tier.description)
+                        .font(.callout)
+                        .opacity(0.9)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    // Premium tier warning if no Runway key
+                    if tier == .premium && !isAvailable {
+                        HStack(spacing: 6) {
+                            Image(systemName: "key.fill")
+                                .font(.caption2)
+                            Text("Requires your own Runway API key")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.orange)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            Capsule()
+                                .fill(Color.orange.opacity(0.2))
+                        )
+                    }
+                }
                 
                 // Features with checkmarks
                 VStack(alignment: .leading, spacing: 8) {
@@ -305,8 +338,8 @@ struct TierCard: View {
                 y: isSelected ? 6 : 3
             )
         }
-        .disabled(!canAfford)
-        .opacity(canAfford ? 1.0 : 0.5)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1.0 : 0.4)
     }
 }
 

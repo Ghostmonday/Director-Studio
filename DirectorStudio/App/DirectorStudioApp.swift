@@ -7,101 +7,51 @@ import SwiftUI
 @main
 struct DirectorStudioApp: App {
     @StateObject private var coordinator = AppCoordinator()
-    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "HasCompletedOnboarding")
-    
-    init() {
-        // Clear API key cache on app launch to ensure fresh keys
-        SupabaseAPIKeyService.shared.clearCache()
-        
-        // Test telemetry
-        testTelemetry()
-    }
-    
-    func testTelemetry() {
-        TelemetryService.shared.logEvent("telemetry_test_event", metadata: [
-            "test": true,
-            "message": "Testing DirectorStudio telemetry",
-            "timestamp": ISO8601DateFormatter().string(from: Date())
-        ])
-    }
     
     var body: some Scene {
         WindowGroup {
-            AdaptiveContentView()
+            ContentView()
                 .environmentObject(coordinator)
-                .fullScreenCover(isPresented: $showOnboarding) {
-                    OnboardingView()
-                }
+                .preferredColorScheme(.dark)
+                .ignoresSafeArea(.keyboard) // Critical for Prompt input
         }
     }
 }
 
-/// Main content view with tab navigation
+/// Root TabView – iPhone Compact
 struct ContentView: View {
     @EnvironmentObject var coordinator: AppCoordinator
-    @State private var showingSettings = false
     
     var body: some View {
-        ZStack {
-            // Cinema grey background
-            DirectorStudioTheme.Colors.cinemaGrey
-                .ignoresSafeArea()
-            
-            TabView(selection: $coordinator.selectedTab) {
-                PromptView()
-                    .tabItem {
-                        Label("Create", systemImage: "wand.and.stars")
-                    }
-                    .tag(AppTab.prompt)
-                
-                StudioView()
-                    .tabItem {
-                        Label("Studio", systemImage: "film.stack")
-                    }
-                    .tag(AppTab.studio)
-                
-                LibraryView()
-                    .tabItem {
-                        Label("Library", systemImage: "photo.stack")
-                    }
-                    .tag(AppTab.library)
+        TabView(selection: $coordinator.selectedTab) {
+            PromptView().tabItem { Label("Prompt", systemImage: "lightbulb") }
+            StudioView().tabItem { Label("Studio", systemImage: "film") }
+            LibraryView().tabItem { Label("Library", systemImage: "folder") }
+        }
+        .tabViewStyle(.automatic)
+        .background(DirectorStudioTheme.Colors.cinemaGrey)
+        .overlay(alignment: .bottom) {
+            CompactPillIndicator(selection: coordinator.selectedTab)
+                .padding(.bottom, 6)
+        }
+    }
+}
+
+// MARK: - Compact Pill Indicator (iPhone-Optimized)
+struct CompactPillIndicator: View {
+    @Namespace private var ns
+    let selection: AppTab
+    
+    var body: some View {
+        HStack(spacing: 48) {
+            ForEach([AppTab.prompt, AppTab.studio, AppTab.library], id: \.self) { tab in
+                Capsule()
+                    .fill(tab == selection ? DirectorStudioTheme.Colors.accent : Color.clear)
+                    .frame(width: tab == selection ? 32 : 6, height: 6)
+                    .matchedGeometryEffect(id: tab, in: ns)
             }
         }
-        .overlay(alignment: .topTrailing) {
-            // Settings button
-            Button(action: { showingSettings = true }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.title2)
-                    .foregroundColor(DirectorStudioTheme.Colors.primary)
-                    .padding()
-                    .background(Circle().fill(DirectorStudioTheme.Colors.stainlessSteel))
-                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
-            }
-            .padding()
-            .padding(.top, 40) // Account for status bar
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-                .environmentObject(coordinator)
-        }
-        .onAppear {
-            // Auto-enable dev mode for testing
-            let devModeEnabled = CreditsManager.shared.enableDevMode(passcode: "2025DS10")
-            print("🔧 Dev Mode Auto-Enabled: \(devModeEnabled)")
-            print("🔧 Dev Mode Status: \(CreditsManager.shared.isDevMode)")
-            
-            // Give unlimited tokens for testing
-            CreditsManager.shared.tokens = 999999
-            print("💰 Granted 999,999 tokens for testing")
-            
-            // Test API logging
-            print("\n🔍🔍🔍 TESTING API DEBUG LOGGING 🔍🔍🔍")
-            print("📱 App launched successfully")
-            print("🔧 Dev Mode: \(CreditsManager.shared.isDevMode)")
-            print("💰 Tokens: \(CreditsManager.shared.tokens)")
-            print("🎬 Demo Mode: REMOVED - all users have full access")
-            print("🔍🔍🔍 END TEST 🔍🔍🔍\n")
-        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: selection)
     }
 }
 

@@ -5,7 +5,6 @@ struct OnboardingView: View {
     @EnvironmentObject var coordinator: AppCoordinator
     @State private var currentPage = 0
     @State private var animateContent = false
-    @State private var showRecordDemo = false
     
     let pages: [OnboardingPageData] = [
         OnboardingPageData(
@@ -37,11 +36,7 @@ struct OnboardingView: View {
             )
             .ignoresSafeArea()
             
-            if showRecordDemo {
-                recordDemoView
-            } else {
-                tourView
-            }
+            tourView
         }
     }
     
@@ -83,12 +78,10 @@ struct OnboardingView: View {
                             currentPage += 1
                         }
                     } else {
-                        withAnimation {
-                            showRecordDemo = true
-                        }
+                        completeOnboarding()
                     }
                 }) {
-                    Text(currentPage == pages.count - 1 ? "Record Your First Line" : "Continue")
+                    Text(currentPage == pages.count - 1 ? "Get Started" : "Continue")
                         .font(.headline)
                         .foregroundColor(.blue)
                         .frame(maxWidth: .infinity)
@@ -106,49 +99,6 @@ struct OnboardingView: View {
                 animateContent = true
             }
         }
-    }
-    
-    private var recordDemoView: some View {
-        VStack(spacing: 30) {
-            Text("Record Your First Line")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.2))
-                    .frame(width: 120, height: 120)
-                
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 80, height: 80)
-                
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.white)
-            }
-            
-            Text("Tap the microphone to start recording")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.9))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            
-            Button(action: {
-                completeOnboarding()
-            }) {
-                Text("Get Started")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(15)
-            }
-            .padding(.horizontal, 40)
-        }
-        .padding()
     }
     
     private func completeOnboarding() {
