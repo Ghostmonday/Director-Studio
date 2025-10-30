@@ -68,6 +68,23 @@ class AppCoordinator: ObservableObject {
         }
     }
     
+    /// Generate a clip from prompt
+    func generateClip(prompt: String, duration: TimeInterval) async {
+        let pipelineService = PipelineServiceBridge()
+        do {
+            let clip = try await pipelineService.generateClip(
+                prompt: prompt,
+                clipName: "Regenerated Clip",
+                enabledStages: Set(PipelineStage.allCases),
+                duration: duration,
+                isFirstClip: false
+            )
+            await MainActor.run {
+                addClip(clip)
+            }
+        } catch {}
+    }
+    
     /// Check iCloud authentication status
     @MainActor
     private func checkAuthentication() async {

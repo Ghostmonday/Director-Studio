@@ -43,7 +43,10 @@
 		9B93115B2EAAF7C300A0660D /* PipelineServiceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311592EAAF7C300A0660D /* PipelineServiceBridge.swift */; };
 		9B93115C2EAAF7C300A0660D /* PolloAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115A2EAAF7C300A0660D /* PolloAIService.swift */; };
 		9B93115D2EAAF7C300A0660F /* RunwayGen4Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115B2EAAF7C300A0660E /* RunwayGen4Service.swift */; };
+		9B93115E2EAAF7C300A06610 /* UserAPIKeysManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115C2EAAF7C300A06610 /* UserAPIKeysManager.swift */; };
+		9B93115F2EAAF7C300A06611 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115D2EAAF7C300A06611 /* NetworkMonitor.swift */; };
 		9B9311602EAAF7ED00A0660D /* DeepSeekAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */; };
+		9B9311612EAAF7C300A06612 /* ThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B93115E2EAAF7C300A06612 /* ThumbnailCache.swift */; };
 		9B9311622EAAF81300A0660D /* AIServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311612EAAF81300A0660D /* AIServiceFactory.swift */; };
 		9B9311642EAB125A00A0660D /* ContinuityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311632EAB125A00A0660D /* ContinuityManager.swift */; };
 		9B9311662EAB158200A0660D /* CoreTypes/CoreTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9311652EAB158200A0660D /* CoreTypes/CoreTypes.swift */; };
@@ -56,6 +59,7 @@
 		9B949E5A2EADAEE50017473C /* RenderTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B949E592EADAEE50017473C /* RenderTransaction.swift */; };
 		9BCD44C52EB2C7C200164F3F /* CostCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44C42EB2C7C200164F3F /* CostCalculator.swift */; };
 		9BCD44C92EB2C80E00164F3F /* MonetizationAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44C72EB2C80E00164F3F /* MonetizationAnalysisView.swift */; };
+		9BCD44CA2EB2C80E00164F4F /* RunwayAPIKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44C82EB2C80E00164F4F /* RunwayAPIKeyView.swift */; };
 		9BCD44D02EB2C80E00164F3F /* ClipRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44CF2EB2C80E00164F3F /* ClipRepository.swift */; };
 		9BCD44D12EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44CE2EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift */; };
 		9BCD44D22EB2C80E00164F3F /* GenerationTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44CD2EB2C80E00164F3F /* GenerationTransaction.swift */; };
@@ -152,6 +156,9 @@
 		9B9311592EAAF7C300A0660D /* PipelineServiceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineServiceBridge.swift; sourceTree = "<group>"; };
 		9B93115A2EAAF7C300A0660D /* PolloAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolloAIService.swift; sourceTree = "<group>"; };
 		9B93115B2EAAF7C300A0660E /* RunwayGen4Service.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunwayGen4Service.swift; sourceTree = "<group>"; };
+		9B93115C2EAAF7C300A06610 /* UserAPIKeysManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAPIKeysManager.swift; sourceTree = "<group>"; };
+		9B93115D2EAAF7C300A06611 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		9B93115E2EAAF7C300A06612 /* ThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCache.swift; sourceTree = "<group>"; };
 		9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeepSeekAIService.swift; path = DirectorStudio/Services/DeepSeekAIService.swift; sourceTree = SOURCE_ROOT; };
 		9B9311612EAAF81300A0660D /* AIServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceFactory.swift; sourceTree = "<group>"; };
 		9B9311632EAB125A00A0660D /* ContinuityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuityManager.swift; sourceTree = "<group>"; };
@@ -165,6 +172,7 @@
 		9B949E592EADAEE50017473C /* RenderTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderTransaction.swift; sourceTree = "<group>"; };
 		9BCD44C42EB2C7C200164F3F /* CostCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CostCalculator.swift; path = DirectorStudio/Services/Monetization/CostCalculator.swift; sourceTree = SOURCE_ROOT; };
 		9BCD44C72EB2C80E00164F3F /* MonetizationAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonetizationAnalysisView.swift; path = DirectorStudio/Features/Settings/MonetizationAnalysisView.swift; sourceTree = SOURCE_ROOT; };
+		9BCD44C82EB2C80E00164F4F /* RunwayAPIKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RunwayAPIKeyView.swift; path = DirectorStudio/Features/Settings/RunwayAPIKeyView.swift; sourceTree = SOURCE_ROOT; };
 		9BCD44CD2EB2C80E00164F3F /* GenerationTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GenerationTransaction.swift; path = DirectorStudio/Transactions/GenerationTransaction.swift; sourceTree = SOURCE_ROOT; };
 		9BCD44CE2EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoiceoverRecorderViewModel.swift; path = DirectorStudio/Features/EditRoom/VoiceoverRecorderViewModel.swift; sourceTree = SOURCE_ROOT; };
 		9BCD44CF2EB2C80E00164F3F /* ClipRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClipRepository.swift; path = DirectorStudio/Repositories/ClipRepository.swift; sourceTree = SOURCE_ROOT; };
@@ -279,6 +287,7 @@
 				157F0D32215137C86DD5449C /* EnhancedCreditsPurchaseView.swift */,
 				45DAA51F31409B502E4AA42A /* PolishedSettingsView.swift */,
 				9BCD44C72EB2C80E00164F3F /* MonetizationAnalysisView.swift */,
+				9BCD44C82EB2C80E00164F4F /* RunwayAPIKeyView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -412,6 +421,9 @@
 				9B9311592EAAF7C300A0660D /* PipelineServiceBridge.swift */,
 				9B93115A2EAAF7C300A0660D /* PolloAIService.swift */,
 				9B93115B2EAAF7C300A0660E /* RunwayGen4Service.swift */,
+				9B93115C2EAAF7C300A06610 /* UserAPIKeysManager.swift */,
+				9B93115D2EAAF7C300A06611 /* NetworkMonitor.swift */,
+				9B93115E2EAAF7C300A06612 /* ThumbnailCache.swift */,
 				9B93115F2EAAF7ED00A0660D /* DeepSeekAIService.swift */,
 				9B9311612EAAF81300A0660D /* AIServiceFactory.swift */,
 				F22F54A105C3AF5BED311744 /* AIClipDurator.swift */,
@@ -600,11 +612,15 @@
 				9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */,
 				9B7926702EB1880C0028149D /* iPadStudioView.swift in Sources */,
 				9BCD44C92EB2C80E00164F3F /* MonetizationAnalysisView.swift in Sources */,
+				9BCD44CA2EB2C80E00164F4F /* RunwayAPIKeyView.swift in Sources */,
 				9B9311432EAAF20100A0660D /* ErrorView.swift in Sources */,
 				9B93115B2EAAF7C300A0660D /* PipelineServiceBridge.swift in Sources */,
 				9B9311622EAAF81300A0660D /* AIServiceFactory.swift in Sources */,
 				9B93115C2EAAF7C300A0660D /* PolloAIService.swift in Sources */,
 				9B93115D2EAAF7C300A0660F /* RunwayGen4Service.swift in Sources */,
+				9B93115E2EAAF7C300A06610 /* UserAPIKeysManager.swift in Sources */,
+				9B93115F2EAAF7C300A06611 /* NetworkMonitor.swift in Sources */,
+				9B9311612EAAF7C300A06612 /* ThumbnailCache.swift in Sources */,
 				9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */,
 				9B9311452EAAF20100A0660E /* SegmentationDebugView.swift in Sources */,
 				B01234611234567890123456 /* ClipCell.swift in Sources */,

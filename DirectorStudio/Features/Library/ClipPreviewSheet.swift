@@ -1,9 +1,6 @@
-// MODULE: ClipPreviewSheet
-// VERSION: 1.0.0
-// PURPOSE: Full-screen preview sheet for video clips with player controls
-
 import SwiftUI
 import AVKit
+import UniformTypeIdentifiers
 
 struct ClipPreviewSheet: View {
     let clip: GeneratedClip
@@ -14,15 +11,16 @@ struct ClipPreviewSheet: View {
     @State private var hideControlsTask: Task<Void, Never>?
     @State private var exportProgress: Double?
     @State private var showingShareSheet = false
+    @State private var showingRating = false
+    @State private var rating: Int = 0
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background
                 Color.black
                     .ignoresSafeArea()
                 
-                // Video player
                 if let player = player {
                     VideoPlayer(player: player)
                         .ignoresSafeArea()
@@ -33,7 +31,6 @@ struct ClipPreviewSheet: View {
                             resetHideControlsTimer()
                         }
                 } else {
-                    // Placeholder while loading
                     VStack {
                         ProgressView("Loading video...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -41,10 +38,8 @@ struct ClipPreviewSheet: View {
                     }
                 }
                 
-                // Control overlay
                 if showControls {
                     VStack {
-                        // Top bar
                         HStack {
                             Button(action: { dismiss() }) {
                                 Image(systemName: "xmark.circle.fill")
@@ -56,13 +51,12 @@ struct ClipPreviewSheet: View {
                             
                             Spacer()
                             
-                            // Clip info
                             VStack(alignment: .trailing) {
                                 Text(clip.name)
-                                    .font(.headline)
+                                    .font(.system(size: fontScale(16), weight: .semibold))
                                     .foregroundColor(.white)
                                 Text(formatDuration(clip.duration))
-                                    .font(.caption)
+                                    .font(.system(size: fontScale(12)))
                                     .foregroundColor(.white.opacity(0.8))
                             }
                             .padding(.horizontal, 12)
@@ -74,9 +68,7 @@ struct ClipPreviewSheet: View {
                         
                         Spacer()
                         
-                        // Bottom controls
                         VStack(spacing: 20) {
-                            // Play controls
                             HStack(spacing: 40) {
                                 Button(action: skipBackward) {
                                     Image(systemName: "gobackward.10")
@@ -97,9 +89,7 @@ struct ClipPreviewSheet: View {
                                 }
                             }
                             
-                            // Action buttons
-                            HStack(spacing: 20) {
-                                // Share button
+                            HStack(spacing: 30) {
                                 Button(action: { showingShareSheet = true }) {
                                     VStack {
                                         Image(systemName: "square.and.arrow.up")
@@ -108,118 +98,67 @@ struct ClipPreviewSheet: View {
                                             .font(.caption)
                                     }
                                     .foregroundColor(.white)
-                                    .frame(width: 60)
                                 }
                                 
-                                // Export button
-                                Button(action: exportVideo) {
+                                Button(action: { showingRating = true }) {
                                     VStack {
-                                        if exportProgress != nil {
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                .scaleEffect(0.8)
-                                        } else {
-                                            Image(systemName: "square.and.arrow.down")
-                                                .font(.title2)
-                                        }
-                                        Text("Export")
+                                        Image(systemName: "star.fill")
+                                            .font(.title2)
+                                        Text("Rate")
                                             .font(.caption)
                                     }
                                     .foregroundColor(.white)
-                                    .frame(width: 60)
-                                }
-                                .disabled(exportProgress != nil)
-                                
-                                // Edit in Studio
-                                NavigationLink(destination: StudioView()) {
-                                    VStack {
-                                        Image(systemName: "wand.and.stars")
-                                            .font(.title2)
-                                        Text("Edit")
-                                            .font(.caption)
-                                    }
-                                    .foregroundColor(.white)
-                                    .frame(width: 60)
-                                }
-                                
-                                // Delete button
-                                Button(action: {}) {
-                                    VStack {
-                                        Image(systemName: "trash")
-                                            .font(.title2)
-                                        Text("Delete")
-                                            .font(.caption)
-                                    }
-                                    .foregroundColor(.red)
-                                    .frame(width: 60)
-                                }
-                            }
-                            .padding(.horizontal, 40)
-                            
-                            // Metadata
-                            HStack(spacing: 30) {
-                                // Demo badges removed - all clips are real
-                                
-                                Label(formatDate(clip.createdAt), systemImage: "calendar")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
-                                
-                                if clip.isGeneratedFromImage {
-                                    Label("From Image", systemImage: "photo")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.8))
                                 }
                             }
                         }
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [Color.clear, Color.black.opacity(0.8)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .padding(.bottom, 50)
                     }
-                    .transition(.opacity)
                 }
             }
-            .navigationBarHidden(true)
+            .sheet(isPresented: $showingShareSheet) {
+                ShareSheet(items: [clip.localURL].compactMap { $0 })
+            }
+            .alert("Rate This Clip", isPresented: $showingRating) {
+                ForEach(1...5, id: \.self) { star in
+                    Button("\(star) Star\(star > 1 ? "s" : "")") {
+                        rating = star
+                        saveRating()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
             .onAppear {
                 setupPlayer()
                 resetHideControlsTimer()
             }
-            .onDisappear {
-                player?.pause()
-                hideControlsTask?.cancel()
-            }
-        }
-        .sheet(isPresented: $showingShareSheet) {
-            if let url = clip.localURL {
-                ShareSheet(items: [url])
-            }
         }
     }
     
-    // MARK: - Player Setup
+    private func fontScale(_ base: CGFloat) -> CGFloat {
+        let scale: Double
+        switch dynamicTypeSize {
+        case .xSmall: scale = 0.8
+        case .small: scale = 0.9
+        case .medium: scale = 1.0
+        case .large: scale = 1.1
+        case .xLarge: scale = 1.2
+        case .xxLarge: scale = 1.3
+        case .xxxLarge: scale = 1.4
+        case .accessibility1: scale = 1.5
+        case .accessibility2: scale = 1.6
+        case .accessibility3: scale = 1.7
+        case .accessibility4: scale = 1.8
+        case .accessibility5: scale = 1.9
+        @unknown default: scale = 1.0
+        }
+        return base * CGFloat(scale)
+    }
     
     private func setupPlayer() {
         guard let url = clip.localURL else { return }
-        
         player = AVPlayer(url: url)
         player?.play()
-        
-        // Loop the video
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: player?.currentItem,
-            queue: .main
-        ) { _ in
-            player?.seek(to: .zero)
-            player?.play()
-        }
     }
-    
-    // MARK: - Controls
     
     private func togglePlayPause() {
         if isPlaying {
@@ -228,78 +167,50 @@ struct ClipPreviewSheet: View {
             player?.play()
         }
         isPlaying.toggle()
-        resetHideControlsTimer()
     }
     
     private func skipBackward() {
         guard let player = player else { return }
         let currentTime = player.currentTime()
-        let newTime = CMTime(seconds: max(0, currentTime.seconds - 10), preferredTimescale: 1)
+        let newTime = CMTimeSubtract(currentTime, CMTime(seconds: 10, preferredTimescale: 600))
         player.seek(to: newTime)
-        resetHideControlsTimer()
     }
     
     private func skipForward() {
         guard let player = player else { return }
         let currentTime = player.currentTime()
-        let newTime = CMTime(seconds: currentTime.seconds + 10, preferredTimescale: 1)
+        let newTime = CMTimeAdd(currentTime, CMTime(seconds: 10, preferredTimescale: 600))
         player.seek(to: newTime)
-        resetHideControlsTimer()
     }
     
     private func resetHideControlsTimer() {
         hideControlsTask?.cancel()
-        showControls = true
-        
         hideControlsTask = Task {
-            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-            if !Task.isCancelled {
-                withAnimation {
-                    showControls = false
-                }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run {
+                showControls = false
             }
         }
     }
     
-    private func exportVideo() {
-        // Export functionality would go here
-        exportProgress = 0.0
-        
-        Task {
-            // Simulate export progress
-            for i in 1...10 {
-                try? await Task.sleep(nanoseconds: 200_000_000)
-                exportProgress = Double(i) / 10.0
-            }
-            exportProgress = nil
-            
-            // Show success message or save to photos
-        }
+    private func saveRating() {
+        UserDefaults.standard.set(rating, forKey: "clip_rating_\(clip.id.uuidString)")
     }
-    
-    // MARK: - Helpers
     
     private func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
 }
 
-// MARK: - Share Sheet
-
 struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
+    let items: [URL]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.excludedActivityTypes = [.assignToContact, .addToReadingList]
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

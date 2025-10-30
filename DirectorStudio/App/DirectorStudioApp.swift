@@ -66,7 +66,6 @@ struct ContentView: View {
                     }
                     .tag(AppTab.library)
             }
-            .preferredColorScheme(.dark)
         }
         .overlay(alignment: .topTrailing) {
             // Settings button

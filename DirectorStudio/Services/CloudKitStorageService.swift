@@ -317,6 +317,16 @@ class CloudKitStorageService: StorageServiceProtocol {
     }
     
     /// Save voiceover metadata locally for offline access
+    func silentSync() async {
+        do {
+            let query = CKQuery(recordType: clipRecordType, predicate: NSPredicate(value: true))
+            let results = try await database.records(matching: query)
+            print("✅ Silent sync completed: \(results.matchResults.count) records")
+        } catch {
+            print("⚠️ Silent sync failed: \(error.localizedDescription)")
+        }
+    }
+    
     private func saveVoiceoverMetadataLocally(_ voiceover: VoiceoverTrack) throws {
         let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let metadataPath = documentsPath.appendingPathComponent("DirectorStudio/Voiceovers/\(voiceover.id.uuidString).json")

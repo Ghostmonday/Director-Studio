@@ -31,7 +31,20 @@ class SupabaseAPIKeyService {
         print("🔑 Fetching \(service) key from hosted Supabase...")
         
         // Use Supabase REST API to query the api_keys table
-        let url = URL(string: "\(supabaseURL)/rest/v1/api_keys?service=eq.\(service)&select=key")!
+        // PostgREST uses special query format: service=eq.Pollo
+        // Only encode the service name value, not the operators
+        guard let encodedService = service.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            print("❌ Failed to encode service name: \(service)")
+            throw APIKeyError.invalidResponse
+        }
+        let urlString = "\(supabaseURL)/rest/v1/api_keys?service=eq.\(encodedService)&select=key"
+        guard let url = URL(string: urlString) else {
+            print("❌ Failed to create URL for service: \(service)")
+            throw APIKeyError.invalidResponse
+        }
+        
+        print("🔗 Request URL: \(url.absoluteString)")
+        
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

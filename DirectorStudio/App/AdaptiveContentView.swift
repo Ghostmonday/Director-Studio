@@ -15,7 +15,6 @@ struct AdaptiveContentView: View {
                 SettingsView()
                     .environmentObject(coordinator)
             }
-            .preferredColorScheme(.dark)
             .keyboardShortcuts()
     }
     

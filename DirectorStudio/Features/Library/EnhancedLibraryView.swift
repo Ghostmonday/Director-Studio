@@ -1,12 +1,9 @@
-// MODULE: LibraryView
-// VERSION: 2.0.0
-// PURPOSE: Beautiful, responsive library with grid/list views, animations, and filtering
-
 import SwiftUI
 import AVKit
 
 struct LibraryView: View {
     @EnvironmentObject var coordinator: AppCoordinator
+    @Environment(\.colorScheme) var colorScheme
     @StateObject private var viewModel = LibraryViewModel()
     @State private var viewMode: ViewMode = .grid
     @State private var sortOption: SortOption = .dateNewest
@@ -49,7 +46,6 @@ struct LibraryView: View {
     
     enum FilterOption: String, CaseIterable {
         case all = "All Clips"
-        // Demo filter removed
         case custom = "My Clips"
         case synced = "Synced"
         case local = "Local Only"
@@ -58,13 +54,10 @@ struct LibraryView: View {
     var filteredAndSortedClips: [GeneratedClip] {
         var clips = viewModel.clips
         
-        // Apply filter
         switch filterOption {
         case .all:
             break
-        // Demo filter removed
         case .custom:
-            // All clips are custom now
             break
         case .synced:
             clips = clips.filter { $0.syncStatus == .synced }
@@ -72,14 +65,12 @@ struct LibraryView: View {
             clips = clips.filter { $0.syncStatus == .notUploaded }
         }
         
-        // Apply search
         if !searchText.isEmpty {
-            clips = clips.filter { 
+            clips = clips.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText)
             }
         }
         
-        // Apply sort
         switch sortOption {
         case .dateNewest:
             clips.sort { $0.createdAt > $1.createdAt }
@@ -99,28 +90,21 @@ struct LibraryView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                adaptiveBackground
+                    .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Search and controls header
                     headerControls
-                        .padding(.horizontal)
+                        .padding(.horizontal, 20)
                         .padding(.top, 8)
                     
-                    // Storage location picker with enhanced styling
                     storageLocationPicker
-                        .padding(.horizontal)
+                        .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                     
                     Divider()
+                        .background(adaptiveDividerColor)
                     
-                    // Main content
                     if filteredAndSortedClips.isEmpty {
                         emptyStateView
                     } else {
@@ -141,11 +125,10 @@ struct LibraryView: View {
                                         }
                                 }
                             }
-                            .padding()
+                            .padding(20)
                         }
                     }
                     
-                    // Storage info bar with better design
                     storageInfoBar
                 }
             }
@@ -154,7 +137,6 @@ struct LibraryView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
-                        // View mode toggle
                         Picker("View Mode", selection: $viewMode.animation(.spring())) {
                             ForEach(ViewMode.allCases, id: \.self) { mode in
                                 Image(systemName: mode.rawValue)
@@ -164,7 +146,6 @@ struct LibraryView: View {
                         .pickerStyle(.segmented)
                         .frame(width: 80)
                         
-                        // Settings
                         NavigationLink(destination: SettingsView()) {
                             Image(systemName: "gear")
                         }
@@ -192,28 +173,32 @@ struct LibraryView: View {
         }
     }
     
-    // MARK: - Components
+    private var adaptiveBackground: Color {
+        colorScheme == .dark ? Color(red: 0.098, green: 0.098, blue: 0.098) : Color(red: 0.949, green: 0.949, blue: 0.969)
+    }
+    
+    private var adaptiveDividerColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
+    }
     
     private var headerControls: some View {
         HStack(spacing: 12) {
-            // Search bar
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.6))
                 TextField("Search clips...", text: $searchText)
                     .textFieldStyle(.plain)
                 if !searchText.isEmpty {
                     Button(action: { searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.6))
                     }
                 }
             }
             .padding(10)
-            .background(Color(.systemGray6))
+            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
             .cornerRadius(10)
             
-            // Sort & Filter button
             Button(action: { showingOptions.toggle() }) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .font(.title2)
@@ -227,13 +212,12 @@ struct LibraryView: View {
     
     private var sortAndFilterOptions: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Sort section
             VStack(alignment: .leading, spacing: 12) {
                 Text("Sort By")
                     .font(.headline)
                 
                 ForEach(SortOption.allCases, id: \.self) { option in
-                    Button(action: { 
+                    Button(action: {
                         sortOption = option
                         showingOptions = false
                     }) {
@@ -254,13 +238,12 @@ struct LibraryView: View {
             
             Divider()
             
-            // Filter section
             VStack(alignment: .leading, spacing: 12) {
                 Text("Filter")
                     .font(.headline)
                 
                 ForEach(FilterOption.allCases, id: \.self) { option in
-                    Button(action: { 
+                    Button(action: {
                         filterOption = option
                         showingOptions = false
                     }) {
@@ -283,7 +266,6 @@ struct LibraryView: View {
     
     private var storageLocationPicker: some View {
         VStack(spacing: 8) {
-            // Enhanced segmented picker
             Picker("Storage", selection: $viewModel.selectedLocation) {
                 ForEach(StorageLocation.allCases, id: \.self) { location in
                     HStack {
@@ -295,7 +277,6 @@ struct LibraryView: View {
             }
             .pickerStyle(.segmented)
             
-            // Auto-upload toggle with better styling
             HStack {
                 Toggle("", isOn: $viewModel.autoUploadEnabled)
                     .labelsHidden()
@@ -306,7 +287,6 @@ struct LibraryView: View {
                     .foregroundColor(.blue)
                     .font(.caption)
             }
-            // All users have full access
         }
     }
     
@@ -314,7 +294,7 @@ struct LibraryView: View {
     private func clipView(for clip: GeneratedClip) -> some View {
         if viewMode == .grid {
             EnhancedClipCell(
-                clip: clip, 
+                clip: clip,
                 isSelected: selectedClip?.id == clip.id,
                 onDelete: { clip in
                     viewModel.deleteClip(clip)
@@ -322,7 +302,7 @@ struct LibraryView: View {
             )
         } else {
             EnhancedClipRow(
-                clip: clip, 
+                clip: clip,
                 isSelected: selectedClip?.id == clip.id,
                 onDelete: { clip in
                     viewModel.deleteClip(clip)
@@ -335,7 +315,6 @@ struct LibraryView: View {
         VStack(spacing: 24) {
             Spacer()
             
-            // Animated empty state illustration
             ZStack {
                 Circle()
                     .fill(
@@ -374,7 +353,6 @@ struct LibraryView: View {
                     .padding(.horizontal, 40)
             }
             
-            // CTA button
             NavigationLink(destination: PromptView()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
@@ -414,7 +392,6 @@ struct LibraryView: View {
     
     private var storageInfoBar: some View {
         HStack(spacing: 20) {
-            // Storage used
             HStack(spacing: 8) {
                 Image(systemName: "internaldrive")
                     .font(.system(size: 14))
@@ -431,7 +408,6 @@ struct LibraryView: View {
             Divider()
                 .frame(height: 30)
             
-            // Clip count
             HStack(spacing: 8) {
                 Image(systemName: "film.stack")
                     .font(.system(size: 14))
@@ -447,7 +423,12 @@ struct LibraryView: View {
             
             Spacer()
             
-            // Storage available
+            if !NetworkMonitor.shared.isOnline {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(.orange)
+            }
+            
             HStack(spacing: 8) {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Available")
@@ -462,13 +443,11 @@ struct LibraryView: View {
                     .foregroundColor(.green)
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .background(.regularMaterial)
     }
 }
-
-// MARK: - Storage Location Extension
 
 extension StorageLocation {
     var systemImage: String {
@@ -480,14 +459,5 @@ extension StorageLocation {
         case .backend:
             return "server.rack"
         }
-    }
-}
-
-// MARK: - Preview
-
-struct LibraryView_Previews: PreviewProvider {
-    static var previews: some View {
-        LibraryView()
-            .environmentObject(AppCoordinator())
     }
 }
