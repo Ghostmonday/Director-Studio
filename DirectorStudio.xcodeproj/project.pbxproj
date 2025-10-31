@@ -63,6 +63,17 @@
 		9BCD44D02EB2C80E00164F3F /* ClipRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44CF2EB2C80E00164F3F /* ClipRepository.swift */; };
 		9BCD44D12EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44CE2EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift */; };
 		9BCD44D22EB2C80E00164F3F /* GenerationTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCD44CD2EB2C80E00164F3F /* GenerationTransaction.swift */; };
+		9BED09F12EB49A14002623A5 /* GenerationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09EE2EB49A14002623A5 /* GenerationHelpers.swift */; };
+		9BED09F22EB49A14002623A5 /* GenerationOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09EF2EB49A14002623A5 /* GenerationOrchestrator.swift */; };
+		9BED09F52EB49AF1002623A5 /* GenerationMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09F32EB49AF1002623A5 /* GenerationMetrics.swift */; };
+		9BED09F62EB49AF1002623A5 /* ProjectPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09F42EB49AF1002623A5 /* ProjectPrompt.swift */; };
+		9BED0A052EB4A087002623A8 /* KlingVersion+Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED0A042EB4A087002623A8 /* KlingVersion+Config.swift */; };
+		9BED09F82EB49B1E002623A5 /* ProjectFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09F72EB49B1E002623A5 /* ProjectFileManager.swift */; };
+		9BED09FB2EB4A06C002623A5 /* KlingAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09FA2EB4A06C002623A5 /* KlingAPIClient.swift */; };
+		9BED09FC2EB4A06C002623A5 /* ClipCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09F92EB4A06C002623A5 /* ClipCacheManager.swift */; };
+		9BED09FF2EB4A087002623A5 /* ClipGenerationOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09FD2EB4A087002623A5 /* ClipGenerationOrchestrator.swift */; };
+		9BED0A002EB4A087002623A5 /* ClipProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED09FE2EB4A087002623A5 /* ClipProgress.swift */; };
+		9BED0A022EB4A087002623A6 /* GenerationSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BED0A012EB4A087002623A6 /* GenerationSummaryView.swift */; };
 		9BF8CF942EB1628D00EFF27A /* TelemetryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF932EB1628D00EFF27A /* TelemetryService.swift */; };
 		9BF8CF952EB1628D00EFF27A /* AIClipDurationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF902EB1628D00EFF27A /* AIClipDurationAnalyzer.swift */; };
 		9BF8CF972EB1628D00EFF27A /* SmartSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF8CF922EB1628D00EFF27A /* SmartSuggestions.swift */; };
@@ -176,6 +187,17 @@
 		9BCD44CD2EB2C80E00164F3F /* GenerationTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GenerationTransaction.swift; path = DirectorStudio/Transactions/GenerationTransaction.swift; sourceTree = SOURCE_ROOT; };
 		9BCD44CE2EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoiceoverRecorderViewModel.swift; path = DirectorStudio/Features/EditRoom/VoiceoverRecorderViewModel.swift; sourceTree = SOURCE_ROOT; };
 		9BCD44CF2EB2C80E00164F3F /* ClipRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClipRepository.swift; path = DirectorStudio/Repositories/ClipRepository.swift; sourceTree = SOURCE_ROOT; };
+		9BED09EE2EB49A14002623A5 /* GenerationHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationHelpers.swift; sourceTree = "<group>"; };
+		9BED09EF2EB49A14002623A5 /* GenerationOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationOrchestrator.swift; sourceTree = "<group>"; };
+		9BED09F32EB49AF1002623A5 /* GenerationMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GenerationMetrics.swift; path = DirectorStudio/Core/Models/GenerationMetrics.swift; sourceTree = "<group>"; };
+		9BED09F42EB49AF1002623A5 /* ProjectPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProjectPrompt.swift; path = DirectorStudio/Core/Models/ProjectPrompt.swift; sourceTree = "<group>"; };
+		9BED0A042EB4A087002623A8 /* KlingVersion+Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "KlingVersion+Config.swift"; path = "DirectorStudio/Core/Models/KlingVersion+Config.swift"; sourceTree = "<group>"; };
+		9BED09F72EB49B1E002623A5 /* ProjectFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProjectFileManager.swift; path = DirectorStudio/Core/Persistence/ProjectFileManager.swift; sourceTree = "<group>"; };
+		9BED09F92EB4A06C002623A5 /* ClipCacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipCacheManager.swift; sourceTree = "<group>"; };
+		9BED09FA2EB4A06C002623A5 /* KlingAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlingAPIClient.swift; sourceTree = "<group>"; };
+		9BED09FD2EB4A087002623A5 /* ClipGenerationOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipGenerationOrchestrator.swift; sourceTree = "<group>"; };
+		9BED09FE2EB4A087002623A5 /* ClipProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipProgress.swift; sourceTree = "<group>"; };
+		9BED0A012EB4A087002623A6 /* GenerationSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationSummaryView.swift; sourceTree = "<group>"; };
 		9BF8CF902EB1628D00EFF27A /* AIClipDurationAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIClipDurationAnalyzer.swift; sourceTree = "<group>"; };
 		9BF8CF912EB1628D00EFF27A /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		9BF8CF922EB1628D00EFF27A /* SmartSuggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartSuggestions.swift; sourceTree = "<group>"; };
@@ -304,6 +326,56 @@
 			path = Monetization;
 			sourceTree = "<group>";
 		};
+		9BCD44D32EB2C80E00164F3F /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				9BCD44CF2EB2C80E00164F3F /* ClipRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		9BCD44D42EB2C80E00164F3F /* Transactions */ = {
+			isa = PBXGroup;
+			children = (
+				9BCD44CD2EB2C80E00164F3F /* GenerationTransaction.swift */,
+			);
+			path = Transactions;
+			sourceTree = "<group>";
+		};
+		9BED09E72EB49928002623A5 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				9BED09E92EB4994B002623A5 /* Persistence */,
+				9BED09E82EB49938002623A5 /* Models */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		9BED09E82EB49938002623A5 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9BED09E92EB4994B002623A5 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		9BED09F02EB49A14002623A5 /* Generation */ = {
+			isa = PBXGroup;
+			children = (
+				9BED09FD2EB4A087002623A5 /* ClipGenerationOrchestrator.swift */,
+				9BED09FE2EB4A087002623A5 /* ClipProgress.swift */,
+				9BED09EE2EB49A14002623A5 /* GenerationHelpers.swift */,
+				9BED09EF2EB49A14002623A5 /* GenerationOrchestrator.swift */,
+			);
+			path = Generation;
+			sourceTree = "<group>";
+		};
 		9BF8CF8F2EAFE8BF00EFF27A /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
@@ -316,6 +388,11 @@
 		B01234401234567890123456 = {
 			isa = PBXGroup;
 			children = (
+				9BED09F72EB49B1E002623A5 /* ProjectFileManager.swift */,
+				9BED09F32EB49AF1002623A5 /* GenerationMetrics.swift */,
+				9BED09F42EB49AF1002623A5 /* ProjectPrompt.swift */,
+				9BED0A042EB4A087002623A8 /* KlingVersion+Config.swift */,
+				9BED09E72EB49928002623A5 /* Core */,
 				B01234791234567890123455 /* DirectorStudio.entitlements */,
 				B01234551234567890123456 /* DirectorStudio */,
 				B01234511234567890123456 /* Products */,
@@ -377,6 +454,7 @@
 			isa = PBXGroup;
 			children = (
 				9B90AA822EAE338A0085A1AC /* Billing */,
+				9BED0A032EB4A087002623A7 /* Generation */,
 				B01234901234567890123456 /* Prompt */,
 				B01234911234567890123456 /* Studio */,
 				B01234921234567890123456 /* EditRoom */,
@@ -385,6 +463,14 @@
 				9B9311532EAAF37900A0660D /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		9BED0A032EB4A087002623A7 /* Generation */ = {
+			isa = PBXGroup;
+			children = (
+				9BED0A012EB4A087002623A6 /* GenerationSummaryView.swift */,
+			);
+			path = Generation;
 			sourceTree = "<group>";
 		};
 		B01234871234567890123456 /* Models */ = {
@@ -404,6 +490,9 @@
 		B01234881234567890123456 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				9BED09F92EB4A06C002623A5 /* ClipCacheManager.swift */,
+				9BED09FA2EB4A06C002623A5 /* KlingAPIClient.swift */,
+				9BED09F02EB49A14002623A5 /* Generation */,
 				9BF8CF902EB1628D00EFF27A /* AIClipDurationAnalyzer.swift */,
 				9BF8CF912EB1628D00EFF27A /* APIClient.swift */,
 				9BF8CF922EB1628D00EFF27A /* SmartSuggestions.swift */,
@@ -486,22 +575,6 @@
 				9BCD44CE2EB2C80E00164F3F /* VoiceoverRecorderViewModel.swift */,
 			);
 			path = EditRoom;
-			sourceTree = "<group>";
-		};
-		9BCD44D32EB2C80E00164F3F /* Repositories */ = {
-			isa = PBXGroup;
-			children = (
-				9BCD44CF2EB2C80E00164F3F /* ClipRepository.swift */,
-			);
-			path = Repositories;
-			sourceTree = "<group>";
-		};
-		9BCD44D42EB2C80E00164F3F /* Transactions */ = {
-			isa = PBXGroup;
-			children = (
-				9BCD44CD2EB2C80E00164F3F /* GenerationTransaction.swift */,
-			);
-			path = Transactions;
 			sourceTree = "<group>";
 		};
 		B01234931234567890123456 /* Library */ = {
@@ -609,6 +682,8 @@
 				9B90AA7D2EAE31330085A1AC /* SupabaseAPIKeyService.swift in Sources */,
 				9B90AA7E2EAE31330085A1AC /* FrameExtractor.swift in Sources */,
 				9BCD44C52EB2C7C200164F3F /* CostCalculator.swift in Sources */,
+				9BED09FB2EB4A06C002623A5 /* KlingAPIClient.swift in Sources */,
+				9BED09FC2EB4A06C002623A5 /* ClipCacheManager.swift in Sources */,
 				9B9311422EAAF20100A0660D /* LoadingView.swift in Sources */,
 				9B7926702EB1880C0028149D /* iPadStudioView.swift in Sources */,
 				9BCD44C92EB2C80E00164F3F /* MonetizationAnalysisView.swift in Sources */,
@@ -619,6 +694,8 @@
 				9B93115C2EAAF7C300A0660D /* PolloAIService.swift in Sources */,
 				9B93115D2EAAF7C300A0660F /* RunwayGen4Service.swift in Sources */,
 				9B93115E2EAAF7C300A06610 /* UserAPIKeysManager.swift in Sources */,
+				9BED09F12EB49A14002623A5 /* GenerationHelpers.swift in Sources */,
+				9BED09F22EB49A14002623A5 /* GenerationOrchestrator.swift in Sources */,
 				9B93115F2EAAF7C300A06611 /* NetworkMonitor.swift in Sources */,
 				9B9311612EAAF7C300A06612 /* ThumbnailCache.swift in Sources */,
 				9B9311442EAAF20100A0660D /* TooltipView.swift in Sources */,
@@ -641,10 +718,16 @@
 				B01234701234567890123456 /* AuthService.swift in Sources */,
 				B01234711234567890123456 /* StorageService.swift in Sources */,
 				9B79266E2EB1879F0028149D /* AdaptiveContentView.swift in Sources */,
+				9BED09F52EB49AF1002623A5 /* GenerationMetrics.swift in Sources */,
+				9BED09F62EB49AF1002623A5 /* ProjectPrompt.swift in Sources */,
+				9BED0A052EB4A087002623A8 /* KlingVersion+Config.swift in Sources */,
 				B01234731234567890123456 /* ExportService.swift in Sources */,
 				B01234751234567890123456 /* CrashReporter.swift in Sources */,
 				BA64330A01B603E504DF4A54 /* DirectorStudio/Services/PipelineProtocols.swift in Sources */,
 				94B809A40355668814DBE4F0 /* DirectorStudio/Services/VideoStitchingService.swift in Sources */,
+				9BED09FF2EB4A087002623A5 /* ClipGenerationOrchestrator.swift in Sources */,
+				9BED0A002EB4A087002623A5 /* ClipProgress.swift in Sources */,
+				9BED0A022EB4A087002623A6 /* GenerationSummaryView.swift in Sources */,
 				5AE3231A39C76372701313BB /* DirectorStudio/Services/VoiceoverGenerationService.swift in Sources */,
 				99943B4B90F399DCDF14B752 /* DirectorStudio/Services/CloudKitStorageService.swift in Sources */,
 				C0742592824C3D90BA02FF68 /* SegmentEditorView.swift in Sources */,
@@ -674,6 +757,7 @@
 				9B7926862EB1892D0028149D /* CinematicLoadingView.swift in Sources */,
 				03E41333D15C1DC713D41A5C /* EnhancedLibraryView.swift in Sources */,
 				B18E75D1884AD952EBB5BBE8 /* EnhancedClipCell.swift in Sources */,
+				9BED09F82EB49B1E002623A5 /* ProjectFileManager.swift in Sources */,
 				738F086B21C75CAED54C261F /* EnhancedClipRow.swift in Sources */,
 				9D42E4A7D6FE7B3BB6884CF1 /* ClipPreviewSheet.swift in Sources */,
 				DF5EF234724134FCDF8BF47D /* EnhancedCreditsPurchaseView.swift in Sources */,

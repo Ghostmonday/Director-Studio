@@ -72,7 +72,7 @@ public actor ProjectFileManager {
         var readError: Error?
         var data: Data?
         
-        coordinator.coordinate(readingItemAt: url, options: .withoutDeleting, error: &coordinationError) { coordinatedURL in
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinatedURL in
             do {
                 data = try Data(contentsOf: coordinatedURL)
             } catch {
@@ -106,7 +106,6 @@ public actor ProjectFileManager {
                 index: index,
                 prompt: prompt,
                 status: .pending,
-                klingVersion: .v1_6_standard, // Default for legacy
                 createdAt: Date(),
                 updatedAt: Date()
             )

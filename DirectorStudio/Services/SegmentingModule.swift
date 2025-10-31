@@ -590,8 +590,6 @@ final class SegmentingModule {
                 prompt: take.prompt,
                 status: .pending,
                 extractedDialogue: dialogue,
-                klingVersion: .v1_6_standard, // Default, can be optimized later
-                generationTier: .basic, // Default tier
                 visualComplexityScore: complexity,
                 createdAt: Date(),
                 updatedAt: Date()

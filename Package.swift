@@ -19,10 +19,10 @@ let package = Package(
     targets: [
         .target(
             name: "DirectorStudioLib",
-            path: "DirectorStudio",
             dependencies: [
                 .product(name: "Supabase", package: "supabase-swift")
-            ]
+            ],
+            path: "DirectorStudio"
         )
     ]
 )
