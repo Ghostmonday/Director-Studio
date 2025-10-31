@@ -296,7 +296,35 @@ class PromptViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "draftProject")
     }
     
-    /// Generate a clip from the current prompt
+    /// Generate clips using Phase 1 orchestration (for multi-clip projects)
+    /// - Parameter coordinator: The app coordinator
+    func generateClips(coordinator: AppCoordinator) async {
+        guard !promptText.isEmpty else { return }
+        
+        // Create or update project
+        if coordinator.currentProject == nil {
+            coordinator.currentProject = Project(
+                name: projectName.isEmpty ? "Untitled Project" : projectName,
+                description: promptText
+            )
+        }
+        
+        guard let project = coordinator.currentProject else { return }
+        
+        // Update project description with script
+        coordinator.currentProject?.description = promptText
+        
+        isGenerating = true
+        defer { isGenerating = false }
+        
+        // Delegate to AppCoordinator's orchestration system
+        await coordinator.startGeneration(for: project)
+        
+        // Navigate to Studio after generation starts
+        coordinator.navigateTo(.studio)
+    }
+    
+    /// Generate a clip from the current prompt (legacy single-clip method)
     func generateClip(coordinator: AppCoordinator) async {
         guard !promptText.isEmpty else { return }
         

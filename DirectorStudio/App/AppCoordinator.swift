@@ -68,7 +68,7 @@ class AppCoordinator: ObservableObject {
         }
     }
     
-    /// Generate a clip from prompt
+    /// Generate a clip from prompt (legacy method for backward compatibility)
     func generateClip(prompt: String, duration: TimeInterval) async {
         let pipelineService = PipelineServiceBridge()
         do {
@@ -83,6 +83,37 @@ class AppCoordinator: ObservableObject {
                 addClip(clip)
             }
         } catch {}
+    }
+    
+    /// NEW: Start generation for a project using Phase 1 orchestration
+    /// - Parameter project: The project to generate clips for
+    @MainActor
+    func startGeneration(for project: Project) async {
+        guard let script = project.description.isEmpty ? nil : project.description else {
+            print("⚠️ No script found for project \(project.name)")
+            return
+        }
+        
+        print("🎬 Starting generation for project: \(project.name)")
+        
+        // 1. Get prompts from segmenting module
+        let segmentingModule = SegmentingModule()
+        do {
+            let prompts = try await segmentingModule.segment(script, projectId: project.id)
+            print("📝 Generated \(prompts.count) prompts")
+            
+            // 2. Save prompts to disk
+            try ProjectFileManager.shared.savePromptList(prompts, for: project.id)
+            print("💾 Saved prompts to disk")
+            
+            // 3. Start orchestrated generation
+            let orchestrator = GenerationOrchestrator()
+            try await orchestrator.generateProject(project.id, prompts: prompts)
+            print("✅ Generation complete for project: \(project.name)")
+            
+        } catch {
+            print("❌ Generation failed: \(error.localizedDescription)")
+        }
     }
     
     /// Check iCloud authentication status

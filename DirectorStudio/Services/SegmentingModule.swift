@@ -561,5 +561,85 @@ final class SegmentingModule {
             llmConfig: config
         )
     }
+    
+    /// NEW: Segment script into ProjectPrompt array for Phase 1 refactor
+    /// - Parameters:
+    ///   - story: The story text to segment
+    ///   - projectId: Optional project ID for persistence
+    /// - Returns: Array of ProjectPrompt objects ready for generation
+    func segment(_ story: String, projectId: UUID? = nil) async throws -> [ProjectPrompt] {
+        // Use simple chunking for now (can be enhanced later)
+        let generator = StoryToFilmGenerator(
+            apiKey: "", // Will use DeepSeek key from config if available
+            config: StoryToFilmGenerator.GeneratorConfig(useSimpleChunking: true)
+        )
+        
+        let film = try await generator.generateFilm(from: story)
+        
+        // Convert FilmTakes to ProjectPrompts
+        return film.takes.enumerated().map { index, take in
+            // Extract dialogue if present
+            let dialogue = take.dialogueLines?.map { "\($0.speaker): \($0.text)" }.joined(separator: "\n")
+            
+            // Calculate visual complexity
+            let complexity = calculateVisualComplexity(take.prompt)
+            
+            return ProjectPrompt(
+                id: take.id,
+                index: index,
+                prompt: take.prompt,
+                status: .pending,
+                extractedDialogue: dialogue,
+                klingVersion: .v1_6_standard, // Default, can be optimized later
+                generationTier: .basic, // Default tier
+                visualComplexityScore: complexity,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        }
+    }
+    
+    /// Calculate visual complexity score for tier selection
+    /// - Parameter text: The prompt text
+    /// - Returns: Complexity score from 0.0 to 1.0
+    private func calculateVisualComplexity(_ text: String) -> Float {
+        var score: Float = 0.3 // Base score
+        
+        let complexWords = ["explosion", "transformation", "crowd", "battle", "chase", "water", "fire", "smoke"]
+        let promptLower = text.lowercased()
+        
+        for word in complexWords {
+            if promptLower.contains(word) {
+                score += 0.15
+            }
+        }
+        
+        // Increase score for longer prompts (more complex scenes)
+        if text.count > 200 {
+            score += 0.1
+        }
+        
+        return min(score, 1.0)
+    }
+    
+    /// Extract dialogue from text (simple implementation)
+    /// - Parameter text: The text to analyze
+    /// - Returns: Extracted dialogue string or nil
+    private func extractDialogue(from text: String) -> String? {
+        // Simple pattern matching for quoted text
+        let pattern = "\"([^\"]+)\""
+        let regex = try? NSRegularExpression(pattern: pattern, options: [])
+        let range = NSRange(text.startIndex..., in: text)
+        let matches = regex?.matches(in: text, options: [], range: range) ?? []
+        
+        guard !matches.isEmpty else { return nil }
+        
+        let dialogueLines = matches.compactMap { match -> String? in
+            guard let range = Range(match.range(at: 1), in: text) else { return nil }
+            return String(text[range])
+        }
+        
+        return dialogueLines.isEmpty ? nil : dialogueLines.joined(separator: "\n")
+    }
 }
 
