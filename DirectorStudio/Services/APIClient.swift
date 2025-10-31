@@ -14,10 +14,24 @@ enum APIError: Error, LocalizedError {
         switch self {
         case .invalidURL(let msg): return "Invalid URL: \(msg)"
         case .invalidResponse(let code, let message):
+            // If custom message provided, use it (but make it user-friendly if possible)
             if let message = message {
+                // Check if message is technical and needs user-friendly translation
+                if message.contains("missing videoUrl") || message.contains("Unexpected response format") {
+                    return "Video generation completed, but the video URL was not returned. The service may be experiencing issues. Please try again."
+                }
+                if message.contains("Task not found after") && message.contains("task may not exist or API endpoint issue") {
+                    return "The video generation task could not be found. This may be a temporary API issue. Please try again or contact support if the problem persists."
+                }
+                if message.contains("Empty response") {
+                    return "The server returned an empty response. Please check your connection and try again."
+                }
                 return message
             }
+            // Default messages for status codes
             switch code {
+            case 200:
+                return "The server responded successfully, but the response format was unexpected. Please try again."
             case 400:
                 return "API request failed. Please check your API keys in Settings."
             case 401:
@@ -29,25 +43,51 @@ enum APIError: Error, LocalizedError {
             default:
                 return "HTTP \(code): Request failed"
             }
-        case .decodingError(let err): return "JSON Decode: \(err.localizedDescription)"
-        case .networkError(let err): return "Network: \(err.localizedDescription)"
-        case .authError(let msg): return "Auth: \(msg)"
-        case .unknown(let err): return "Unknown: \(err.localizedDescription)"
+        case .decodingError: 
+            return "The server response could not be understood. This may be a temporary issue. Please try again."
+        case .networkError: 
+            return "Network connection failed. Please check your internet connection and try again."
+        case .authError(let msg): 
+            // Make auth errors more user-friendly
+            if msg.contains("API key") {
+                return "API key error. Please check your API keys in Settings."
+            }
+            return msg
+        case .unknown(let err): 
+            return "An unexpected error occurred: \(err.localizedDescription)"
         }
     }
     
     /// User-friendly title for error display
     var userFriendlyTitle: String {
         switch self {
-        case .invalidResponse(let code, _):
+        case .invalidResponse(let code, let message):
+            // Check message for specific scenarios
+            if let msg = message {
+                if msg.contains("missing videoUrl") || msg.contains("Unexpected response format") {
+                    return "Video Not Available"
+                }
+                if msg.contains("Task not found") || msg.contains("API endpoint issue") {
+                    return "Service Temporarily Unavailable"
+                }
+                if msg.contains("Empty response") {
+                    return "Connection Issue"
+                }
+            }
             switch code {
+            case 200: return "Unexpected Response"
             case 400, 401: return "API Configuration Issue"
             case 404: return "Service Unavailable"
             case 500...599: return "Server Error"
             default: return "Request Failed"
             }
-        case .authError: return "Authentication Failed"
+        case .authError(let msg):
+            if msg.contains("API key") {
+                return "API Key Issue"
+            }
+            return "Authentication Failed"
         case .networkError: return "Connection Problem"
+        case .decodingError: return "Response Error"
         default: return "Error"
         }
     }
@@ -246,6 +286,13 @@ public class APIClient: APIClientProtocol {
                         logger.error("❌ HTTP Error \(httpResponse.statusCode) - No response body")
                     }
                     
+                    // CRITICAL: For status polling requests, don't retry 404s - let adaptive polling handle them
+                    // Status polling URLs contain "/task/status/" - these expect 404s during indexing phase
+                    let urlString = request.url?.absoluteString ?? "nil"
+                    let isStatusPolling = urlString.contains("/task/status/")
+                    logger.info("🔍 [\(requestId)] Checking status polling: URL=\(urlString), isStatusPolling=\(isStatusPolling), statusCode=\(httpResponse.statusCode)")
+                    writeToLog("🔍 [\(requestId)] Status check: URL=\(urlString), isStatusPolling=\(isStatusPolling), statusCode=\(httpResponse.statusCode)")
+                    
                     if httpResponse.statusCode == 401 {
                         throw APIError.authError("Invalid API key or unauthorized")
                     } else if httpResponse.statusCode == 400 {
@@ -254,6 +301,13 @@ public class APIClient: APIClientProtocol {
                             ? errorMessage 
                             : "Bad Request - Check API key/endpoint. Verify your API keys are configured in Supabase."
                         throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: helpfulMessage)
+                    } else if httpResponse.statusCode == 404 && isStatusPolling {
+                        // For status polling, 404s are expected during indexing - throw immediately without retries
+                        // This allows adaptive polling to handle the backoff properly
+                        logger.info("📝 [\(requestId)] Status polling 404 (expected during indexing) - skipping retries")
+                        print("📝 [APIClient][\(requestId)] Status polling 404 - skipping retries")
+                        writeToLog("📝 [\(requestId)] Status polling 404 - skipping APIClient retries (adaptive polling will handle)")
+                        throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: errorMessage.isEmpty ? nil : errorMessage)
                     }
                     throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: errorMessage.isEmpty ? nil : errorMessage)
                 }
@@ -262,7 +316,10 @@ public class APIClient: APIClientProtocol {
                 guard !data.isEmpty else {
                     logger.error("❌ [\(requestId)] Empty response data received")
                     writeToLog("❌ [\(requestId)] Empty response data received")
-                    throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: "Empty response from server - Check API endpoint and request format")
+                    let userMessage = httpResponse.statusCode == 200 
+                        ? "The server returned an empty response. This may be a temporary issue. Please try again."
+                        : "Empty response from server - Check API endpoint and request format"
+                    throw APIError.invalidResponse(statusCode: httpResponse.statusCode, message: userMessage)
                 }
                 
                 // Try to decode, but provide better error messages
@@ -355,6 +412,17 @@ public class APIClient: APIClientProtocol {
                 writeToLog("🌐 [\(requestId)] URLError domain: \(urlError.localizedDescription)")
             } catch let apiError as APIError {
                 lastError = apiError
+                
+                // For status polling 404s, don't retry - let adaptive polling handle it
+                if case .invalidResponse(let statusCode, _) = apiError,
+                   statusCode == 404,
+                   request.url?.absoluteString.contains("/task/status/") == true {
+                    logger.info("📝 [\(requestId)] Status polling 404 - skipping retries, throwing immediately")
+                    print("📝 [APIClient][\(requestId)] Status polling 404 - skipping retries, throwing immediately")
+                    writeToLog("📝 [\(requestId)] Status polling 404 - skipping APIClient retries")
+                    throw apiError // Don't retry, let adaptive polling handle it
+                }
+                
                 logger.error("❌ [\(requestId)] Attempt \(attempt) failed: \(apiError.localizedDescription)")
                 print("❌ [APIClient][\(requestId)] Attempt \(attempt) failed: \(apiError.localizedDescription)")
                 writeToLog("❌ [\(requestId)] Attempt \(attempt) failed: \(apiError.localizedDescription)")

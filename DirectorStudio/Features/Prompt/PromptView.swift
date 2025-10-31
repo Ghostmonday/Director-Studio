@@ -161,6 +161,11 @@ struct PromptView: View {
                     .padding(8)
                     .scrollContentBackground(.hidden)
                     .background(Color(.systemBackground))
+                    .foregroundColor(.primary)
+                    .font(.system(size: 17, design: .default))
+                    .autocorrectionDisabled(false)
+                    .textInputAutocapitalization(.sentences)
+                    .keyboardType(.default)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(isPromptFocused ? Color.blue : (viewModel.promptText.isEmpty ? Color.gray.opacity(0.3) : Color.blue.opacity(0.5)), lineWidth: isPromptFocused ? 2 : 1)
@@ -1090,15 +1095,16 @@ struct PromptView: View {
     
     @ViewBuilder
     private var apiTestButton: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
+            // Connection Test
             Button(action: {
                 Task {
-                    await testAPIs()
+                    await testAPIConnection()
                 }
             }) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("Test API Connection")
+                    Text("Test API Keys")
                     Spacer()
                     if testingAPIs {
                         ProgressView()
@@ -1112,11 +1118,88 @@ struct PromptView: View {
             }
             .disabled(testingAPIs)
             
+            // Quick API Test Buttons
+            VStack(spacing: 4) {
+                Text("⚠️ REAL API CALLS - Costs apply!")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                
+                HStack(spacing: 8) {
+                    Button(action: {
+                        Task {
+                            await testQuickAPICall(tier: .economy)
+                        }
+                    }) {
+                        VStack(spacing: 2) {
+                            Image(systemName: "bolt.fill")
+                            Text("Economy")
+                                .font(.caption2)
+                            Text("$1.00")
+                                .font(.system(size: 8))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.2))
+                        .foregroundColor(.blue)
+                        .cornerRadius(6)
+                    }
+                    .disabled(testingAPIs)
+                    
+                    Button(action: {
+                        Task {
+                            await testQuickAPICall(tier: .basic)
+                        }
+                    }) {
+                        VStack(spacing: 2) {
+                            Image(systemName: "bolt.fill")
+                            Text("Basic")
+                                .font(.caption2)
+                            Text("$1.55")
+                                .font(.system(size: 8))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                        .background(Color.orange.opacity(0.2))
+                        .foregroundColor(.orange)
+                        .cornerRadius(6)
+                    }
+                    .disabled(testingAPIs)
+                    
+                    Button(action: {
+                        Task {
+                            await testQuickAPICall(tier: .pro)
+                        }
+                    }) {
+                        VStack(spacing: 2) {
+                            Image(systemName: "bolt.fill")
+                            Text("Pro")
+                                .font(.caption2)
+                            Text("$1.85")
+                                .font(.system(size: 8))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                        .background(Color.purple.opacity(0.2))
+                        .foregroundColor(.purple)
+                        .cornerRadius(6)
+                    }
+                    .disabled(testingAPIs)
+                }
+            }
+            
             if let result = apiTestResult {
-                Text(result)
-                    .font(.caption)
-                    .foregroundColor(result.contains("✅") ? .green : .red)
-                    .padding(.horizontal)
+                ScrollView {
+                    Text(result)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(result.contains("✅") ? .green : (result.contains("❌") ? .red : .primary))
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                }
+                .frame(maxHeight: 300)
+                .padding(.horizontal)
             }
         }
         .padding(.horizontal)
@@ -1145,17 +1228,26 @@ struct PromptView: View {
         .padding(.horizontal)
     }
     
-    private func testAPIs() async {
+    private func testAPIConnection() async {
         testingAPIs = true
-        apiTestResult = "Testing..."
+        apiTestResult = "🔄 Testing Supabase connection...\n\n"
         
         var results: [String] = []
         
+        // Clear cache to force fresh fetch
+        SupabaseAPIKeyService.shared.clearCache()
+        results.append("📡 Supabase URL: carkncjucvtbggqrilwj.supabase.co")
+        results.append("")
+        
         // Test DeepSeek
         do {
+            let startTime = Date()
             let deepSeekKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "DeepSeek")
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
             if !deepSeekKey.isEmpty {
-                results.append("✅ DeepSeek: Key found (\(deepSeekKey.prefix(8))...)")
+                results.append("✅ DeepSeek: Connected!")
+                results.append("   Key: \(deepSeekKey.prefix(12))...")
+                results.append("   Fetched in \(duration)s from Supabase")
             } else {
                 results.append("❌ DeepSeek: Key is empty")
             }
@@ -1163,16 +1255,98 @@ struct PromptView: View {
             results.append("❌ DeepSeek: \(error.localizedDescription)")
         }
         
+        results.append("")
+        
         // Test Pollo
         do {
+            let startTime = Date()
             let polloKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
             if !polloKey.isEmpty {
-                results.append("✅ Pollo: Key found (\(polloKey.prefix(8))...)")
+                results.append("✅ Pollo: Connected!")
+                results.append("   Key: \(polloKey.prefix(12))...")
+                results.append("   Fetched in \(duration)s from Supabase")
             } else {
                 results.append("❌ Pollo: Key is empty")
             }
         } catch {
             results.append("❌ Pollo: \(error.localizedDescription)")
+        }
+        
+        results.append("")
+        results.append("🎉 Connection verified - Keys fetched from Supabase!")
+        results.append("")
+        results.append("💡 Tip: Use the tier buttons above to test actual API calls")
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
+        }
+    }
+    
+    private func testQuickAPICall(tier: VideoQualityTier) async {
+        testingAPIs = true
+        apiTestResult = "🚀 Testing \(tier.shortName) API call...\n\n"
+        
+        var results: [String] = []
+        // Use minimum duration (5s) and shortest prompt to minimize cost
+        let testPrompt = "test"
+        let testDuration: TimeInterval = 5.0 // Minimum duration for all tiers
+        let startTime = Date()
+        
+        // Calculate cost
+        let cost = Double(Int(testDuration)) * tier.customerPricePerSecond
+        let tokens = Int(testDuration) * tier.tokensPerSecond
+        
+        results.append("💰 COST WARNING: This is a REAL API call!")
+        results.append("   Estimated cost: $\(String(format: "%.2f", cost))")
+        results.append("   Tokens: \(tokens)")
+        results.append("")
+        results.append("📋 Test Parameters (OPTIMIZED FOR MINIMUM COST):")
+        results.append("   Tier: \(tier.shortName)")
+        results.append("   Prompt: '\(testPrompt)' (shortest possible)")
+        results.append("   Duration: \(Int(testDuration))s (minimum)")
+        results.append("")
+        
+        do {
+            let polloService = PolloAIService()
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Sending API request...\n"
+            }
+            
+            // Fire the actual API call - this will use adaptive polling
+            let videoURL = try await polloService.generateVideo(
+                prompt: testPrompt,
+                duration: testDuration,
+                tier: tier
+            )
+            
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("✅ API Call Successful!")
+            results.append("   Video URL: \(videoURL)")
+            results.append("   Total time: \(duration)s")
+            results.append("")
+            results.append("📝 Full request/response logged to Desktop/directorstudio_api_debug.log")
+            
+        } catch {
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("")
+            results.append("❌ API Call Failed!")
+            results.append("   Error: \(error.localizedDescription)")
+            results.append("   Failed after: \(duration)s")
+            results.append("")
+            
+            if let apiError = error as? APIError {
+                results.append("   API Error Details:")
+                results.append("   \(apiError.localizedDescription)")
+            }
+            
+            results.append("")
+            results.append("📝 Full request/response logged to Desktop/directorstudio_api_debug.log")
+            results.append("💡 Use './read_api_logs.sh' to view logs")
         }
         
         await MainActor.run {
@@ -1601,8 +1775,11 @@ struct PromptCard: View {
             TextEditor(text: $prompt)
                 .focused($isFocused)
                 .scrollContentBackground(.hidden)
-                .foregroundColor(DirectorStudioTheme.Colors.primary)
-                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .foregroundColor(.primary)
+                .font(.system(size: 17, design: .default))
+                .autocorrectionDisabled(false)
+                .textInputAutocapitalization(.sentences)
+                .keyboardType(.default)
                 .frame(height: max(120, cardHeight))
             
             if isFocused { LiveVoiceWaveform() }

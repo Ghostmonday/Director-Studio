@@ -8,6 +8,11 @@
 import SwiftUI
 import AVFoundation
 
+// MARK: - Theme Access
+extension VideoGenerationScreen {
+    private var theme: DirectorStudioTheme.Type { DirectorStudioTheme.self }
+}
+
 // MARK: - Main Flow View (replaces old VideoGenerationScreen)
 
 struct VideoGenerationScreen: View {
@@ -327,19 +332,8 @@ class FilmGeneratorViewModel: ObservableObject {
             throw GeneratorError.noTakesGenerated
         }
         
-        // Convert last frame to base64 for imageTail (continuity)
-        // Only available for takes after the first (takeIndex > 0)
-        let imageTailBase64: String? = {
-            guard takeIndex > 0, let lastFrame = lastExtractedFrame,
-                  let imageData = lastFrame.jpegData(compressionQuality: 0.85) else {
-                return nil
-            }
-            // Convert to base64 with format prefix
-            let base64String = imageData.base64EncodedString()
-            return "data:image/jpeg;base64,\(base64String)"
-        }()
-        
         // Generate video based on whether this is the first take or a subsequent one
+        // Continuity: Use single-image approach (last frame becomes starting frame)
         let generatedVideoURL: URL
         if takeIndex == 0 {
             // First take: generate from text prompt only
@@ -347,13 +341,14 @@ class FilmGeneratorViewModel: ObservableObject {
             generatedVideoURL = try await polloVideoService.generateVideo(
                 prompt: videoPrompt,
                 duration: take.estimatedDuration,
-                tier: tier,
-                imageTail: nil // No previous frame for first take
+                tier: tier
             )
         } else {
-            // Subsequent takes: use seed image from previous take for continuity
+            // Subsequent takes: use last frame from previous take as starting frame for continuity
+            // Single-image approach: Last frame becomes the starting frame (simpler, works for all tiers)
+            // perfectSeed() will handle resizing (480p) and compression (80% quality, <600KB)
             guard let seedImage = lastExtractedFrame,
-                  let seedImageData = seedImage.jpegData(compressionQuality: 0.8) else {
+                  let seedImageData = seedImage.pngData() else { // Use PNG to preserve quality, perfectSeed will compress
                 throw NSError(
                     domain: "FilmGenerator",
                     code: -1,
@@ -361,13 +356,13 @@ class FilmGeneratorViewModel: ObservableObject {
                 )
             }
             
-            print("🔗 [Take \(take.takeNumber)] Using seed image + imageTail for continuity (tier: \(tier.shortName))")
+            print("🔗 [Take \(take.takeNumber)] Using single-image + prompt continuity - last frame → starting frame (tier: \(tier.shortName))")
+            print("📸 [Take \(take.takeNumber)] Image will be resized to 480p and compressed by perfectSeed()")
             generatedVideoURL = try await polloVideoService.generateVideoFromImage(
                 imageData: seedImageData,
                 prompt: videoPrompt,
                 duration: take.estimatedDuration,
-                tier: tier,
-                imageTail: imageTailBase64 // Pass last frame as imageTail for continuity
+                tier: tier
             )
         }
         
@@ -487,8 +482,8 @@ struct TakesPreviewView: View {
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(hex: "1A1A1A"),
-                            Color(hex: "252525")
+                            DirectorStudioTheme.Colors.backgroundBase,
+                            DirectorStudioTheme.Colors.surfacePanel
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -502,7 +497,7 @@ struct TakesPreviewView: View {
                 )
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
-                .background(Color(hex: "191919"))
+                .background(DirectorStudioTheme.Colors.backgroundBase)
                 
                 // Prompts Showcase - The Gold Content
                 ScrollView {
@@ -546,8 +541,8 @@ struct TakesPreviewView: View {
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(hex: "191919"),
-                            Color(hex: "161616")
+                            DirectorStudioTheme.Colors.backgroundBase,
+                            DirectorStudioTheme.Colors.backgroundBase.opacity(0.9)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -580,13 +575,9 @@ struct TakesPreviewView: View {
                                     .padding(.vertical, 10)
                                     .background(
                                         selectedTier == tier ?
+                                        DirectorStudioTheme.Colors.blueGradient :
                                         LinearGradient(
-                                            colors: [Color(hex: "4A8FE8"), Color(hex: "357ABD")],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        ) :
-                                        LinearGradient(
-                                            colors: [Color(hex: "2A2A2A"), Color(hex: "222222")],
+                                            colors: [DirectorStudioTheme.Colors.surfacePanel, DirectorStudioTheme.Colors.backgroundBase],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -595,7 +586,7 @@ struct TakesPreviewView: View {
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(selectedTier == tier ? Color(hex: "4A8FE8") : Color.clear, lineWidth: 2)
+                                            .stroke(selectedTier == tier ? DirectorStudioTheme.Colors.primary : Color.clear, lineWidth: 2)
                                     )
                                 }
                             }
@@ -613,36 +604,36 @@ struct TakesPreviewView: View {
                             HStack {
                             Text("Estimated Cost")
                 .font(.subheadline)
-                                .foregroundColor(Color(hex: "4A8FE8").opacity(0.7))
+                                .foregroundColor(DirectorStudioTheme.Colors.primary.opacity(0.7))
                             Spacer()
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text("$\(totalCost, specifier: "%.2f")")
                                     .font(.title3)
                                     .fontWeight(.bold)
-                                    .foregroundColor(Color(hex: "4A8FE8"))
+                                    .foregroundColor(DirectorStudioTheme.Colors.primary)
                                 Text("\(totalTokens) tokens")
                                     .font(.caption)
-                                    .foregroundColor(Color(hex: "4A8FE8").opacity(0.8))
+                                    .foregroundColor(DirectorStudioTheme.Colors.primary.opacity(0.8))
                             }
                         }
                         
                         if totalTokens > creditsManager.tokens {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(Color(hex: "FF9E0A"))
+                                    .foregroundColor(DirectorStudioTheme.Colors.secondary)
                                 Text("Insufficient credits (\(creditsManager.tokens) available)")
                                     .font(.caption)
-                                    .foregroundColor(Color(hex: "FF9E0A"))
+                                    .foregroundColor(DirectorStudioTheme.Colors.secondary)
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color(hex: "FF9E0A").opacity(0.2))
+                            .background(DirectorStudioTheme.Colors.secondary.opacity(0.2))
                             .cornerRadius(8)
                         }
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
-                        .background(Color(hex: "1A1A1A"))
+                        .background(DirectorStudioTheme.Colors.backgroundBase)
                         .cornerRadius(12)
                     }
                 }
@@ -679,18 +670,14 @@ struct TakesPreviewView: View {
                                 if selectedTakes.isEmpty {
                                     Color.gray.opacity(0.3)
                                 } else {
-                                    LinearGradient(
-                                        colors: [Color(hex: "FF9E0A"), Color(hex: "FF8C00")],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
+                                    DirectorStudioTheme.Colors.orangeGradient
                                 }
                             }
                         )
                         .foregroundColor(.white)
                         .cornerRadius(16)
                         .shadow(
-                            color: selectedTakes.isEmpty ? .clear : Color(hex: "FF9E0A").opacity(0.4),
+                            color: selectedTakes.isEmpty ? .clear : DirectorStudioTheme.Colors.secondary.opacity(0.4),
                             radius: 12,
                             x: 0,
                             y: 6
@@ -699,7 +686,7 @@ struct TakesPreviewView: View {
                     .disabled(selectedTakes.isEmpty)
                 
                 Button("Cancel", action: onCancel)
-                        .foregroundColor(Color(hex: "4A8FE8").opacity(0.7))
+                        .foregroundColor(DirectorStudioTheme.Colors.primary.opacity(0.7))
                         .padding(.bottom, 8)
                 }
                 .padding(.horizontal, 24)
@@ -708,8 +695,8 @@ struct TakesPreviewView: View {
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(hex: "161616"),
-                            Color(hex: "1A1A1A")
+                            DirectorStudioTheme.Colors.backgroundBase.opacity(0.9),
+                            DirectorStudioTheme.Colors.backgroundBase
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -745,7 +732,7 @@ struct PremiumHeaderView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
-                            .foregroundColor(Color(hex: "FF9E0A"))
+                            .foregroundColor(DirectorStudioTheme.Colors.secondary)
                             .font(.title2)
                         Text("Your Premium Prompts")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -754,7 +741,7 @@ struct PremiumHeaderView: View {
                     
                     Text("\(selectedCount) of \(takeCount) selected • \(Int(totalDuration))s total")
                         .font(.subheadline)
-                        .foregroundColor(Color(hex: "4A8FE8").opacity(0.8))
+                        .foregroundColor(DirectorStudioTheme.Colors.primary.opacity(0.8))
                 }
                 
                 Spacer()
@@ -779,7 +766,7 @@ struct StoryPositionIndicator: View {
                 
                 Text("\(currentIndex + 1) of \(totalTakes)")
                     .font(.caption)
-                    .foregroundColor(Color(hex: "FF9E0A"))
+                    .foregroundColor(DirectorStudioTheme.Colors.secondary)
             }
             
             // Progress bar showing story position
@@ -794,7 +781,7 @@ struct StoryPositionIndicator: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "4A8FE8"), Color(hex: "FF9E0A")],
+                                colors: [DirectorStudioTheme.Colors.primary, DirectorStudioTheme.Colors.secondary],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -829,7 +816,7 @@ struct PremiumPromptCard: View {
                 Button(action: onToggle) {
                     ZStack {
                         Circle()
-                            .fill(isSelected ? Color(hex: "FF9E0A") : Color(hex: "4A8FE8").opacity(0.3))
+                            .fill(isSelected ? DirectorStudioTheme.Colors.secondary : DirectorStudioTheme.Colors.primary.opacity(0.3))
                             .frame(width: 24, height: 24)
                         
                         if isSelected {
@@ -850,23 +837,23 @@ struct PremiumPromptCard: View {
                             Text("Take \(take.takeNumber)")
                                 .font(.system(size: 14, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: "FF9E0A"))
+                        .foregroundColor(DirectorStudioTheme.Colors.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color(hex: "FF9E0A").opacity(0.2))
+                                .fill(DirectorStudioTheme.Colors.secondary.opacity(0.2))
                         )
                         
                         // Scene type badge
                         Text(take.sceneType.rawValue)
                             .font(.caption2)
-                            .foregroundColor(Color(hex: "4A8FE8"))
+                            .foregroundColor(DirectorStudioTheme.Colors.primary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(
                                 Capsule()
-                                    .fill(Color(hex: "4A8FE8").opacity(0.2))
+                                    .fill(DirectorStudioTheme.Colors.primary.opacity(0.2))
                             )
                         
                         Spacer()
@@ -874,7 +861,7 @@ struct PremiumPromptCard: View {
                         // Duration
                         Text("\(Int(take.estimatedDuration))s")
                             .font(.caption)
-                            .foregroundColor(Color(hex: "4A8FE8").opacity(0.7))
+                            .foregroundColor(DirectorStudioTheme.Colors.primary.opacity(0.7))
                     }
                     
                     // Story content (what this moment captures)
@@ -912,10 +899,10 @@ struct PremiumPromptCard: View {
                 HStack {
                     Image(systemName: "sparkles")
                         .font(.caption)
-                        .foregroundColor(Color(hex: "FF9E0A"))
+                        .foregroundColor(DirectorStudioTheme.Colors.secondary)
                     Text("Video Prompt")
                         .font(.caption)
-                        .foregroundColor(Color(hex: "4A8FE8").opacity(0.8))
+                        .foregroundColor(DirectorStudioTheme.Colors.primary.opacity(0.8))
                         .textCase(.uppercase)
                 }
                 
@@ -932,7 +919,7 @@ struct PremiumPromptCard: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(hex: "4A8FE8").opacity(0.4), lineWidth: 1)
+                                .stroke(DirectorStudioTheme.Colors.primary.opacity(0.4), lineWidth: 1)
                         )
                         .focused($isFocused)
                         .onChange(of: localEditedText) { _, newValue in
@@ -951,7 +938,7 @@ struct PremiumPromptCard: View {
                             onEdit()
                         }
                         .font(.subheadline)
-                        .foregroundColor(Color(hex: "FF9E0A"))
+                        .foregroundColor(DirectorStudioTheme.Colors.secondary)
                         
                         Spacer()
                     }
@@ -969,8 +956,8 @@ struct PremiumPromptCard: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color(hex: "4A8FE8").opacity(0.15),
-                                            Color(hex: "FF9E0A").opacity(0.1)
+                                            DirectorStudioTheme.Colors.primary.opacity(0.15),
+                                            DirectorStudioTheme.Colors.secondary.opacity(0.1)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -982,8 +969,8 @@ struct PremiumPromptCard: View {
                                 .stroke(
                                     LinearGradient(
                                         colors: [
-                                            Color(hex: "4A8FE8").opacity(0.4),
-                                            Color(hex: "FF9E0A").opacity(0.3)
+                                            DirectorStudioTheme.Colors.primary.opacity(0.4),
+                                            DirectorStudioTheme.Colors.secondary.opacity(0.3)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -1005,7 +992,7 @@ struct PremiumPromptCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "link.circle.fill")
                         .font(.caption)
-                        .foregroundColor(Color(hex: "4A8FE8"))
+                        .foregroundColor(DirectorStudioTheme.Colors.primary)
                     Text("Visual continuity from Take \(seedFrom)")
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))
@@ -1020,16 +1007,16 @@ struct PremiumPromptCard: View {
                     isSelected ?
                     LinearGradient(
                         colors: [
-                            Color(hex: "2A2A2A"),
-                            Color(hex: "252525")
+                            DirectorStudioTheme.Colors.surfacePanel,
+                            DirectorStudioTheme.Colors.backgroundBase
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ) :
                     LinearGradient(
                         colors: [
-                            Color(hex: "252525"),
-                            Color(hex: "1F1F1F")
+                            DirectorStudioTheme.Colors.backgroundBase,
+                            DirectorStudioTheme.Colors.backgroundBase.opacity(0.9)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1042,8 +1029,8 @@ struct PremiumPromptCard: View {
                     isSelected ?
                     LinearGradient(
                         colors: [
-                            Color(hex: "FFD700").opacity(0.6),
-                            Color(hex: "FF9E0A").opacity(0.4)
+                            DirectorStudioTheme.Colors.secondary.opacity(0.6),
+                            DirectorStudioTheme.Colors.secondary.opacity(0.4)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1060,7 +1047,7 @@ struct PremiumPromptCard: View {
                 )
         )
         .shadow(
-            color: isSelected ? Color(hex: "FFD700").opacity(0.2) : Color.black.opacity(0.3),
+            color: isSelected ? DirectorStudioTheme.Colors.secondary.opacity(0.2) : Color.black.opacity(0.3),
             radius: isSelected ? 16 : 8,
             x: 0,
             y: isSelected ? 8 : 4
