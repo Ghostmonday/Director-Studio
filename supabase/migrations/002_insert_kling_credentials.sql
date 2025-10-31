@@ -18,3 +18,4 @@ SELECT service, LEFT(key, 12) || '...' as key_preview, inserted_at
 FROM api_keys 
 WHERE service IN ('Kling', 'KlingSecret');
 
+

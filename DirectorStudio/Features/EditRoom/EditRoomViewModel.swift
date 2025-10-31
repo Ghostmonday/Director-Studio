@@ -96,46 +96,44 @@ class EditRoomViewModel: ObservableObject {
     
     // MARK: - Recording
     
-    func startRecording() {
-        isRecording = true
-        hasRecording = false
-        remainingTime = totalDuration
+    private let audioRecorder = AudioRecorderService.shared
+    
+    func startRecording() async {
+        guard let clip = clips.first else { return }
         
-        // Simulate recording
-        print("🎙️ Recording started")
-        
-        // Simulate audio level changes
-        audioLevelTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
-            Task { @MainActor in
-                guard let self = self else {
-                    timer.invalidate()
-                    return
-                }
-                self.audioLevel = CGFloat.random(in: 0.3...1.0)
-                self.remainingTime = max(0, self.remainingTime - 0.1)
-                
-                if self.remainingTime <= 0 {
-                    self.stopRecording()
-                    timer.invalidate()
+        do {
+            try await audioRecorder.requestPermissionAndStartRecording(for: clip.id)
+            isRecording = true
+            hasRecording = false
+            remainingTime = totalDuration
+            
+            // Observe audio level
+            Task {
+                while audioRecorder.isRecording {
+                    audioLevel = CGFloat(audioRecorder.audioLevel)
+                    remainingTime = max(0, totalDuration - audioRecorder.recordingDuration)
+                    
+                    if remainingTime <= 0 {
+                        await MainActor.run {
+                            stopRecording()
+                        }
+                        break
+                    }
+                    
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
                 }
             }
+        } catch {
+            print("❌ Failed to start recording: \(error.localizedDescription)")
         }
     }
     
     func stopRecording() {
+        let url = audioRecorder.stopRecording()
+        recordedAudioURL = url
         isRecording = false
-        hasRecording = true
-        audioLevelTimer?.invalidate()
-        audioLevelTimer = nil
-        
-        // Create stub audio file
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        recordedAudioURL = documentsURL.appendingPathComponent("DirectorStudio/Voiceovers/\(UUID().uuidString).m4a")
-        
-        // Stub: Create empty file
-        try? "stub audio data".write(to: recordedAudioURL!, atomically: true, encoding: .utf8)
-        
-        print("🎙️ Recording stopped: \(recordedAudioURL?.lastPathComponent ?? "unknown")")
+        hasRecording = url != nil
+        audioLevel = 0
     }
     
     // MARK: - Save

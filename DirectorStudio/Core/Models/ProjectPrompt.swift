@@ -21,6 +21,7 @@ public struct ProjectPrompt: Codable, Identifiable, Equatable, Sendable {
     public var metrics: GenerationMetrics?
     public var dialogueHash: String?  // For TTS caching
     public var visualComplexityScore: Float?  // For tier selection
+    public var extractedEntities: ExtractedEntities?  // Characters, Scenes, Props
     
     public let createdAt: Date
     public var updatedAt: Date

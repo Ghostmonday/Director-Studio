@@ -9,21 +9,38 @@ struct OnboardingView: View {
     let pages: [OnboardingPageData] = [
         OnboardingPageData(
             title: "Welcome to DirectorStudio",
-            description: "Transform your words into cinematic video clips",
+            description: "Transform your scripts into cinematic videos with AI-powered generation",
             icon: "wand.and.stars",
-            color: DirectorStudioTheme.Colors.primary
+            color: DirectorStudioTheme.Colors.primary,
+            pageType: .welcome
         ),
         OnboardingPageData(
             title: "AI-Powered Generation",
-            description: "Create videos from text prompts in seconds",
+            description: "Write your scene. Watch it come to life in seconds.",
             icon: "sparkles",
-            color: DirectorStudioTheme.Colors.accent
+            color: DirectorStudioTheme.Colors.accent,
+            pageType: .features
         ),
         OnboardingPageData(
             title: "Record Voiceovers",
-            description: "Sync your voice with perfect timing",
+            description: "Sync your voice with perfect timing using our recording tools",
             icon: "mic.fill",
-            color: DirectorStudioTheme.Colors.primary
+            color: DirectorStudioTheme.Colors.primary,
+            pageType: .permissions
+        ),
+        OnboardingPageData(
+            title: "Choose Your Plan",
+            description: "Start free or unlock Pro features for unlimited creativity",
+            icon: "star.fill",
+            color: DirectorStudioTheme.Colors.secondary,
+            pageType: .pricing
+        ),
+        OnboardingPageData(
+            title: "Create Your First Project",
+            description: "Let's get started with a sample script or start fresh",
+            icon: "plus.circle.fill",
+            color: DirectorStudioTheme.Colors.primary,
+            pageType: .project
         )
     ]
     
@@ -104,11 +121,20 @@ struct OnboardingView: View {
     }
 }
 
+enum OnboardingPageType {
+    case welcome
+    case features
+    case permissions
+    case pricing
+    case project
+}
+
 struct OnboardingPageData {
     let title: String
     let description: String
     let icon: String
     let color: Color
+    let pageType: OnboardingPageType
 }
 
 struct OnboardingPageView: View {

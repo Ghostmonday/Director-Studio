@@ -168,4 +168,93 @@ public final class DeepSeekAIService: AIServiceProtocol, TextEnhancementProtocol
         logger.debug("🎨 [DeepSeek] Passthrough mode with style: \(style.rawValue)")
         return prompt
     }
+    
+    /// Extract structured entities (Characters, Scenes, Props) from script
+    public func extractEntities(from script: String) async throws -> ExtractedEntities {
+        let apiKey = try await ensureAPIKey()
+        
+        let systemPrompt = """
+        You are a script analysis assistant. Extract structured entities from the provided script.
+        Return ONLY a JSON object with this exact structure:
+        {
+            "characters": [
+                {
+                    "name": "Character Name",
+                    "description": "Brief description",
+                    "relationships": ["Other Character 1"],
+                    "visualDescription": "Detailed visual description for image generation"
+                }
+            ],
+            "scenes": [
+                {
+                    "name": "Scene Name",
+                    "environmentType": "indoor/outdoor/urban/natural",
+                    "lighting": "bright/dim/golden hour/night",
+                    "mood": "tense/peaceful/energetic/etc",
+                    "description": "Brief description",
+                    "visualDescription": "Detailed visual description for image generation"
+                }
+            ],
+            "props": [
+                {
+                    "label": "Prop Name",
+                    "category": "weapon/furniture/vehicle/etc",
+                    "visualAttributes": ["red", "metallic"],
+                    "description": "Brief description"
+                }
+            ]
+        }
+        Return only valid JSON, no markdown, no code blocks.
+        """
+        
+        let messages: [[String: String]] = [
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": "Extract entities from this script:\n\n\(script)"]
+        ]
+        
+        let response = try await callAPI(messages: messages)
+        
+        // Parse JSON response
+        guard let jsonData = response.data(using: .utf8) else {
+            throw APIError.invalidResponse(statusCode: 200, message: "Failed to parse JSON")
+        }
+        
+        // Try to extract JSON from markdown code blocks if present
+        let cleanJSON: Data
+        if let jsonString = extractJSON(from: response) {
+            cleanJSON = jsonString.data(using: .utf8) ?? jsonData
+        } else {
+            cleanJSON = jsonData
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            let entities = try decoder.decode(ExtractedEntities.self, from: cleanJSON)
+            logger.info("✅ Extracted \(entities.characters.count) characters, \(entities.scenes.count) scenes, \(entities.props.count) props")
+            return entities
+        } catch {
+            logger.error("❌ Failed to parse entities JSON: \(error.localizedDescription)")
+            logger.error("Response was: \(response.prefix(500))")
+            // Return empty entities rather than throwing
+            return ExtractedEntities()
+        }
+    }
+    
+    /// Extract JSON from response (handles markdown code blocks)
+    private func extractJSON(from response: String) -> String? {
+        // Remove markdown code blocks
+        var cleaned = response
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Find JSON object boundaries
+        if let startRange = cleaned.range(of: "{"),
+           let endRange = cleaned.range(of: "}", options: .backwards) {
+            let jsonRange = startRange.lowerBound...endRange.upperBound
+            cleaned = String(cleaned[jsonRange])
+        }
+        
+        return cleaned.isEmpty ? nil : cleaned
+    }
 }

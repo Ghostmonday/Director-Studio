@@ -52,6 +52,24 @@ public actor KlingAPIClient {
         }
     }
     
+    /// Parse error response and throw specific KlingError
+    /// Detects Error 1102 (resource pack depleted) and throws resourcePackDepleted error
+    private func handleKlingError(_ data: Data, requestId: String) throws {
+        // Try to decode as JSON and check for error code 1102
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let code = json["code"] as? Int, code == 1102 {
+            writeToLog("❌ [\(requestId)] Error 1102 detected: Resource pack depleted")
+            throw KlingError.resourcePackDepleted
+        }
+        
+        // Try to decode using KlingErrorResponse struct
+        if let errorResponse = try? decoder.decode(KlingErrorResponse.self, from: data),
+           errorResponse.code == 1102 {
+            writeToLog("❌ [\(requestId)] Error 1102 detected: Resource pack depleted")
+            throw KlingError.resourcePackDepleted
+        }
+    }
+    
     /// Initialize with AccessKey and SecretKey for JWT authentication
     /// - Parameters:
     ///   - accessKey: Kling AI AccessKey (issuer in JWT)
@@ -237,19 +255,26 @@ public actor KlingAPIClient {
                     
                     // Handle HTTP 400/429 errors with detailed parsing
                     if httpResponse.statusCode == 429 || httpResponse.statusCode == 400 {
-                        if let errorResponse = try? decoder.decode(KlingErrorResponse.self, from: data) {
-                            // Check if error code is 1102 (Resource pack depleted or expired)
-                            if errorResponse.code == 1102 {
-                                let detailedError = "Kling AI Error 1102: Resource pack depleted or expired (prepaid scenario). Your dashboard may show credits, but: (1) Credits are in a 'Resource Pack' that's expired or depleted, (2) You need to purchase NEW resource packages or activate post-payment service, (3) Check KlingAI dashboard → Resource Packs (not Account Balance), (4) API uses prepaid resource packs, not postpaid account balance. Solution: Purchase additional resource packages or activate post-payment service if available."
-                                writeToLog("❌ [\(requestId)] RESOURCE PACK ERROR: \(detailedError)")
-                                throw KlingError.generationFailed(detailedError)
-                            } else {
-                                // Other error codes - show the actual API error message
-                                let errorMsg = errorResponse.message ?? errorResponse.error ?? "Unknown error"
-                                let errorCode = errorResponse.code != nil ? " (code: \(errorResponse.code!))" : ""
-                                writeToLog("❌ [\(requestId)] API ERROR\(errorCode): \(errorMsg)")
-                                throw KlingError.generationFailed("\(errorMsg)\(errorCode)")
+                        // Check for Error 1102 (resource pack depleted) first
+                        do {
+                            try handleKlingError(data, requestId: String(requestId))
+                        } catch let error as KlingError {
+                            // Re-throw if it's resourcePackDepleted
+                            if case .resourcePackDepleted = error {
+                                throw error
                             }
+                            // Not Error 1102, continue with normal error handling
+                        } catch {
+                            // Not a KlingError, continue
+                        }
+                        
+                        // Handle other error codes
+                        if let errorResponse = try? decoder.decode(KlingErrorResponse.self, from: data) {
+                            // Other error codes - show the actual API error message
+                            let errorMsg = errorResponse.message ?? errorResponse.error ?? "Unknown error"
+                            let errorCode = errorResponse.code != nil ? " (code: \(errorResponse.code!))" : ""
+                            writeToLog("❌ [\(requestId)] API ERROR\(errorCode): \(errorMsg)")
+                            throw KlingError.generationFailed("\(errorMsg)\(errorCode)")
                         } else {
                             // Can't decode error response - show raw response
                             let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode"
@@ -714,12 +739,21 @@ public actor KlingAPIClient {
             
             if httpResponse.statusCode != 200 {
                 writeToLog("❌ [\(requestId)] HTTP ERROR \(httpResponse.statusCode)")
-                if let errorResponse = try? decoder.decode(KlingErrorResponse.self, from: data) {
-                    if errorResponse.code == 1102 {
-                        let detailedError = "Kling AI Error 1102: Resource pack depleted or expired. Purchase additional resource packages or activate post-payment service."
-                        writeToLog("❌ [\(requestId)] RESOURCE PACK ERROR: \(detailedError)")
-                        throw KlingError.generationFailed(detailedError)
+                
+                // Check for Error 1102 (resource pack depleted) first
+                do {
+                    try handleKlingError(data, requestId: String(requestId))
+                } catch let error as KlingError {
+                    // Re-throw if it's resourcePackDepleted
+                    if case .resourcePackDepleted = error {
+                        throw error
                     }
+                    // Not Error 1102, continue with normal error handling
+                } catch {
+                    // Not a KlingError, continue
+                }
+                
+                if let errorResponse = try? decoder.decode(KlingErrorResponse.self, from: data) {
                     throw KlingError.generationFailed(errorResponse.message ?? errorResponse.error ?? "API error")
                 }
             }
@@ -1036,6 +1070,7 @@ public enum KlingError: LocalizedError, Sendable {
     case httpError(Int)
     case generationFailed(String)
     case timeout
+    case resourcePackDepleted
     
     public var errorDescription: String? {
         switch self {
@@ -1060,6 +1095,45 @@ public enum KlingError: LocalizedError, Sendable {
             return "Kling AI generation failed: \(message)"
         case .timeout:
             return "Kling AI request timed out. The service may be busy. Please try again."
+        case .resourcePackDepleted:
+            return "Your Kling AI resource pack has been depleted or expired. Please purchase a new Resource Pack or enable Post-Payment in your Kling Dashboard."
+        }
+    }
+    
+    /// User-friendly title for error display
+    public var errorTitle: String {
+        switch self {
+        case .resourcePackDepleted:
+            return "Out of Generation Quota"
+        case .httpError(let code):
+            switch code {
+            case 401, 403:
+                return "Authentication Failed"
+            case 404:
+                return "Service Not Found"
+            case 429:
+                return "Rate Limit Exceeded"
+            case 500...599:
+                return "Server Error"
+            default:
+                return "API Error"
+            }
+        case .generationFailed:
+            return "Generation Failed"
+        case .timeout:
+            return "Request Timeout"
+        case .invalidResponse:
+            return "Invalid Response"
+        }
+    }
+    
+    /// Dashboard URL for resource pack errors
+    public var dashboardURL: URL? {
+        switch self {
+        case .resourcePackDepleted:
+            return URL(string: "https://klingai.com/resource-packs")
+        default:
+            return nil
         }
     }
 }
