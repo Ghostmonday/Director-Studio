@@ -102,8 +102,8 @@ class AppCoordinator: ObservableObject {
             let prompts = try await segmentingModule.segment(script, projectId: project.id)
             print("📝 Generated \(prompts.count) prompts")
             
-            // 2. Save prompts to disk
-            try ProjectFileManager.shared.savePromptList(prompts, for: project.id)
+            // 2. Save prompts to disk (await since ProjectFileManager is now actor)
+            try await ProjectFileManager.shared.savePromptList(prompts, for: project.id)
             print("💾 Saved prompts to disk")
             
             // 3. Start orchestrated generation

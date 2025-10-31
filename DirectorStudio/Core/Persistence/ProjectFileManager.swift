@@ -1,47 +1,96 @@
 // MODULE: ProjectFileManager
-// VERSION: 1.0.0
-// PURPOSE: Persistence layer for project prompt lists
+// VERSION: 2.0.0
+// PURPOSE: Thread-safe persistence layer for project prompt lists
+// PRODUCTION-GRADE: Actor-based, atomic writes, per-project directories
 
 import Foundation
 
-/// Manages saving and loading prompt lists for projects
-public class ProjectFileManager {
+/// Thread-safe manager for saving and loading prompt lists for projects
+/// Uses actor isolation to prevent race conditions during concurrent access
+public actor ProjectFileManager {
     public static let shared = ProjectFileManager()
     
-    private let documentsURL: URL
-    private let promptsDirectory = "Prompts"
+    private let fileManager = FileManager.default
+    private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
     
     private init() {
-        self.documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        createDirectoryIfNeeded()
+        self.encoder = JSONEncoder()
+        self.encoder.dateEncodingStrategy = .iso8601
+        self.encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        
+        self.decoder = JSONDecoder()
+        self.decoder.dateDecodingStrategy = .iso8601
     }
     
-    /// Save a list of prompts for a project
+    /// Save a list of prompts for a project with atomic write
     /// - Parameters:
     ///   - prompts: Array of prompts to save
     ///   - projectId: The project identifier
     /// - Throws: Encoding or file system errors
-    public func savePromptList(_ prompts: [ProjectPrompt], for projectId: UUID) throws {
-        let url = promptsFileURL(for: projectId)
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = .prettyPrinted
+    public func savePromptList(_ prompts: [ProjectPrompt], for projectId: UUID) async throws {
+        let projectDir = try projectDirectory(for: projectId)
+        let url = projectDir.appendingPathComponent("prompts.json")
+        
         let data = try encoder.encode(prompts)
-        try data.write(to: url)
+        
+        // ATOMIC + COORDINATED write to prevent corruption
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        var writeError: Error?
+        
+        coordinator.coordinate(writingItemAt: url, options: .forMerging, error: &coordinationError) { coordinatedURL in
+            do {
+                try data.write(to: coordinatedURL, options: .atomic)
+            } catch {
+                writeError = error
+            }
+        }
+        
+        if let coordinationError {
+            throw coordinationError
+        }
+        if let writeError {
+            throw writeError
+        }
     }
     
     /// Load a list of prompts for a project
     /// - Parameter projectId: The project identifier
     /// - Returns: Array of prompts, empty if file doesn't exist
     /// - Throws: Decoding or file system errors
-    public func loadPromptList(for projectId: UUID) throws -> [ProjectPrompt] {
-        let url = promptsFileURL(for: projectId)
-        guard FileManager.default.fileExists(atPath: url.path) else {
+    public func loadPromptList(for projectId: UUID) async throws -> [ProjectPrompt] {
+        let projectDir = try projectDirectory(for: projectId)
+        let url = projectDir.appendingPathComponent("prompts.json")
+        
+        guard fileManager.fileExists(atPath: url.path) else {
             return []
         }
-        let data = try Data(contentsOf: url)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        var readError: Error?
+        var data: Data?
+        
+        coordinator.coordinate(readingItemAt: url, options: .withoutDeleting, error: &coordinationError) { coordinatedURL in
+            do {
+                data = try Data(contentsOf: coordinatedURL)
+            } catch {
+                readError = error
+            }
+        }
+        
+        if let coordinationError {
+            throw coordinationError
+        }
+        if let readError {
+            throw readError
+        }
+        
+        guard let data else {
+            return []
+        }
+        
         return try decoder.decode([ProjectPrompt].self, from: data)
     }
     
@@ -70,34 +119,43 @@ public class ProjectFileManager {
     ///   - status: New status to set
     ///   - projectId: The project identifier
     /// - Throws: File system or encoding errors
-    @MainActor
     public func updatePromptStatus(
         _ promptId: UUID,
         status: ProjectPrompt.GenerationStatus,
         for projectId: UUID
     ) async throws {
-        var prompts = try loadPromptList(for: projectId)
+        var prompts = try await loadPromptList(for: projectId)
         guard let index = prompts.firstIndex(where: { $0.id == promptId }) else {
             return
         }
         prompts[index].status = status
         prompts[index].updatedAt = Date()
-        try savePromptList(prompts, for: projectId)
+        try await savePromptList(prompts, for: projectId)
     }
     
-    /// Get the file URL for a project's prompts
+    /// Get the project directory for a specific project
+    /// Creates directory structure: DirectorStudio/Projects/{projectId}/
     /// - Parameter projectId: The project identifier
-    /// - Returns: File URL for the prompts JSON file
-    private func promptsFileURL(for projectId: UUID) -> URL {
-        documentsURL
-            .appendingPathComponent(promptsDirectory)
-            .appendingPathComponent("\(projectId.uuidString)_prompts.json")
+    /// - Returns: URL to the project directory
+    /// - Throws: File system errors
+    private func projectDirectory(for projectId: UUID) throws -> URL {
+        let base = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dir = base.appendingPathComponent("DirectorStudio/Projects/\(projectId.uuidString)", isDirectory: true)
+        try ensureDirectoryExists(at: dir)
+        return dir
     }
     
-    /// Create the prompts directory if it doesn't exist
-    private func createDirectoryIfNeeded() {
-        let url = documentsURL.appendingPathComponent(promptsDirectory)
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    /// Ensure directory exists, creating if necessary
+    /// - Parameter url: Directory URL to ensure exists
+    /// - Throws: File system errors
+    private func ensureDirectoryExists(at url: URL) throws {
+        var isDirectory: ObjCBool = false
+        let exists = fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        
+        if !exists {
+            try fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        } else if !isDirectory.boolValue {
+            throw NSError(domain: "ProjectFileManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Path exists but is not a directory"])
+        }
     }
 }
-
