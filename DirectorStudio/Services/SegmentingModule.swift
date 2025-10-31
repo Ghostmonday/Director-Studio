@@ -12,7 +12,7 @@ import Foundation
 public struct FilmTake: Codable, Identifiable {
     public let id: UUID
     let takeNumber: Int
-    let prompt: String                    // Complete Pollo-ready video prompt
+    let prompt: String                    // Complete Kling-ready video prompt
     let storyContent: String              // What narrative moment this captures
     let useSeedImage: Bool                // Should use previous frame as seed
     let seedFromTake: Int?                // Which take to get seed from
@@ -260,7 +260,7 @@ final class StoryToFilmGenerator {
     
     // MARK: - Simple Chunking with 5-word Overlap
     
-    /// Returns an array of prompts ready for Pollo.
+    /// Returns an array of prompts ready for Kling API.
     /// Each prompt (except the first) starts with the **exact last 5 words** of the previous one.
     private func processFullStory(_ storyText: String, toneTag: String = "/cinematic") -> [String] {
         var chunks: [String] = []

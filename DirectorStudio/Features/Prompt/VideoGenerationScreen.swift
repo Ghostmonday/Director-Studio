@@ -147,8 +147,8 @@ class FilmGeneratorViewModel: ObservableObject {
     /// Story-to-film generator instance (created after API key is fetched)
     private var storyToFilmGenerator: StoryToFilmGenerator?
     
-    /// Service for generating videos via Pollo AI
-    private let polloVideoService = PolloAIService()
+    /// Service for generating videos via Kling AI
+    private let klingVideoService = KlingAIService()
     
     /// Service for saving clips to local storage
     private let localStorageService = LocalStorageService()
@@ -335,13 +335,27 @@ class FilmGeneratorViewModel: ObservableObject {
         // Generate video based on whether this is the first take or a subsequent one
         // Continuity: Use single-image approach (last frame becomes starting frame)
         let generatedVideoURL: URL
+        
+        // Automatically detect camera control from prompt and/or explicit camera direction
+        // Priority: explicit cameraDirection > prompt text detection
+        var cameraControl = CameraControl.fromCameraDirection(take.cameraDirection)
+        if cameraControl == nil {
+            // Fallback: parse prompt text for camera movement keywords
+            cameraControl = CameraControl.fromPrompt(videoPrompt)
+        }
+        
         if takeIndex == 0 {
             // First take: generate from text prompt only
             print("🎬 [Take \(take.takeNumber)] First take - generating from text")
-            generatedVideoURL = try await polloVideoService.generateVideo(
+            if let cameraControl = cameraControl {
+                print("🎥 [Take \(take.takeNumber)] Camera control: \(cameraControl.type?.rawValue ?? "custom")")
+            }
+            generatedVideoURL = try await klingVideoService.generateVideo(
                 prompt: videoPrompt,
                 duration: take.estimatedDuration,
-                tier: tier
+                tier: tier,
+                cameraControl: cameraControl,
+                cameraDirection: take.cameraDirection
             )
         } else {
             // Subsequent takes: use last frame from previous take as starting frame for continuity
@@ -357,12 +371,17 @@ class FilmGeneratorViewModel: ObservableObject {
             }
             
             print("🔗 [Take \(take.takeNumber)] Using single-image + prompt continuity - last frame → starting frame (tier: \(tier.shortName))")
-            print("📸 [Take \(take.takeNumber)] Image will be resized to 480p and compressed by perfectSeed()")
-            generatedVideoURL = try await polloVideoService.generateVideoFromImage(
+            print("📸 [Take \(take.takeNumber)] Image will be resized to 480p and compressed")
+            if let cameraControl = cameraControl {
+                print("🎥 [Take \(take.takeNumber)] Camera control: \(cameraControl.type?.rawValue ?? "custom")")
+            }
+            generatedVideoURL = try await klingVideoService.generateVideoFromImage(
                 imageData: seedImageData,
                 prompt: videoPrompt,
                 duration: take.estimatedDuration,
-                tier: tier
+                tier: tier,
+                cameraControl: cameraControl,
+                cameraDirection: take.cameraDirection
             )
         }
         

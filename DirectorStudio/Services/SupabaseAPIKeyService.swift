@@ -18,8 +18,8 @@ class SupabaseAPIKeyService {
     
     private init() {}
     
-    /// Fetch API key for a specific service (Pollo, DeepSeek, etc.)
-    /// - Parameter service: Service name (e.g. "Pollo", "DeepSeek")
+    /// Fetch API key for a specific service (Kling, DeepSeek, etc.)
+    /// - Parameter service: Service name (e.g. "Kling", "DeepSeek")
     /// - Returns: The API key for the service
     func getAPIKey(service: String) async throws -> String {
         let requestId = UUID().uuidString.prefix(8)
@@ -35,7 +35,7 @@ class SupabaseAPIKeyService {
         print("🔑 [Supabase][\(requestId)] Fetching \(service) key from hosted Supabase...")
         
         // Use Supabase REST API to query the api_keys table
-        // PostgREST uses special query format: service=eq.Pollo
+        // PostgREST uses special query format: service=eq.Kling
         // The "eq." prefix is part of PostgREST's query syntax, not a URL encoding issue
         let baseURL = "\(supabaseURL)/rest/v1/api_keys"
         // Construct query string directly - PostgREST expects: service=eq.{value}
@@ -116,7 +116,7 @@ class SupabaseAPIKeyService {
     }
     
     /// Fetch API key using a more injectable approach for pipeline modules
-    /// - Parameter service: Service name (e.g. "Pollo", "DeepSeek")
+    /// - Parameter service: Service name (e.g. "Kling", "DeepSeek")
     /// - Returns: The API key for the service
     func fetchAPIKey(for service: String) async throws -> String {
         return try await getAPIKey(service: service)

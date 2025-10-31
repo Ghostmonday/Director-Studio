@@ -20,10 +20,9 @@ public actor GenerationOrchestrator {
     private var generationResults: [UUID: ClipGenerationResult] = [:]
     
     public init() {
-        // Initialize with available providers
-        self.providers = [
-            PolloAIService()
-        ]
+        // Initialize with Kling AI service (replaces Pollo)
+        // Providers will be initialized lazily when needed since they require async credential fetching
+        self.providers = []
         
         // Add Runway if API key exists
         if UserAPIKeysManager.shared.hasRunwayKey {
@@ -185,9 +184,8 @@ public actor GenerationOrchestrator {
     
     /// Generate video clip via API with retry logic
     private func generateVideoClip(prompt: ProjectPrompt) async throws -> (videoURL: URL, metrics: GenerationMetrics) {
-        // Select optimal Kling version/tier
+        // Select optimal Kling version
         let klingVersion = selectOptimalVersion(for: prompt)
-        let tier = klingVersion.qualityTier
         
         // Try generation with retry logic
         var retryCount = 0
@@ -202,30 +200,69 @@ public actor GenerationOrchestrator {
                 
                 // Generate video (default 5 seconds, could be made configurable)
                 let duration: TimeInterval = 5.0
-                let videoURL = try await provider.generateVideo(
-                    prompt: prompt.prompt,
-                    duration: duration
-                )
                 
-                let generationTime = Date().timeIntervalSince(startTime)
-                
-                // Track metrics
-                let metrics = GenerationMetrics(
-                    taskId: UUID().uuidString,
-                    klingVersion: klingVersion.rawValue,
-                    queueWaitTime: 0,
-                    generationTime: generationTime,
-                    networkLatency: 0,
-                    localProcessingTime: 0,
-                    peakMemoryUsage: 0,
-                    apiResponseSize: 0,
-                    cacheHitRate: 0,
-                    negativePromptsUsed: nil,
-                    experimentGroup: nil,
-                    timestamp: Date()
-                )
-                
-                return (videoURL, metrics)
+                // If provider is KlingAIService, use tier-specific generation
+                if let klingService = provider as? KlingAIService {
+                    // Map KlingVersion to VideoQualityTier
+                    let tier: VideoQualityTier
+                    switch klingVersion {
+                    case .v1_6_standard:
+                        tier = .economy
+                    case .v2_0_master:
+                        tier = .basic
+                    case .v2_5_turbo:
+                        tier = .pro
+                    }
+                    let videoURL = try await klingService.generateVideo(
+                        prompt: prompt.prompt,
+                        duration: duration,
+                        tier: tier
+                    )
+                    let generationTime = Date().timeIntervalSince(startTime)
+                    
+                    // Track metrics
+                    let metrics = GenerationMetrics(
+                        taskId: UUID().uuidString,
+                        klingVersion: klingVersion.rawValue,
+                        queueWaitTime: 0,
+                        generationTime: generationTime,
+                        networkLatency: 0,
+                        localProcessingTime: 0,
+                        peakMemoryUsage: 0,
+                        apiResponseSize: 0,
+                        cacheHitRate: 0,
+                        negativePromptsUsed: nil,
+                        experimentGroup: nil,
+                        timestamp: Date()
+                    )
+                    
+                    return (videoURL, metrics)
+                } else {
+                    // Fallback for other providers (e.g., Runway)
+                    let videoURL = try await provider.generateVideo(
+                        prompt: prompt.prompt,
+                        duration: duration
+                    )
+                    let generationTime = Date().timeIntervalSince(startTime)
+                    
+                    // Track metrics
+                    let metrics = GenerationMetrics(
+                        taskId: UUID().uuidString,
+                        klingVersion: klingVersion.rawValue,
+                        queueWaitTime: 0,
+                        generationTime: generationTime,
+                        networkLatency: 0,
+                        localProcessingTime: 0,
+                        peakMemoryUsage: 0,
+                        apiResponseSize: 0,
+                        cacheHitRate: 0,
+                        negativePromptsUsed: nil,
+                        experimentGroup: nil,
+                        timestamp: Date()
+                    )
+                    
+                    return (videoURL, metrics)
+                }
                 
             } catch {
                 retryCount += 1
@@ -395,10 +432,15 @@ public actor GenerationOrchestrator {
     
     /// Select appropriate provider based on version and attempt
     private func selectProvider(for version: KlingVersion, attempt: Int) -> VideoGenerationProvider {
-        // On first attempt, prefer Pollo for all tiers
-        // On retry, could switch providers if available
+        // Ensure we have Kling service initialized
+        if providers.isEmpty {
+            // Initialize Kling service (will fetch credentials on first use)
+            providers.append(KlingAIService())
+        }
+        
+        // On first attempt, use Kling for all tiers
         if attempt == 0 {
-            return providers.first ?? providers[0]
+            return providers.first ?? KlingAIService()
         }
         
         // On retry, try different provider if available

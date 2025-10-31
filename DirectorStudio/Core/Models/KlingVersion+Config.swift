@@ -6,16 +6,32 @@
 import Foundation
 
 extension KlingVersion {
-    /// API endpoint URL for this version
+    /// API endpoint URL for this version (direct Kling API)
+    /// Uses text2video endpoint: POST /v1/videos/text2video
+    /// CORRECTED: Using Singapore API domain: https://api-singapore.klingai.com
     public var endpoint: URL {
+        // All versions use the same endpoint, differentiated by model_name parameter
+        return URL(string: "https://api-singapore.klingai.com/v1/videos/text2video")!
+    }
+    
+    /// Model name string for API requests (official model names)
+    /// Enum values per official API: kling-v1, kling-v1-6, kling-v2-master, kling-v2-1-master, kling-v2-5-turbo
+    public var modelName: String {
         switch self {
         case .v1_6_standard:
-            return KlingAPIClient.base.appendingPathComponent("/v1/videos")
+            return "kling-v1-6"
         case .v2_0_master:
-            return KlingAPIClient.base.appendingPathComponent("/v2/videos")
+            return "kling-v2-master"  // Official model name per API docs
         case .v2_5_turbo:
-            return KlingAPIClient.base.appendingPathComponent("/v2.5/videos/turbo")
+            return "kling-v2-5-turbo"
         }
+    }
+    
+    /// Status endpoint base URL for this version
+    /// Official endpoint: GET /v1/videos/text2video/{task_id}
+    /// CORRECTED: Using Singapore API domain: https://api-singapore.klingai.com
+    public var statusBaseURL: URL {
+        return URL(string: "https://api-singapore.klingai.com/v1/videos/text2video")!
     }
     
     /// Maximum resolution supported by this version

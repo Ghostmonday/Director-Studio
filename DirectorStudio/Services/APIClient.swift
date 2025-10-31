@@ -20,7 +20,7 @@ enum APIError: Error, LocalizedError {
                 if message.contains("missing videoUrl") || message.contains("Unexpected response format") {
                     return "Video generation completed, but the video URL was not returned. The service may be experiencing issues. Please try again."
                 }
-                if message.contains("Task not found after") && message.contains("task may not exist or API endpoint issue") {
+                if message.contains("Task not found after") || message.contains("task may not exist") || message.contains("API endpoint issue") {
                     return "The video generation task could not be found. This may be a temporary API issue. Please try again or contact support if the problem persists."
                 }
                 if message.contains("Empty response") {
@@ -262,8 +262,7 @@ public class APIClient: APIClientProtocol {
                         writeToLog("❌ [\(requestId)] HTTP ERROR \(httpResponse.statusCode)")
                         writeToLog("❌ [\(requestId)] Error Response: \(responseString)")
                         
-                        // Try to parse Pollo API error response structure
-                        // PolloErrorResponse is defined in PolloAIService.swift - parse manually here
+                        // Try to parse API error response structure
                         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                            let message = json["message"] as? String,
                            let code = json["code"] as? String {

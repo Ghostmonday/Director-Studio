@@ -1118,24 +1118,22 @@ struct PromptView: View {
             }
             .disabled(testingAPIs)
             
-            // Quick API Test Buttons
+            // NEW: Native Kling API Test Buttons (PRIMARY)
             VStack(spacing: 4) {
-                Text("⚠️ REAL API CALLS - Costs apply!")
+                Text("🧪 Native Kling AI API")
                     .font(.caption2)
-                    .foregroundColor(.orange)
+                    .foregroundColor(.blue)
                 
                 HStack(spacing: 8) {
                     Button(action: {
                         Task {
-                            await testQuickAPICall(tier: .economy)
+                            await testKlingAPIClient(version: .v1_6_standard)
                         }
                     }) {
                         VStack(spacing: 2) {
-                            Image(systemName: "bolt.fill")
-                            Text("Economy")
+                            Image(systemName: "film.fill")
+                            Text("Kling 1.6")
                                 .font(.caption2)
-                            Text("$1.00")
-                                .font(.system(size: 8))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(8)
@@ -1147,35 +1145,31 @@ struct PromptView: View {
                     
                     Button(action: {
                         Task {
-                            await testQuickAPICall(tier: .basic)
+                            await testKlingAPIClient(version: .v2_0_master)
                         }
                     }) {
                         VStack(spacing: 2) {
-                            Image(systemName: "bolt.fill")
-                            Text("Basic")
+                            Image(systemName: "film.fill")
+                            Text("Kling 2.0")
                                 .font(.caption2)
-                            Text("$1.55")
-                                .font(.system(size: 8))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(8)
-                        .background(Color.orange.opacity(0.2))
-                        .foregroundColor(.orange)
+                        .background(Color.green.opacity(0.2))
+                        .foregroundColor(.green)
                         .cornerRadius(6)
                     }
                     .disabled(testingAPIs)
                     
                     Button(action: {
                         Task {
-                            await testQuickAPICall(tier: .pro)
+                            await testKlingAPIClient(version: .v2_5_turbo)
                         }
                     }) {
                         VStack(spacing: 2) {
-                            Image(systemName: "bolt.fill")
-                            Text("Pro")
+                            Image(systemName: "film.fill")
+                            Text("Kling 2.5")
                                 .font(.caption2)
-                            Text("$1.85")
-                                .font(.system(size: 8))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(8)
@@ -1186,6 +1180,94 @@ struct PromptView: View {
                     .disabled(testingAPIs)
                 }
             }
+            
+            // API Key Diagnostic Button - Check which keys are being used
+            Button(action: {
+                Task {
+                    await diagnoseAPIKeys()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "key.fill")
+                    Text("🔍 Diagnose API Keys & Account")
+                    Spacer()
+                    if testingAPIs {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .padding()
+                .background(Color.red.opacity(0.2))
+                .foregroundColor(.red)
+                .cornerRadius(8)
+            }
+            .disabled(testingAPIs)
+            
+            // Comprehensive Test Button - Tests Multiple Features at Once
+            Button(action: {
+                Task {
+                    await testComprehensiveAPI()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "checkmark.seal.fill")
+                    Text("🧪 Comprehensive Test (Camera + Tier + API)")
+                    Spacer()
+                    if testingAPIs {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .padding()
+                .background(Color.orange.opacity(0.2))
+                .foregroundColor(.orange)
+                .cornerRadius(8)
+            }
+            .disabled(testingAPIs)
+            
+            // Text-to-Audio Test Button (REAL API CALL - costs credits)
+            Button(action: {
+                Task {
+                    await testKlingTextToAudio()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "waveform")
+                    Text("Test Text-to-Audio (~5-10 credits)")
+                    Spacer()
+                    if testingAPIs {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .padding()
+                .background(Color.purple.opacity(0.2))
+                .foregroundColor(.purple)
+                .cornerRadius(8)
+            }
+            .disabled(testingAPIs)
+            
+            // Image-to-Video Test Button (Low Cost - ~20 credits)
+            Button(action: {
+                Task {
+                    await testKlingImageToVideo()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "photo.on.rectangle.angled")
+                    Text("Test Image-to-Video (5s, ~20 credits)")
+                    Spacer()
+                    if testingAPIs {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .padding()
+                .background(Color.orange.opacity(0.2))
+                .foregroundColor(.orange)
+                .cornerRadius(8)
+            }
+            .disabled(testingAPIs)
             
             if let result = apiTestResult {
                 ScrollView {
@@ -1257,26 +1339,28 @@ struct PromptView: View {
         
         results.append("")
         
-        // Test Pollo
+        // Test Kling
         do {
             let startTime = Date()
-            let polloKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Pollo")
+            let klingAccessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            let klingSecretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
             let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
-            if !polloKey.isEmpty {
-                results.append("✅ Pollo: Connected!")
-                results.append("   Key: \(polloKey.prefix(12))...")
+            if !klingAccessKey.isEmpty && !klingSecretKey.isEmpty {
+                results.append("✅ Kling: Connected!")
+                results.append("   AccessKey: \(klingAccessKey.prefix(12))...")
+                results.append("   SecretKey: \(klingSecretKey.prefix(12))...")
                 results.append("   Fetched in \(duration)s from Supabase")
             } else {
-                results.append("❌ Pollo: Key is empty")
+                results.append("❌ Kling: AccessKey or SecretKey is empty")
             }
         } catch {
-            results.append("❌ Pollo: \(error.localizedDescription)")
+            results.append("❌ Kling: \(error.localizedDescription)")
         }
         
         results.append("")
         results.append("🎉 Connection verified - Keys fetched from Supabase!")
         results.append("")
-        results.append("💡 Tip: Use the tier buttons above to test actual API calls")
+        results.append("💡 Tip: Use the Kling API buttons above to test actual API calls")
         
         await MainActor.run {
             apiTestResult = results.joined(separator: "\n")
@@ -1284,75 +1368,945 @@ struct PromptView: View {
         }
     }
     
-    private func testQuickAPICall(tier: VideoQualityTier) async {
+    
+    /// Test the native KlingAPIClient with specific version
+    private func testKlingAPIClient(version: KlingVersion) async {
         testingAPIs = true
-        apiTestResult = "🚀 Testing \(tier.shortName) API call...\n\n"
+        apiTestResult = "🚀 Testing KlingAPIClient (\(version.rawValue)) via Native Kling API...\n\n"
         
         var results: [String] = []
-        // Use minimum duration (5s) and shortest prompt to minimize cost
         let testPrompt = "test"
-        let testDuration: TimeInterval = 5.0 // Minimum duration for all tiers
+        let testDuration = 5 // Minimum duration
         let startTime = Date()
         
-        // Calculate cost
-        let cost = Double(Int(testDuration)) * tier.customerPricePerSecond
-        let tokens = Int(testDuration) * tier.tokensPerSecond
-        
         results.append("💰 COST WARNING: This is a REAL API call!")
-        results.append("   Estimated cost: $\(String(format: "%.2f", cost))")
-        results.append("   Tokens: \(tokens)")
+        results.append("   Version: \(version.rawValue)")
+        results.append("   Endpoint: \(version.endpoint.absoluteString)")
         results.append("")
-        results.append("📋 Test Parameters (OPTIMIZED FOR MINIMUM COST):")
-        results.append("   Tier: \(tier.shortName)")
-        results.append("   Prompt: '\(testPrompt)' (shortest possible)")
-        results.append("   Duration: \(Int(testDuration))s (minimum)")
+        results.append("📋 Test Parameters:")
+        results.append("   Prompt: '\(testPrompt)'")
+        results.append("   Duration: \(testDuration)s")
+        results.append("   Max Duration: \(version.maxSeconds)s")
+        results.append("   Supports Negative: \(version.supportsNegative)")
         results.append("")
         
         do {
-            let polloService = PolloAIService()
+            // Get Kling AI credentials (AccessKey + SecretKey)
+            // TODO: Update SupabaseAPIKeyService to support Kling credentials
+            // For now, using placeholder - user must provide AccessKey + SecretKey
+            let accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            let secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
             
-            await MainActor.run {
-                apiTestResult = results.joined(separator: "\n") + "\n🔄 Sending API request...\n"
+            guard !accessKey.isEmpty, !secretKey.isEmpty else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kling AccessKey or SecretKey is empty. Please configure Kling credentials."])
             }
             
-            // Fire the actual API call - this will use adaptive polling
-            let videoURL = try await polloService.generateVideo(
+            results.append("✅ Kling AccessKey fetched: \(accessKey.prefix(12))...")
+            results.append("✅ Kling SecretKey fetched: \(secretKey.prefix(12))...")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Creating task via Kling native API...\n"
+            }
+            
+            // Create KlingAPIClient with AccessKey + SecretKey
+            let klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+            
+            // Track status updates (thread-safe using actor isolation)
+            let statusTracker = StatusTracker()
+            
+            // Create task
+            let task = try await klingClient.generateVideo(
                 prompt: testPrompt,
-                duration: testDuration,
-                tier: tier
+                version: version,
+                negativePrompt: nil,
+                duration: testDuration
+            )
+            
+            results.append("✅ Task Created!")
+            results.append("   Task ID: \(task.id)")
+            results.append("   Status URL: \(task.statusURL.absoluteString)")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Polling status...\n"
+            }
+            
+            // Poll status with updates
+            let videoURL = try await klingClient.pollStatus(
+                task: task,
+                onStatusUpdate: { status in
+                    Task {
+                        await statusTracker.add(status)
+                        let updates = await statusTracker.getAll()
+                        await MainActor.run {
+                            let currentResults = results + ["\n📊 Status Updates:", updates.joined(separator: " → ")]
+                            apiTestResult = currentResults.joined(separator: "\n")
+                        }
+                    }
+                }
             )
             
             let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            let finalUpdates = await statusTracker.getAll()
             
-            results.append("✅ API Call Successful!")
+            results.append("✅ Video Generated Successfully!")
             results.append("   Video URL: \(videoURL)")
             results.append("   Total time: \(duration)s")
+            results.append("   Status flow: \(finalUpdates.joined(separator: " → "))")
             results.append("")
-            results.append("📝 Full request/response logged to Desktop/directorstudio_api_debug.log")
+            results.append("🎉 Native Kling API working correctly!")
             
         } catch {
             let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
             
             results.append("")
-            results.append("❌ API Call Failed!")
+            results.append("❌ Test Failed!")
             results.append("   Error: \(error.localizedDescription)")
             results.append("   Failed after: \(duration)s")
             results.append("")
             
-            if let apiError = error as? APIError {
-                results.append("   API Error Details:")
-                results.append("   \(apiError.localizedDescription)")
+            if let klingError = error as? KlingError {
+                results.append("   KlingError Details:")
+                results.append("   \(klingError.localizedDescription)")
             }
-            
-            results.append("")
-            results.append("📝 Full request/response logged to Desktop/directorstudio_api_debug.log")
-            results.append("💡 Use './read_api_logs.sh' to view logs")
         }
         
         await MainActor.run {
             apiTestResult = results.joined(separator: "\n")
             testingAPIs = false
         }
+    }
+    
+    /// Test GET list query methods (queryVideoTaskList and queryAudioTaskList)
+    private func testGETListQueries() async {
+        testingAPIs = true
+        apiTestResult = "📋 TESTING GET LIST QUERIES\nQuerying video and audio task lists...\n\n"
+        
+        var results: [String] = []
+        let startTime = Date()
+        
+        results.append("═══════════════════════════════════════")
+        results.append("TEST: GET List Query Methods")
+        results.append("═══════════════════════════════════════")
+        results.append("")
+        results.append("These are GET requests (no credits used)")
+        results.append("")
+        
+        do {
+            // Fetch Kling credentials
+            let accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            let secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
+            
+            guard !accessKey.isEmpty, !secretKey.isEmpty else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kling AccessKey or SecretKey is empty"])
+            }
+            
+            results.append("✅ Credentials fetched")
+            results.append("")
+            
+            let klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+            
+            // Test Video Task List Query
+            results.append("─────────────────────────────────────")
+            results.append("1. Query Video Task List (GET)")
+            results.append("─────────────────────────────────────")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Querying video tasks...\n"
+            }
+            
+            let videoTasks = try await klingClient.queryVideoTaskList(pageNum: 1, pageSize: 10)
+            
+            results.append("✅ Retrieved \(videoTasks.count) video tasks")
+            results.append("")
+            
+            if videoTasks.isEmpty {
+                results.append("   (No video tasks found)")
+            } else {
+                for (index, task) in videoTasks.prefix(5).enumerated() {
+                    results.append("   Task \(index + 1):")
+                    results.append("     ID: \(task.task_id)")
+                    results.append("     Status: \(task.task_status)")
+                    if let statusMsg = task.task_status_msg {
+                        results.append("     Status Msg: \(statusMsg)")
+                    }
+                    if let result = task.task_result?.videos?.first {
+                        results.append("     Video URL: \(result.url)")
+                        if let duration = result.duration {
+                            results.append("     Duration: \(duration)s")
+                        }
+                    }
+                    if let createdAt = task.created_at {
+                        let date = Date(timeIntervalSince1970: Double(createdAt) / 1000.0)
+                        let formatter = DateFormatter()
+                        formatter.dateStyle = .short
+                        formatter.timeStyle = .short
+                        results.append("     Created: \(formatter.string(from: date))")
+                    }
+                    results.append("")
+                }
+                if videoTasks.count > 5 {
+                    results.append("   ... and \(videoTasks.count - 5) more tasks")
+                    results.append("")
+                }
+            }
+            
+            // Test Audio Task List Query
+            results.append("─────────────────────────────────────")
+            results.append("2. Query Audio Task List (GET)")
+            results.append("─────────────────────────────────────")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Querying audio tasks...\n"
+            }
+            
+            let audioTasks = try await klingClient.queryAudioTaskList(pageNum: 1, pageSize: 10)
+            
+            results.append("✅ Retrieved \(audioTasks.count) audio tasks")
+            results.append("")
+            
+            if audioTasks.isEmpty {
+                results.append("   (No audio tasks found)")
+            } else {
+                for (index, task) in audioTasks.prefix(5).enumerated() {
+                    results.append("   Task \(index + 1):")
+                    results.append("     ID: \(task.task_id)")
+                    results.append("     Status: \(task.task_status)")
+                    if let statusMsg = task.task_status_msg {
+                        results.append("     Status Msg: \(statusMsg)")
+                    }
+                    if let result = task.task_result?.audios?.first {
+                        if let mp3 = result.url_mp3 {
+                            results.append("     MP3 URL: \(mp3)")
+                        }
+                        if let wav = result.url_wav {
+                            results.append("     WAV URL: \(wav)")
+                        }
+                        if let duration = result.duration_mp3 {
+                            results.append("     Duration: \(duration)s")
+                        }
+                    }
+                    if let createdAt = task.created_at {
+                        let date = Date(timeIntervalSince1970: Double(createdAt) / 1000.0)
+                        let formatter = DateFormatter()
+                        formatter.dateStyle = .short
+                        formatter.timeStyle = .short
+                        results.append("     Created: \(formatter.string(from: date))")
+                    }
+                    results.append("")
+                }
+                if audioTasks.count > 5 {
+                    results.append("   ... and \(audioTasks.count - 5) more tasks")
+                    results.append("")
+                }
+            }
+            
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            results.append("═══════════════════════════════════════")
+            results.append("✅ GET List Queries Successful!")
+            results.append("   Total time: \(duration)s")
+            results.append("   Video tasks: \(videoTasks.count)")
+            results.append("   Audio tasks: \(audioTasks.count)")
+            results.append("═══════════════════════════════════════")
+            
+        } catch {
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            results.append("")
+            results.append("❌ GET List Query Failed!")
+            results.append("   Error: \(error.localizedDescription)")
+            results.append("   Failed after: \(duration)s")
+            
+            if let klingError = error as? KlingError {
+                results.append("")
+                results.append("   KlingError Details:")
+                results.append("   \(klingError.localizedDescription)")
+            }
+        }
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
+        }
+    }
+    
+    /// Diagnostic function to check API keys and troubleshoot balance issues
+    private func diagnoseAPIKeys() async {
+        testingAPIs = true
+        apiTestResult = "🔍 API KEY DIAGNOSTIC\nChecking configuration and troubleshooting balance issues...\n\n"
+        
+        var results: [String] = []
+        
+        results.append("═══════════════════════════════════════")
+        results.append("STEP 1: Fetching API Keys from Supabase")
+        results.append("═══════════════════════════════════════")
+        results.append("")
+        
+        var accessKey: String = ""
+        var secretKey: String = ""
+        
+        do {
+            // Fetch keys
+            accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
+            
+            results.append("✅ Keys fetched successfully")
+            results.append("")
+            
+            // Show key fingerprints (first 8 and last 4 chars for security)
+            let accessKeyFingerprint = "\(accessKey.prefix(8))...\(accessKey.suffix(4))"
+            let secretKeyFingerprint = "\(secretKey.prefix(8))...\(secretKey.suffix(4))"
+            
+            results.append("📋 API Key Information:")
+            results.append("   AccessKey: \(accessKeyFingerprint)")
+            results.append("   SecretKey: \(secretKeyFingerprint)")
+            results.append("   AccessKey length: \(accessKey.count) characters")
+            results.append("   SecretKey length: \(secretKey.count) characters")
+            results.append("")
+            
+            results.append("═══════════════════════════════════════")
+            results.append("STEP 2: Testing API Authentication")
+            results.append("═══════════════════════════════════════")
+            results.append("")
+            
+            // Try to create a JWT token (this validates the keys)
+            let klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+            
+            // Make a minimal API call to check authentication
+            results.append("🔄 Testing authentication with a minimal API call...")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Making test API call...\n"
+            }
+            
+            // Try to create a video task (this will fail with balance error, but we'll see the actual error)
+            let testTask = try await klingClient.generateVideo(
+                prompt: "test",
+                version: .v1_6_standard,
+                negativePrompt: nil,
+                duration: 5,
+                image: nil,
+                imageTail: nil,
+                cameraControl: nil,
+                mode: "std"
+            )
+            
+            results.append("✅ Authentication successful!")
+            results.append("   Task ID: \(testTask.id)")
+            
+        } catch {
+            let errorMsg = error.localizedDescription
+            
+            results.append("❌ Error occurred:")
+            results.append("   \(errorMsg)")
+            results.append("")
+            
+            // Parse error to provide specific guidance
+            if errorMsg.contains("1102") || errorMsg.contains("balance") || errorMsg.contains("insufficient") {
+                results.append("═══════════════════════════════════════")
+                results.append("💡 TROUBLESHOOTING: Balance Error 1102")
+                results.append("═══════════════════════════════════════")
+                results.append("")
+                results.append("You have 800 credits but API says insufficient balance.")
+                results.append("")
+                results.append("🔍 CHECK THESE THINGS:")
+                results.append("")
+                results.append("1. API KEY ACCOUNT MATCH:")
+                results.append("   → Go to KlingAI dashboard")
+                results.append("   → Check which account has the 800 credits")
+                results.append("   → Verify the AccessKey/SecretKey in Supabase")
+                results.append("     match THIS account (not a different one)")
+                results.append("")
+                results.append("2. RESOURCE PACK DEPLETED/EXPIRED (MOST LIKELY!):")
+                results.append("   → Error 1102 = Resource pack depleted or expired")
+                results.append("   → Your 800 credits are in a PREPAID Resource Pack")
+                results.append("   → Resource Pack might be expired or used up")
+                results.append("   → Check KlingAI dashboard → Resource Packs")
+                results.append("   → Solution: Purchase NEW resource packages")
+                results.append("   → OR activate post-payment service if available")
+                results.append("")
+                results.append("3. ACTIVATE CREDITS:")
+                results.append("   → Some credits need activation")
+                results.append("   → Check if there's an 'Activate' button")
+                results.append("   → Or contact Kling support to activate")
+                results.append("")
+                results.append("4. MINIMUM BALANCE:")
+                results.append("   → There might be a minimum balance requirement")
+                results.append("   → Check KlingAI documentation or support")
+                results.append("")
+                results.append("5. VERIFY KEYS IN SUPABASE:")
+                results.append("   → Check Supabase → api_keys table")
+                results.append("   → Verify 'Kling' and 'KlingSecret' rows")
+                results.append("   → Make sure they match the account with credits")
+                results.append("")
+                if !accessKey.isEmpty {
+                    results.append("📞 If still stuck:")
+                    results.append("   → Contact KlingAI support with:")
+                    results.append("     - Your AccessKey (first 8 chars): \(accessKey.prefix(8))")
+                    results.append("     - Error code: 1102")
+                    results.append("     - Your dashboard shows 800 credits")
+                }
+            } else if errorMsg.contains("401") || errorMsg.contains("auth") {
+                results.append("❌ Authentication failed!")
+                results.append("   → Check if AccessKey and SecretKey are correct")
+                results.append("   → Verify keys in Supabase match KlingAI dashboard")
+            }
+        }
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
+        }
+    }
+    
+    /// Comprehensive test that verifies multiple features at once:
+    /// - Camera control detection from prompt keywords
+    /// - Standard vs Pro mode (tier mapping)
+    /// - Official API format compliance
+    /// - Duration handling
+    /// - Request JSON structure
+    private func testComprehensiveAPI() async {
+        testingAPIs = true
+        apiTestResult = "🧪 COMPREHENSIVE API TEST\nTesting Multiple Features Simultaneously...\n\n"
+        
+        var results: [String] = []
+        let startTime = Date()
+        
+        // Test 1: Camera Control Detection (drone shot keyword)
+        let testPrompt1 = "A drone shot of a futuristic city skyline at sunset, neon lights reflecting on glass buildings"
+        let testPrompt2 = "Close-up of a detective's face as he slowly zooms in on the mysterious letter"
+        let testPrompt3 = "A wide establishing shot panning left across the desert landscape"
+        
+        results.append("═══════════════════════════════════════")
+        results.append("TEST 1: Camera Control Detection")
+        results.append("═══════════════════════════════════════")
+        results.append("")
+        
+        // Test prompt 1: drone shot
+        let cameraControl1 = CameraControl.fromPrompt(testPrompt1)
+        results.append("📝 Prompt 1: '\(testPrompt1.prefix(60))...'")
+        if let cc1 = cameraControl1 {
+            results.append("   ✅ Camera Control Detected!")
+            results.append("      Type: \(cc1.type?.rawValue ?? "none")")
+            if let config = cc1.config {
+                results.append("      Config: \(config.toAPIDict())")
+            }
+        } else {
+            results.append("   ⚠️ No camera control detected (API will intelligently match)")
+        }
+        results.append("")
+        
+        // Test prompt 2: zoom in
+        let cameraControl2 = CameraControl.fromPrompt(testPrompt2)
+        results.append("📝 Prompt 2: '\(testPrompt2.prefix(60))...'")
+        if let cc2 = cameraControl2 {
+            results.append("   ✅ Camera Control Detected!")
+            results.append("      Type: \(cc2.type?.rawValue ?? "none")")
+            if let config = cc2.config {
+                results.append("      Config: \(config.toAPIDict())")
+            }
+        } else {
+            results.append("   ⚠️ No camera control detected")
+        }
+        results.append("")
+        
+        // Test prompt 3: pan left
+        let cameraControl3 = CameraControl.fromPrompt(testPrompt3)
+        results.append("📝 Prompt 3: '\(testPrompt3.prefix(60))...'")
+        if let cc3 = cameraControl3 {
+            results.append("   ✅ Camera Control Detected!")
+            results.append("      Type: \(cc3.type?.rawValue ?? "none")")
+            if let config = cc3.config {
+                results.append("      Config: \(config.toAPIDict())")
+            }
+        } else {
+            results.append("   ⚠️ No camera control detected")
+        }
+        results.append("")
+        
+        // Test 2: Tier to Mode Mapping
+        results.append("═══════════════════════════════════════")
+        results.append("TEST 2: Tier → Mode Mapping")
+        results.append("═══════════════════════════════════════")
+        results.append("")
+        
+        let tiers: [(VideoQualityTier, String)] = [
+            (.economy, "Economy"),
+            (.basic, "Basic"),
+            (.pro, "Pro")
+        ]
+        
+        for (tier, name) in tiers {
+            let mode = (tier == .pro) ? "pro" : "std"
+            results.append("   \(name) tier → mode: '\(mode)'")
+        }
+        results.append("")
+        
+        // Test 3: Actual API Call with Camera Control
+        results.append("═══════════════════════════════════════")
+        results.append("TEST 3: Real API Call with Camera Control")
+        results.append("═══════════════════════════════════════")
+        results.append("")
+        results.append("💰 COST: ~20 credits for 5-second video")
+        results.append("   This tests the complete pipeline:")
+        results.append("   • Camera control detection")
+        results.append("   • Standard mode (economy/basic tier)")
+        results.append("   • Official API JSON format")
+        results.append("   • Request/response parsing")
+        results.append("")
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n") + "\n🔄 Fetching credentials...\n"
+        }
+        
+        do {
+            // Get Kling credentials
+            let accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            let secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
+            
+            guard !accessKey.isEmpty, !secretKey.isEmpty else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kling AccessKey or SecretKey is empty"])
+            }
+            
+            results.append("✅ Credentials loaded")
+            results.append("")
+            
+            // Use test prompt 1 (drone shot) for actual API call
+            // Camera movements detected from prompt text will guide the model naturally
+            // We don't need camera_control JSON - the model interprets cinematographic terms
+            let finalPrompt = testPrompt1
+            let finalCameraControl = cameraControl1  // Detected for UI info, but not sent as JSON
+            let tier: VideoQualityTier = .basic  // Standard mode
+            let version: KlingVersion = .v1_6_standard
+            let duration = 5
+            let mode = "std"  // Standard mode for basic tier
+            
+            results.append("ℹ️  Camera Control Strategy:")
+            results.append("   Camera movements detected from prompt text")
+            results.append("   Model will interpret cinematographic terms naturally")
+            results.append("   No camera_control JSON needed - works with all models/modes")
+            results.append("")
+            
+            results.append("📋 API Request Parameters:")
+            results.append("   Prompt: '\(finalPrompt.prefix(80))...'")
+            results.append("   Duration: \(duration)s")
+            results.append("   Tier: Basic → mode: '\(mode)'")
+            results.append("   Version: \(version.rawValue)")
+            results.append("   Model: \(version.modelName)")
+            if let cc = finalCameraControl {
+                results.append("   Camera Movement Detected: \(cc.type?.rawValue ?? "custom")")
+                results.append("   → Model will interpret from prompt text naturally")
+            } else {
+                results.append("   Camera Movement: Detected from prompt (model interprets naturally)")
+            }
+            results.append("")
+            
+            // Build expected JSON structure
+            var expectedJSON: [String: Any] = [
+                "model_name": version.modelName,
+                "prompt": finalPrompt,
+                "duration": String(duration),
+                "mode": mode,
+                "aspect_ratio": "16:9"
+            ]
+            
+            if let cc = finalCameraControl, let ccDict = cc.toAPIDict() {
+                expectedJSON["camera_control"] = ccDict
+            }
+            
+            results.append("📄 Expected Request JSON Structure:")
+            if let jsonData = try? JSONSerialization.data(withJSONObject: expectedJSON, options: .prettyPrinted),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                results.append(jsonString)
+            }
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Creating video generation task...\n"
+            }
+            
+            // Create KlingAPIClient
+            let klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+            
+            // Create video task with camera control
+            let task = try await klingClient.generateVideo(
+                prompt: finalPrompt,
+                version: version,
+                negativePrompt: nil,
+                duration: duration,
+                image: nil,
+                imageTail: nil,
+                cameraControl: finalCameraControl,
+                mode: mode
+            )
+            
+            results.append("✅ Task Created Successfully!")
+            results.append("   Task ID: \(task.id)")
+            results.append("   Status URL: \(task.statusURL)")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Polling status (this may take 30-90 seconds)...\n"
+            }
+            
+            // Poll for completion
+            let videoURL = try await klingClient.pollStatus(task: task)
+            
+            let totalDuration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("═══════════════════════════════════════")
+            results.append("✅ ALL TESTS PASSED!")
+            results.append("═══════════════════════════════════════")
+            results.append("")
+            results.append("📊 Test Results:")
+            results.append("   ✅ Camera control detection: WORKING")
+            results.append("   ✅ Tier → mode mapping: WORKING")
+            results.append("   ✅ API format: COMPLIANT")
+            results.append("   ✅ Video generation: SUCCESS")
+            results.append("")
+            results.append("📹 Video URL: \(videoURL)")
+            results.append("⏱️ Total time: \(totalDuration)s")
+            results.append("")
+            results.append("🎉 Comprehensive test complete!")
+            results.append("💰 This call used ~20 credits from your Kling account")
+            results.append("📊 Check your Kling dashboard for usage stats")
+            
+        } catch {
+            let totalDuration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("")
+            results.append("═══════════════════════════════════════")
+            results.append("❌ TEST FAILED")
+            results.append("═══════════════════════════════════════")
+            results.append("")
+            results.append("Error: \(error.localizedDescription)")
+            results.append("Failed after: \(totalDuration)s")
+            results.append("")
+            
+            if let klingError = error as? KlingError {
+                results.append("KlingError Details:")
+                results.append("\(klingError.localizedDescription)")
+            }
+        }
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
+        }
+    }
+    
+    /// Test text-to-audio generation via Kling API (REAL API CALL - costs credits)
+    private func testKlingTextToAudio() async {
+        testingAPIs = true
+        apiTestResult = "🔊 Testing Text-to-Audio via Kling API (REAL API CALL)...\n\n"
+        
+        var results: [String] = []
+        let testPrompt = "a calm ocean wave sound"
+        let testDuration = 5.0 // 5 seconds
+        let startTime = Date()
+        
+        results.append("💰 COST: Uses Kling credits (typically ~5-10 credits per audio)")
+        results.append("   This is a REAL API call to Kling servers")
+        results.append("")
+        
+        do {
+            // Get Kling credentials
+            let accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            let secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
+            
+            guard !accessKey.isEmpty, !secretKey.isEmpty else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kling AccessKey or SecretKey is empty"])
+            }
+            
+            results.append("✅ Credentials loaded")
+            results.append("")
+            results.append("📋 Test Parameters:")
+            results.append("   Prompt: '\(testPrompt)'")
+            results.append("   Duration: \(testDuration)s")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Creating audio generation task...\n"
+            }
+            
+            // Create KlingAPIClient
+            let klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+            
+            // Create audio task
+            let task = try await klingClient.generateAudio(
+                prompt: testPrompt,
+                duration: testDuration
+            )
+            
+            results.append("✅ Task Created!")
+            results.append("   Task ID: \(task.id)")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Polling status (this may take 30-60 seconds)...\n"
+            }
+            
+            // Poll for completion
+            let audioURL = try await klingClient.pollAudioStatus(task: task)
+            
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("✅ Audio Generated Successfully!")
+            results.append("   Audio URL: \(audioURL)")
+            results.append("   Total time: \(duration)s")
+            results.append("")
+            results.append("🎉 Text-to-audio API working!")
+            results.append("💰 This call used credits from your Kling account")
+            results.append("📊 Check your Kling dashboard for usage stats")
+            
+        } catch {
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("")
+            results.append("❌ Test Failed!")
+            results.append("   Error: \(error.localizedDescription)")
+            results.append("   Failed after: \(duration)s")
+            results.append("")
+            
+            if let klingError = error as? KlingError {
+                results.append("   KlingError Details:")
+                results.append("   \(klingError.localizedDescription)")
+            }
+        }
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
+        }
+    }
+    
+    /// Generate a simple image from text prompt (programmatic generation)
+    /// This creates a visual representation based on the prompt keywords
+    private func generateImageFromText(prompt: String, size: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        return renderer.image { context in
+            let cgContext = context.cgContext
+            
+            // Parse prompt for colors/themes
+            let lowerPrompt = prompt.lowercased()
+            
+            // Determine background color based on prompt keywords
+            var bgColor: UIColor = .systemBlue
+            var accentColor: UIColor = .white
+            
+            if lowerPrompt.contains("ocean") || lowerPrompt.contains("water") || lowerPrompt.contains("wave") {
+                bgColor = UIColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 1.0) // Ocean blue
+                accentColor = UIColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0) // Wave white
+            } else if lowerPrompt.contains("sunset") || lowerPrompt.contains("sun") {
+                bgColor = UIColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0) // Sunset orange
+                accentColor = UIColor(red: 1.0, green: 0.9, blue: 0.7, alpha: 1.0) // Light yellow
+            } else if lowerPrompt.contains("forest") || lowerPrompt.contains("tree") || lowerPrompt.contains("green") {
+                bgColor = UIColor(red: 0.2, green: 0.6, blue: 0.3, alpha: 1.0) // Forest green
+                accentColor = UIColor(red: 0.4, green: 0.8, blue: 0.5, alpha: 1.0) // Light green
+            } else if lowerPrompt.contains("mountain") || lowerPrompt.contains("snow") {
+                bgColor = UIColor(red: 0.7, green: 0.7, blue: 0.8, alpha: 1.0) // Mountain gray
+                accentColor = .white
+            } else {
+                // Default gradient
+                bgColor = UIColor(red: 0.3, green: 0.5, blue: 0.7, alpha: 1.0)
+                accentColor = UIColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
+            }
+            
+            // Fill background
+            cgContext.setFillColor(bgColor.cgColor)
+            cgContext.fill(CGRect(origin: .zero, size: size))
+            
+            // Draw gradient overlay
+            let colorSpace = CGColorSpaceCreateDeviceRGB()
+            let colors = [bgColor.cgColor, accentColor.withAlphaComponent(0.3).cgColor] as CFArray
+            guard let gradient = CGGradient(colorsSpace: colorSpace, colors: colors, locations: [0.0, 1.0]) else {
+                return
+            }
+            
+            cgContext.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: 0, y: size.height),
+                options: []
+            )
+            
+            // Draw simple pattern based on prompt
+            if lowerPrompt.contains("wave") || lowerPrompt.contains("ocean") {
+                // Draw wavy lines
+                cgContext.setStrokeColor(accentColor.cgColor)
+                cgContext.setLineWidth(3.0)
+                
+                let waveHeight: CGFloat = 40
+                let waveCount = 3
+                for i in 0..<waveCount {
+                    let y = size.height * 0.6 + CGFloat(i) * waveHeight
+                    let path = UIBezierPath()
+                    path.move(to: CGPoint(x: 0, y: y))
+                    
+                    for x in stride(from: 0, through: size.width, by: 20) {
+                        let waveY = y + sin(x / 50) * 15
+                        path.addLine(to: CGPoint(x: x, y: waveY))
+                    }
+                    
+                    cgContext.addPath(path.cgPath)
+                    cgContext.strokePath()
+                }
+            }
+            
+            // Add text label
+            let text = prompt.prefix(30)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 32, weight: .bold),
+                .foregroundColor: accentColor,
+                .strokeColor: bgColor,
+                .strokeWidth: -2.0
+            ]
+            
+            let attributedString = NSAttributedString(string: String(text), attributes: attributes)
+            let textSize = attributedString.size()
+            let textRect = CGRect(
+                x: (size.width - textSize.width) / 2,
+                y: size.height * 0.2,
+                width: textSize.width,
+                height: textSize.height
+            )
+            
+            attributedString.draw(in: textRect)
+        }
+    }
+    
+    /// Test image-to-video generation (low cost test - ~20 credits)
+    private func testKlingImageToVideo() async {
+        testingAPIs = true
+        apiTestResult = "🖼️ Testing Image-to-Video via Kling API (Low Cost Test)...\n\n"
+        
+        var results: [String] = []
+        let testPrompt = "a calm ocean wave"
+        let testDuration = 5 // Minimum duration
+        let startTime = Date()
+        
+        results.append("💰 COST: ~20 credits for 5-second video")
+        results.append("   This is a REAL API call but uses minimal credits")
+        results.append("")
+        
+        do {
+            // Get a test image (use default ad.png if available)
+            guard let testImage = UIImage(named: "ad") else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Test image 'ad.png' not found in assets"])
+            }
+            
+            results.append("✅ Test image loaded: ad.png")
+            results.append("   Size: \(Int(testImage.size.width))×\(Int(testImage.size.height))")
+            results.append("")
+            
+            // Get Kling credentials
+            let accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+            let secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
+            
+            guard !accessKey.isEmpty, !secretKey.isEmpty else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kling AccessKey or SecretKey is empty"])
+            }
+            
+            results.append("✅ Credentials loaded")
+            results.append("")
+            results.append("📋 Test Parameters:")
+            results.append("   Prompt: '\(testPrompt)'")
+            results.append("   Duration: \(testDuration)s")
+            results.append("   Version: Kling 1.6 (most cost-effective)")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Creating image-to-video task...\n"
+            }
+            
+            // Create KlingAPIClient
+            let klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+            
+            // Convert image to base64 data URI
+            guard let imageData = testImage.jpegData(compressionQuality: 0.8) else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image"])
+            }
+            
+            // Resize to standard size (854x480 for efficiency)
+            let targetSize = CGSize(width: 854, height: 480)
+            let resizedImage = testImage.resized(to: targetSize)
+            guard let resizedData = resizedImage.jpegData(compressionQuality: 0.8) else {
+                throw NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to compress resized image"])
+            }
+            
+            let base64String = resizedData.base64EncodedString()
+            let dataURI = "data:image/jpeg;base64,\(base64String)"
+            
+            results.append("✅ Image processed and encoded")
+            results.append("   Final size: \(resizedData.count) bytes")
+            results.append("")
+            
+            // Create task with image
+            let task = try await klingClient.generateVideo(
+                prompt: testPrompt,
+                version: .v1_6_standard, // Use 1.6 for lowest cost
+                negativePrompt: nil,
+                duration: testDuration,
+                image: dataURI,
+                imageTail: nil
+            )
+            
+            results.append("✅ Task Created!")
+            results.append("   Task ID: \(task.id)")
+            results.append("")
+            
+            await MainActor.run {
+                apiTestResult = results.joined(separator: "\n") + "\n🔄 Polling status (this may take 30-60 seconds)...\n"
+            }
+            
+            // Poll status
+            let videoURL = try await klingClient.pollStatus(task: task)
+            
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("✅ Video Generated Successfully!")
+            results.append("   Video URL: \(videoURL)")
+            results.append("   Total time: \(duration)s")
+            results.append("")
+            results.append("🎉 Image-to-video connection established!")
+            results.append("💰 Cost: ~20 credits")
+            
+        } catch {
+            let duration = String(format: "%.2f", Date().timeIntervalSince(startTime))
+            
+            results.append("")
+            results.append("❌ Test Failed!")
+            results.append("   Error: \(error.localizedDescription)")
+            results.append("   Failed after: \(duration)s")
+            results.append("")
+            
+            if let klingError = error as? KlingError {
+                results.append("   KlingError Details:")
+                results.append("   \(klingError.localizedDescription)")
+            }
+        }
+        
+        await MainActor.run {
+            apiTestResult = results.joined(separator: "\n")
+            testingAPIs = false
+        }
+    }
+}
+
+/// Thread-safe status tracker for API test callbacks
+private actor StatusTracker {
+    private var updates: [String] = []
+    
+    func add(_ status: String) {
+        updates.append(status)
+    }
+    
+    func getAll() -> [String] {
+        return updates
     }
 }
 

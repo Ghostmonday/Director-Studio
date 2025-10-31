@@ -27,87 +27,99 @@ public struct GenerationSummaryView: View {
     }
 }
 
-/// Individual clip progress card
+/// Individual clip progress card with enhanced status display
 struct ClipCard: View {
     let progress: ClipProgress
     
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
+        VStack(spacing: 12) {
+            // Icon with animation for progress states
+            ZStack {
+                if progress.status.isProgressState {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: progress.status.color))
+                        .scaleEffect(1.2)
+                } else {
+                    Image(systemName: progress.status.icon)
+                        .font(.title2)
+                        .foregroundColor(progress.status.color)
+                }
+            }
+            .frame(height: 32)
             
-            Text(title)
+            // Status title
+            Text(progress.status.rawValue)
                 .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(progress.status.color)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+            
+            // Description
+            Text(progress.status.description)
+                .font(.caption2)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
+            
+            // Task ID (if available)
+            if let taskId = progress.taskId {
+                Text(taskId.prefix(8))
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.secondary.opacity(0.6))
+            }
         }
-        .frame(height: 100)
+        .frame(height: 120)
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
         .background(background)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(borderColor, lineWidth: 1)
+                .stroke(borderColor, lineWidth: borderWidth)
         )
-    }
-    
-    private var icon: String {
-        switch progress.status {
-        case .checkingCache:
-            return "magnifyingglass"
-        case .generating:
-            return "film"
-        case .polling:
-            return "timer"
-        case .completed:
-            return "checkmark.circle.fill"
-        case .failed:
-            return "xmark.circle.fill"
-        }
-    }
-    
-    private var color: Color {
-        switch progress.status {
-        case .completed:
-            return .green
-        case .failed:
-            return .red
-        default:
-            return .blue
-        }
-    }
-    
-    private var title: String {
-        switch progress.status {
-        case .completed:
-            return "Done"
-        case .failed(let message):
-            return "Failed\n\(message.prefix(20))"
-        default:
-            return progress.status.rawValue
-        }
+        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
     }
     
     private var background: some View {
-        Color(.systemBackground)
-            .opacity(0.8)
+        Group {
+            if progress.status.isProgressState {
+                // Animated gradient for progress states
+                LinearGradient(
+                    colors: [
+                        progress.status.color.opacity(0.1),
+                        progress.status.color.opacity(0.05)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                Color(.systemBackground)
+                    .opacity(0.8)
+            }
+        }
     }
     
     private var borderColor: Color {
-        switch progress.status {
-        case .completed:
-            return .green.opacity(0.5)
-        case .failed:
-            return .red.opacity(0.5)
-        default:
-            return .blue.opacity(0.3)
-        }
+        progress.status.color.opacity(0.4)
+    }
+    
+    private var borderWidth: CGFloat {
+        progress.status.isProgressState ? 2 : 1
+    }
+    
+    private var shadowColor: Color {
+        progress.status.color.opacity(0.2)
+    }
+    
+    private var shadowRadius: CGFloat {
+        progress.status.isProgressState ? 8 : 4
     }
 }
 
 #Preview {
-    let orchestrator = ClipGenerationOrchestrator(apiKey: "test")
+    let orchestrator = ClipGenerationOrchestrator(accessKey: "test", secretKey: "test")
     return NavigationView {
         GenerationSummaryView(orchestrator: orchestrator)
     }

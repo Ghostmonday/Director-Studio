@@ -11,7 +11,7 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     case pro = "Pro"
     case premium = "Premium"
     
-    /// Base cost per second (what you pay Pollo.ai)
+    /// Base cost per second (what you pay Kling.ai)
     public var baseCostPerSecond: Double {
         switch self {
         case .economy: return 0.07
@@ -25,7 +25,7 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     public var customerPricePerSecond: Double {
         switch self {
         case .economy: return 0.20  // 186% markup
-        case .basic: return 0.31    // 210% markup
+        case .basic: return 0.04    // 20 credits per 5-second video = $0.20/5s = $0.04/s
         case .pro: return 0.37      // 208% markup
         case .premium: return 0.93  // 210% markup
         }
@@ -35,7 +35,7 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     public var tokensPerSecond: Int {
         switch self {
         case .economy: return 20   // $0.20
-        case .basic: return 31     // $0.31
+        case .basic: return 4      // 20 credits per standard 5-second video (20 ÷ 5 = 4)
         case .pro: return 37       // $0.37
         case .premium: return 93   // $0.93
         }
@@ -65,7 +65,7 @@ public enum VideoQualityTier: String, CaseIterable, Codable {
     public var modelName: String {
         switch self {
         case .economy: return "Kling 1.6"
-        case .basic: return "Pollo 1.6"
+        case .basic: return "Kling 1.6"
         case .pro: return "Kling 2.5 Turbo"
         case .premium: return "Runway Gen-4 Turbo"
         }

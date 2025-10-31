@@ -128,23 +128,23 @@ class AppCoordinator: ObservableObject {
     private func testAPIServices(runHealthCheck: Bool = false) async {
         print("🔧 Testing API Services Configuration...")
         
-        let polloService = RunwayGen4Service()
+        let klingService = KlingAIService()
         let deepSeekService = DeepSeekAIService()
         
-        print("🔑 Pollo API key configured: \(polloService.isAvailable)")
+        print("🔑 Kling API configured: \(klingService.isAvailable)")
         print("🔑 DeepSeek API key configured: \(deepSeekService.isAvailable)")
         
         // Only run actual API health checks if explicitly requested
         if runHealthCheck {
             print("⚠️  Running health checks (this will make API calls and may cost money)...")
             
-            let polloHealth = await polloService.healthCheck()
+            let klingHealth = await klingService.healthCheck()
             let deepSeekHealth = await deepSeekService.healthCheck()
             
-            if polloHealth {
-                print("✅ Pollo API: Connected successfully!")
+            if klingHealth {
+                print("✅ Kling API: Connected successfully!")
             } else {
-                print("❌ Pollo API: Health check failed")
+                print("❌ Kling API: Health check failed")
             }
             
             if deepSeekHealth {
@@ -164,7 +164,7 @@ class AppCoordinator: ObservableObject {
     ///   - saveToLibrary: Whether to save the generated video to photo library
     public func generateAppStorePromoVideo(imageName: String = "AppIcon", saveToLibrary: Bool = true) async {
         print("🎬 Starting App Store Promo Video Generation...")
-        print("⚠️  This will make a real API call to Pollo and will cost money!")
+        print("⚠️  This will make a real API call to Kling and will cost money!")
         
         // Get the image data
         guard let imageData = loadImageData(named: imageName) else {
@@ -187,12 +187,12 @@ class AppCoordinator: ObservableObject {
         """
         
         do {
-            let polloService = RunwayGen4Service()
+            let runwayService = RunwayGen4Service()
             
-            print("📤 Sending request to Pollo API...")
+            print("📤 Sending request to Runway API...")
             print("📝 Prompt: \(prompt)")
             
-            let videoURL = try await polloService.generateVideoFromImage(
+            let videoURL = try await runwayService.generateVideoFromImage(
                 imageData: imageData,
                 prompt: prompt,
                 duration: 15.0 // 15-second promo video

@@ -110,8 +110,8 @@ class PipelineServiceBridge {
             serviceToUse = RunwayGen4Service()
             print("👑 Using Runway Gen-4 Turbo (Premium tier) - requires user's own API key")
         } else {
-            // Use PolloAIService for Economy, Basic, and Pro tiers
-            serviceToUse = PolloAIService()
+            // Use KlingAIService for Economy, Basic, and Pro tiers
+            serviceToUse = KlingAIService()
             print("🚀 Using \(tier.shortName) tier (\(tier.modelName))")
         }
         
@@ -119,20 +119,67 @@ class PipelineServiceBridge {
             // Image-to-video generation
             print("🔄 Progress: Generating video from image... (70%)")
             print("🖼️ Generating video from image...")
-            videoURL = try await serviceToUse.generateVideoFromImage(
-                imageData: imageData,
-                prompt: enhancedPrompt,
-                duration: duration
-            )
+            
+            // Extract camera control from enabled stages and prompt
+            var cameraControl: CameraControl? = nil
+            if enabledStages.contains(.cameraDirection) {
+                // Automatically detect camera movements from prompt text
+                cameraControl = CameraControl.fromPrompt(enhancedPrompt)
+                if let cameraControl = cameraControl {
+                    print("🎥 Camera control detected from prompt: \(cameraControl.type?.rawValue ?? "custom")")
+                } else {
+                    print("🎥 Camera direction enabled - API will intelligently match based on prompt")
+                }
+            }
+            
+            // If using KlingAIService, pass tier and camera control
+            if let klingService = serviceToUse as? KlingAIService {
+                videoURL = try await klingService.generateVideoFromImage(
+                    imageData: imageData,
+                    prompt: enhancedPrompt,
+                    duration: duration,
+                    tier: tier,
+                    cameraControl: cameraControl
+                )
+            } else {
+                videoURL = try await serviceToUse.generateVideoFromImage(
+                    imageData: imageData,
+                    prompt: enhancedPrompt,
+                    duration: duration
+                )
+            }
             print("🔄 Progress: Video generated (85%)")
         } else {
             // Text-to-video generation
             print("🔄 Progress: Generating video from text... (70%)")
             print("📝 Generating video from text...")
-            videoURL = try await serviceToUse.generateVideo(
-                prompt: enhancedPrompt,
-                duration: duration
-            )
+            
+            // Extract camera control from enabled stages and prompt
+            var cameraControl: CameraControl? = nil
+            if enabledStages.contains(.cameraDirection) {
+                // Automatically detect camera movements from prompt text
+                cameraControl = CameraControl.fromPrompt(enhancedPrompt)
+                if let cameraControl = cameraControl {
+                    print("🎥 Camera control detected from prompt: \(cameraControl.type?.rawValue ?? "custom")")
+                } else {
+                    print("🎥 Camera direction enabled - API will intelligently match based on prompt")
+                }
+            }
+            
+            // If using KlingAIService, pass tier and camera control
+            if let klingService = serviceToUse as? KlingAIService {
+                videoURL = try await klingService.generateVideo(
+                    prompt: enhancedPrompt,
+                    duration: duration,
+                    tier: tier,
+                    cameraControl: cameraControl
+                )
+            } else {
+                videoURL = try await serviceToUse.generateVideo(
+                    prompt: enhancedPrompt,
+                    duration: duration
+                )
+            }
             print("🔄 Progress: Video generated (85%)")
         }
         

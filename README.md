@@ -32,10 +32,11 @@ Script → Segmentation → Multi-Clip Generation → Stitching → Voiceover �
 ### Pipeline Architecture (v2.0+)
 
 - **Dependency Injection**: All services are constructor-injected, making the system fully testable and swappable
-- **Video Generation**: Pollo AI integration (OpenAI/Anthropic ready)
+- **Video Generation**: Kling AI integration (v1.6, v2.0, v2.5) with direct native API
 - **Text Enhancement**: DeepSeek AI for prompt optimization
 - **Continuity Engine**: Automatic visual consistency across clips
 - **Storage Backends**: Local, CloudKit, and Supabase support
+- **API Domain**: Singapore endpoint (`https://api-singapore.klingai.com`)
 
 ### Multi-Clip Generation
 
@@ -82,9 +83,12 @@ CREATE POLICY "Allow anon read" ON api_keys
 
 ```sql
 INSERT INTO api_keys (service, key) VALUES 
-  ('Pollo', 'your-pollo-api-key'),
+  ('Kling', 'your-kling-access-key'),
+  ('KlingSecret', 'your-kling-secret-key'),
   ('DeepSeek', 'your-deepseek-api-key');
 ```
+
+> **Note**: Kling AI requires both `AccessKey` and `SecretKey` for JWT authentication. The service names in Supabase must be exactly `'Kling'` and `'KlingSecret'`.
 
 #### Step 3: Configure Supabase URL
 
@@ -97,8 +101,8 @@ The Supabase URL is already configured in `SupabaseAPIKeyService.swift`:
 For local testing, create `DirectorStudio/Configuration/Secrets.local.xcconfig`:
 
 ```xcconfig
-POLLO_API_KEY = your-actual-pollo-api-key-here
-POLLO_API_ENDPOINT = https://api.pollo.ai/v1
+KLING_ACCESS_KEY = your-kling-access-key-here
+KLING_SECRET_KEY = your-kling-secret-key-here
 DEEPSEEK_API_KEY = your-actual-deepseek-api-key-here
 DEEPSEEK_API_ENDPOINT = https://api.deepseek.com/v1
 ```
@@ -141,11 +145,12 @@ DirectorStudio uses a **single-image continuity approach** for visual consistenc
    - API continues naturally from that frame with new prompt
 
 **Supported Tiers:**
-- Economy (Kling 1.6): Single-image + prompt
-- Basic (Pollo 1.6): Single-image + prompt  
-- Pro (Kling 2.5 Turbo): Single-image + prompt
+- Economy (Kling v1.6): Single-image + prompt
+- Basic (Kling v1.6): Single-image + prompt  
+- Pro (Kling v2.0 Master): Single-image + prompt
+- Premium (Kling v2.5 Turbo): Single-image + prompt
 
-All tiers use the same continuity method for consistency. No `imageTail` parameter is used.
+All tiers use the same continuity method for consistency. Camera movements are detected from prompt text (keywords like "zoom in", "drone shot", "pan left") and interpreted naturally by the model - no `camera_control` JSON needed for maximum compatibility.
 
 ### Image Processing
 
@@ -160,14 +165,14 @@ This ensures fast uploads and API compatibility across all tiers.
 
 ### Quality Tiers
 
-| Tier | Model | Max Duration | Resolution | Price/Second |
-|------|-------|--------------|------------|--------------|
-| Economy | Kling 1.6 | 5 seconds | 480p | $0.02/sec |
-| Basic | Pollo 1.6 | 10 seconds | 480p | $0.04/sec |
-| Pro | Kling 2.5 Turbo | 10 seconds | 720p | $0.08/sec |
-| Premium | Runway Gen-4 | 10 seconds | 1080p | User's API key |
+| Tier | Model | Max Duration | Resolution | Credits/Second | Mode |
+|------|-------|--------------|------------|----------------|------|
+| Economy | Kling v1.6 | 5 seconds | 720p | 4 credits/sec | std |
+| Basic | Kling v1.6 | 5 seconds | 720p | 4 credits/sec | std |
+| Pro | Kling v2.0 Master | 10 seconds | 720p | ~8 credits/sec | pro |
+| Premium | Kling v2.5 Turbo | 10 seconds | 1080p | ~16 credits/sec | pro |
 
-> **Premium tier** requires user-provided Runway API key (optional feature)
+> **Note**: All tiers use Kling AI's Singapore API endpoint (`https://api-singapore.klingai.com`). Pricing is based on prepaid resource packs (Error 1102 = resource pack depleted/expired).
 
 ---
 
@@ -242,13 +247,18 @@ DirectorStudio/
 ├── Transactions/
 │   └── GenerationTransaction.swift   # Atomic multi-clip generation
 ├── Services/
-│   ├── PolloAIService.swift          # Pollo AI video generation
+│   ├── KlingAPIClient.swift         # Kling AI native API client (JWT auth)
+│   ├── KlingAIService.swift         # Kling AI service wrapper
 │   ├── DeepSeekAIService.swift       # DeepSeek prompt enhancement
 │   ├── ContinuityManager.swift       # Visual continuity analysis
 │   ├── VideoStitchingService.swift   # AVFoundation video stitching
 │   ├── CreditsManager.swift          # Token-based credit system
 │   ├── SupabaseAPIKeyService.swift  # Secure API key management
+│   ├── PromptVerificationService.swift # Prompt validation
 │   └── Monetization/                 # Cost calculation & pricing
+├── Core/Models/
+│   ├── CameraControl.swift           # Camera movement detection
+│   └── KlingVersion+Config.swift     # Kling API version config
 └── Utils/
     ├── Telemetry.swift               # Event logging
     └── CrashReporter.swift           # Error reporting
@@ -289,12 +299,14 @@ protocol VoiceoverGenerationProtocol {
 
 ### Current Implementations
 
-- **PolloAIService**: Video generation via Pollo AI API
+- **KlingAPIClient**: Direct Kling AI API integration (v1.6, v2.0, v2.5) with JWT authentication
+- **KlingAIService**: Service wrapper conforming to VideoGenerationProtocol
 - **DeepSeekAIService**: Advanced prompt enhancement
 - **ContinuityManager**: Visual consistency analysis & injection
 - **VideoStitchingService**: AVFoundation-based video stitching
 - **VoiceoverGenerationService**: AI TTS and audio mixing
 - **CloudKitStorageService**: Full iCloud sync implementation
+- **CameraControl**: Automatic camera movement detection from prompt text
 
 ---
 
@@ -319,8 +331,9 @@ Users must be signed into iCloud to create content. The app checks `CKContainer.
 
 **Backend (Supabase):**
 - API key management via Supabase (`api_keys` table)
-- Secure key retrieval for Pollo AI, DeepSeek, and other services
+- Secure key retrieval for Kling AI (AccessKey + SecretKey), DeepSeek, and other services
 - Keys cached in-memory for performance
+- JWT token generation for Kling API authentication (HS256, 30-min expiry)
 - See **Setup & Configuration** section above for database setup
 
 ---
@@ -409,6 +422,18 @@ The app compiles successfully for macOS and iOS. To test:
 ---
 
 ## 📚 Version History
+
+### v2.2.0 (December 2024) - Kling AI Integration
+
+- **Kling AI Native API**: Direct integration with Kling AI (v1.6, v2.0, v2.5)
+  - Singapore API domain (`https://api-singapore.klingai.com`)
+  - JWT authentication (HS256) with AccessKey + SecretKey
+  - Support for text-to-video, image-to-video, text-to-audio, text-to-image
+  - GET list queries for video/audio task history
+- **Camera Control Detection**: Automatic detection from prompt text (zoom, pan, drone shots, etc.)
+- **API Error Handling**: Enhanced error messages for Error 1102 (resource pack issues)
+- **Removed Pollo AI**: Complete migration to Kling AI
+- **API Testing Tools**: Comprehensive test buttons for all API endpoints
 
 ### v2.1.1 (October 30, 2025) - Repository Cleanup
 

@@ -17,8 +17,20 @@ public class ClipGenerationOrchestrator: ObservableObject {
     private let cacheManager = ClipCacheManager()
     private let fileManager = ProjectFileManager.shared
     
-    public init(apiKey: String) {
-        self.klingClient = KlingAPIClient(apiKey: apiKey)
+    /// Initialize with Kling AI AccessKey and SecretKey for JWT authentication
+    /// - Parameters:
+    ///   - accessKey: Kling AI AccessKey
+    ///   - secretKey: Kling AI SecretKey
+    public init(accessKey: String, secretKey: String) {
+        self.klingClient = KlingAPIClient(accessKey: accessKey, secretKey: secretKey)
+    }
+    
+    /// Convenience initializer that fetches Kling credentials from Supabase
+    /// - Throws: APIKeyError if credentials cannot be fetched
+    public static func withSupabaseCredentials() async throws -> ClipGenerationOrchestrator {
+        let accessKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "Kling")
+        let secretKey = try await SupabaseAPIKeyService.shared.getAPIKey(service: "KlingSecret")
+        return ClipGenerationOrchestrator(accessKey: accessKey, secretKey: secretKey)
     }
     
     /// Generate a single clip from a prompt
@@ -36,23 +48,50 @@ public class ClipGenerationOrchestrator: ObservableObject {
             return
         }
         
-        // 2. GENERATE
-        updateProgress(id, .generating)
+        // 2. CREATE TASK
+        updateProgress(id, .creatingTask)
         do {
             let task = try await klingClient.generateVideo(
                 prompt: prompt.prompt,
                 version: version,
-                negativePrompts: nil, // Can be enhanced later
+                negativePrompt: nil, // Can be enhanced later
                 duration: 5
             )
-            updateProgress(id, .polling)
+            updateProgress(id, .taskCreated, taskId: task.id)
             
-            let remoteVideoURL = try await klingClient.pollStatus(task: task)
+            // 3. POLL STATUS (with granular updates)
+            let taskId = task.id  // Capture task ID for closure
+            updateProgress(id, .waiting, taskId: taskId, currentGenerationStatus: "waiting")
+            let remoteVideoURL = try await klingClient.pollStatus(
+                task: task,
+                onStatusUpdate: { [weak self] status in
+                    // Capture id and taskId for the closure
+                    let promptId = id
+                    let capturedTaskId = taskId
+                    Task { @MainActor in
+                        guard let self = self else { return }
+                        switch status {
+                        case "waiting":
+                            self.updateProgress(promptId, .waiting, taskId: capturedTaskId, currentGenerationStatus: status)
+                        case "processing":
+                            self.updateProgress(promptId, .processing, taskId: capturedTaskId, currentGenerationStatus: status)
+                        case "succeed":
+                            self.updateProgress(promptId, .videoReady, taskId: capturedTaskId, currentGenerationStatus: status)
+                        case "failed":
+                            // Will be handled by error throw
+                            break
+                        default:
+                            break
+                        }
+                    }
+                }
+            )
             
-            // Download video to local storage before caching
+            // 4. DOWNLOAD
+            updateProgress(id, .downloading, taskId: taskId)
             let localVideoURL = try await downloadVideo(from: remoteVideoURL, promptId: prompt.id)
             
-            // Store in cache
+            // 5. CACHE
             try await cacheManager.store(localVideoURL, for: prompt, version: version)
             
             await finalize(prompt, clipURL: localVideoURL, projectId: projectId, cached: false)
@@ -114,8 +153,13 @@ public class ClipGenerationOrchestrator: ObservableObject {
     }
     
     /// Update progress status
-    private func updateProgress(_ id: UUID, _ status: ClipProgress.Status) {
-        progress[id] = ClipProgress(id: id, status: status)
+    private func updateProgress(_ id: UUID, _ status: ClipProgress.Status, taskId: String? = nil, currentGenerationStatus: String? = nil) {
+        progress[id] = ClipProgress(
+            id: id,
+            status: status,
+            taskId: taskId,
+            currentGenerationStatus: currentGenerationStatus
+        )
     }
     
     /// Download video from remote URL to local storage

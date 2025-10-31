@@ -21,7 +21,7 @@ public final class AIServiceFactory {
             return MockAIService()
             
         case .pollo:
-            return PolloAIService()
+            return KlingAIService()  // Pollo replaced with Kling
             
         case .deepseek:
             return DeepSeekAIService()
@@ -39,31 +39,17 @@ public final class AIServiceFactory {
     public static func createFromEnvironment() -> AIServiceProtocol {
         // Check which API keys are available
         // Services now fetch keys dynamically from Supabase
-        // Default to Pollo AI (Basic tier) for better reliability
-        return PolloAIService()
+        // Default to Kling AI for better reliability
+        return KlingAIService()
     }
     
     // MARK: - Specialized Service Creation
     
     /// Create a video generation service based on available providers
     public static func createVideoService() -> VideoGenerationProtocol {
-        // Using Pollo AI (Basic tier) for video generation - more cost-effective and reliable
-        print("🚀 Using Pollo AI (Basic tier) API for video generation")
-        return PolloAIService()
-        
-        /* OLD CODE - DISABLED FOR DEBUGGING
-        // Check for Pollo first (primary video generation service)
-        if let polloKey = Bundle.main.infoDictionary?["POLLO_API_KEY"] as? String,
-           !polloKey.isEmpty, !polloKey.contains("YOUR_") {
-            return PolloAIService(apiKey: polloKey)
-        }
-        
-        // TODO: Add support for other video generation services (Runway, Sora, etc.)
-        
-        // Fallback to mock for testing
-        print("⚠️ No video generation API keys found. Using mock video service.")
-        return MockVideoService()
-        */
+        // Using Kling AI for video generation - more cost-effective and reliable
+        print("🚀 Using Kling AI API for video generation")
+        return KlingAIService()
     }
     
     /// Create a text enhancement service based on available providers
@@ -81,9 +67,9 @@ public final class AIServiceFactory {
         switch task {
         case .videoGeneration:
             if factors.contains(.cost) {
-                // Pollo is cost-effective for video
-                if PolloAIService().isAvailable {
-                    return PolloAIService()
+                // Kling is cost-effective for video
+                if KlingAIService().isAvailable {
+                    return KlingAIService()
                 }
             }
             // TODO: Add other video services
