@@ -249,16 +249,26 @@ DirectorStudio/
 ├── Services/
 │   ├── KlingAPIClient.swift         # Kling AI native API client (JWT auth)
 │   ├── KlingAIService.swift         # Kling AI service wrapper
-│   ├── DeepSeekAIService.swift       # DeepSeek prompt enhancement
+│   ├── DeepSeekAIService.swift       # DeepSeek prompt enhancement + entity extraction
 │   ├── ContinuityManager.swift       # Visual continuity analysis
 │   ├── VideoStitchingService.swift   # AVFoundation video stitching
 │   ├── CreditsManager.swift          # Token-based credit system
 │   ├── SupabaseAPIKeyService.swift  # Secure API key management
 │   ├── PromptVerificationService.swift # Prompt validation
+│   ├── ThumbnailGenerator.swift      # Multi-resolution thumbnail generation
+│   ├── AudioRecorderService.swift    # Voice-over recording with waveform
+│   ├── WatermarkService.swift        # Tier-based watermarking
+│   ├── ShareableLinkService.swift    # Shareable video links (Supabase)
+│   ├── TTSQueueService.swift         # TTS generation queue management
+│   ├── AssetRepository.swift         # Asset management (portraits/environments)
 │   └── Monetization/                 # Cost calculation & pricing
+├── Components/
+│   ├── VideoPlayerView.swift        # Custom video player component
+│   └── WaveformView.swift            # Real-time audio waveform visualization
 ├── Core/Models/
 │   ├── CameraControl.swift           # Camera movement detection
-│   └── KlingVersion+Config.swift     # Kling API version config
+│   ├── KlingVersion+Config.swift     # Kling API version config
+│   └── ExtractedEntities.swift       # Character, Scene, Prop models
 └── Utils/
     ├── Telemetry.swift               # Event logging
     └── CrashReporter.swift           # Error reporting
@@ -301,12 +311,18 @@ protocol VoiceoverGenerationProtocol {
 
 - **KlingAPIClient**: Direct Kling AI API integration (v1.6, v2.0, v2.5) with JWT authentication
 - **KlingAIService**: Service wrapper conforming to VideoGenerationProtocol
-- **DeepSeekAIService**: Advanced prompt enhancement
-- **ContinuityManager**: Visual consistency analysis & injection
-- **VideoStitchingService**: AVFoundation-based video stitching
+- **DeepSeekAIService**: Advanced prompt enhancement + structured entity extraction (Characters/Scenes/Props)
+- **ContinuityManager**: Visual consistency analysis & injection with last-frame seed support
+- **VideoStitchingService**: AVFoundation-based video stitching with transitions
 - **VoiceoverGenerationService**: AI TTS and audio mixing
 - **CloudKitStorageService**: Full iCloud sync implementation
 - **CameraControl**: Automatic camera movement detection from prompt text
+- **ThumbnailGenerator**: Multi-resolution thumbnail generation with disk caching
+- **AudioRecorderService**: Full AVAudioRecorder with real-time waveform visualization
+- **WatermarkService**: Tier-based watermarking for video exports
+- **AssetRepository**: Centralized asset management for generated images
+- **TTSQueueService**: Queue management for TTS generation (ready for ElevenLabs)
+- **VideoPlayerView**: Reusable video player component with custom controls
 
 ---
 
@@ -359,17 +375,38 @@ Users must be signed into iCloud to create content. The app checks `CKContainer.
 - ✅ Advanced video stitching with transitions
 - ✅ Frame extraction for continuity
 
+### 🆕 Phase 1-3 Implementation (Latest)
+
+**Phase 1: Core Foundation**
+- ✅ **Video Player Component** - Custom AVPlayer with controls, scrubbing, timeline sync, multi-clip sequences
+- ✅ **Thumbnail Generation System** - Multi-resolution caching (240p/480p/720p) with disk + memory cache
+- ✅ **Voice-Over Recording** - Full AVAudioRecorder integration with real-time waveform visualization
+
+**Phase 2: UX & Workflows**
+- ✅ **Interactive Timeline** - Drag-drop clip reordering, trim editing, transition editor (fade/dissolve/wipe), zoom controls
+- ✅ **Enhanced Onboarding** - 5-page onboarding flow (Welcome, Features, Permissions, Pricing, Project creation)
+
+**Phase 3: Advanced Features**
+- ✅ **Enhanced Export System** - Multi-format export (MP4/MOV/ProRes), tier-based quality (720p/1080p/4K), watermark integration
+- ✅ **Watermark System** - Tier-based watermarking for free users (Pro users get watermark-free exports)
+- ✅ **Shareable Links** - Infrastructure for Supabase-based shareable video links
+- ✅ **TTS Queue System** - Queue management interface ready for ElevenLabs API integration
+
+**Core Enhancements**
+- ✅ **Entity Extraction** - Structured extraction of Characters, Scenes, and Props from scripts (DeepSeek integration)
+- ✅ **Asset Repository** - Centralized management for portraits, environments, and props
+- ✅ **Continuity Enhancement** - Last-frame seed injection ready for seamless clip transitions
+
+### Pending API Key Integration
+
+- [ ] **Kling Text-to-Image** - Portrait and environment generation (infrastructure ready, waiting for API key)
+- [ ] **ElevenLabs TTS** - AI voice generation (queue system ready, waiting for API key)
+
 ### Future Work
 
-- [ ] Thumbnail generation for clips
-- [ ] Real video player integration
-- [ ] Actual voiceover recording (AVAudioRecorder)
 - [ ] Guest mode demo video
-- [ ] Advanced export options (4K, etc.)
-- [ ] Onboarding flow
-- [ ] Segmented prompts UI (design complete, needs implementation)
-- [ ] Real AI TTS integration
 - [ ] Automated SwiftLint/SwiftFormat in CI/CD pipeline
+- [ ] Clerk Authentication (currently using iCloud)
 
 ---
 
@@ -422,6 +459,30 @@ The app compiles successfully for macOS and iOS. To test:
 ---
 
 ## 📚 Version History
+
+### v2.3.0 (Latest) - Phase 1-3 Complete Implementation
+
+- **Phase 1: Core Foundation**
+  - Video Player component with custom controls, scrubbing, and timeline sync
+  - Multi-resolution thumbnail generation system (240p/480p/720p) with caching
+  - Full voice-over recording with AVAudioRecorder and real-time waveform visualization
+  
+- **Phase 2: UX & Workflows**
+  - Interactive Timeline with drag-drop reordering, trim editing, and transitions
+  - Enhanced 5-page onboarding flow with permissions and plan selection
+  
+- **Phase 3: Advanced Features**
+  - Enhanced export system with multi-format support (MP4/MOV/ProRes) and tier-based quality
+  - Watermark system for free-tier users
+  - Shareable links infrastructure (Supabase)
+  - TTS queue management system (ready for ElevenLabs API)
+  
+- **Core Enhancements**
+  - Structured entity extraction (Characters, Scenes, Props) via DeepSeek
+  - Asset Repository for managing generated assets
+  - Continuity enhancements with last-frame seed injection
+  
+- **Status**: 90% complete - All features implemented except API-dependent generation (Kling Text-to-Image, ElevenLabs TTS pending API keys)
 
 ### v2.2.0 (December 2024) - Kling AI Integration
 
