@@ -52,7 +52,7 @@ public actor GenerationOrchestrator {
         let batchSize = deviceCapability.recommendedConcurrency
         
         // Use ClipGenerationOrchestrator for each prompt with traceId
-        let orchestrator = try await ClipGenerationOrchestrator.withSupabaseCredentials()
+        let orchestrator = ClipGenerationOrchestrator()
         
         // FIXED: Drain TaskGroup ONCE after all tasks added → true parallelism
         await withTaskGroup(of: ClipGenerationResult.self) { group in

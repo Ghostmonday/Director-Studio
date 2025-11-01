@@ -70,12 +70,13 @@ public actor SupabaseSyncService {
         }
     }
     
-    /// Deduct credits from user balance
+    /// Deduct credits from user balance (uses engine-specific cost)
     /// - Parameters:
-    ///   - amount: Credit amount to deduct
+    ///   - amount: Credit amount to deduct (if nil, uses current engine cost)
     ///   - traceId: Trace ID for correlation
     /// - Throws: SupabaseSyncError if deduction fails
-    public func deductCredits(amount: Int, traceId: String) async throws {
+    public func deductCredits(amount: Int? = nil, traceId: String) async throws {
+        let cost = amount ?? VideoGenerationClient.currentEngine.costPerClip
         guard let url = URL(string: "\(supabaseURL)/rest/v1/rpc/deduct_credits") else {
             throw SupabaseSyncError.invalidURL
         }
@@ -87,8 +88,9 @@ public actor SupabaseSyncService {
         request.setValue("public", forHTTPHeaderField: "apikey")
         
         let payload: [String: Any] = [
-            "credit_amount": amount,
-            "trace_id": traceId
+            "credit_amount": cost,
+            "trace_id": traceId,
+            "engine": VideoGenerationClient.currentEngine.rawValue
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -113,8 +115,9 @@ public actor SupabaseSyncService {
                 .creditDeduction,
                 traceId: traceId,
                 payload: [
-                    "amount": amount,
-                    "status_code": httpResponse.statusCode
+                    "amount": cost,
+                    "status_code": httpResponse.statusCode,
+                    "engine": VideoGenerationClient.currentEngine.rawValue
                 ]
             )
         } catch {
@@ -123,8 +126,9 @@ public actor SupabaseSyncService {
                 .creditDeduction,
                 traceId: traceId,
                 payload: [
-                    "amount": amount,
-                    "error": error.localizedDescription
+                    "amount": cost,
+                    "error": error.localizedDescription,
+                    "engine": VideoGenerationClient.currentEngine.rawValue
                 ]
             )
             throw error

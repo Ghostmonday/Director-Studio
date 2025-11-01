@@ -9,6 +9,7 @@ import UIKit
 struct DirectorStudioApp: App {
     @StateObject private var coordinator = AppCoordinator()
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "HasCompletedOnboarding")
+    @State private var showSplash = true
     
     init() {
         // Clear API key cache on app start to ensure fresh keys are fetched
@@ -19,13 +20,17 @@ struct DirectorStudioApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(coordinator)
-                .preferredColorScheme(.dark)
-                .ignoresSafeArea(.keyboard) // Critical for Prompt input
-                .fullScreenCover(isPresented: $showOnboarding) {
-                    OnboardingView()
-                }
+            if showSplash {
+                SplashScreenView(isPresented: $showSplash)
+            } else {
+                ContentView()
+                    .environmentObject(coordinator)
+                    .preferredColorScheme(.dark)
+                    .ignoresSafeArea(.keyboard) // Critical for Prompt input
+                    .fullScreenCover(isPresented: $showOnboarding) {
+                        OnboardingView()
+                    }
+            }
         }
     }
 }

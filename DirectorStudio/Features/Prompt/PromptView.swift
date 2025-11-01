@@ -23,7 +23,6 @@ struct PromptView: View {
     @State private var isPromptExpanded = true
     @FocusState private var isPromptFocused: Bool
     @State private var isPromptConfirmed = false // Tracks if user has confirmed their prompt
-    @State private var showingResourcePackAlert = false // For Error 1102
     
     // MARK: - Computed Views
     
@@ -999,45 +998,12 @@ struct PromptView: View {
             .sheet(item: $viewModel.showingStageHelp) { stage in
                 StageHelpView(stage: stage)
             }
-            .alert("Generation Failed", isPresented: .constant(viewModel.generationError != nil && !showingResourcePackAlert)) {
+            .alert("Generation Failed", isPresented: .constant(viewModel.generationError != nil)) {
                 Button("OK") {
                     viewModel.generationError = nil
                 }
             } message: {
-                if let error = viewModel.generationError {
-                    // Check if it's a resource pack error
-                    if let klingError = error as? KlingError,
-                       case .resourcePackDepleted = klingError {
-                        // This shouldn't show because showingResourcePackAlert will be true
-                        Text(error.localizedDescription)
-                    } else {
-                        Text(error.localizedDescription)
-                    }
-                } else {
-                    Text("An error occurred")
-                }
-            }
-            .alert("Out of Generation Quota", isPresented: $showingResourcePackAlert) {
-                Button("Open Dashboard") {
-                    if let url = URL(string: "https://klingai.com/resource-packs") {
-                        UIApplication.shared.open(url)
-                    }
-                    showingResourcePackAlert = false
-                    viewModel.generationError = nil
-                }
-                Button("OK", role: .cancel) {
-                    showingResourcePackAlert = false
-                    viewModel.generationError = nil
-                }
-            } message: {
-                Text("Please purchase a new Resource Pack or enable Post-Payment in your Kling Dashboard.")
-            }
-            .onChange(of: viewModel.generationError != nil) { oldValue, newValue in
-                // Check if the new error is resourcePackDepleted
-                if let klingError = viewModel.generationError as? KlingError,
-                   case .resourcePackDepleted = klingError {
-                    showingResourcePackAlert = true
-                }
+                Text(viewModel.generationError?.localizedDescription ?? "An error occurred")
             }
             // .sheet(isPresented: $viewModel.showingCostBreakdown) {
             //     CostBreakdownSheet(viewModel: viewModel)

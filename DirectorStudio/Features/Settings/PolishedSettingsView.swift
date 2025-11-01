@@ -21,6 +21,17 @@ struct SettingsView: View {
     @AppStorage("themeVariant") private var themeVariant = "default"
     @AppStorage("betaMode") private var betaMode = false
     
+    // Video Engine Settings
+    @AppStorage("video_engine") private var videoEngineRaw: String = "kling"
+    @State private var runwayBearerToken: String = ""
+    @State private var customAPIURL: String = ""
+    @State private var customAuthHeader: String = ""
+    
+    private var currentEngine: VideoEngine {
+        get { VideoEngine(rawValue: videoEngineRaw) ?? .kling }
+        set { videoEngineRaw = newValue.rawValue }
+    }
+    
     private let theme = DirectorStudioTheme.self
     
     var body: some View {
@@ -226,6 +237,111 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, theme.Spacing.medium)
+            
+            Divider()
+                .padding(.vertical, theme.Spacing.small)
+            
+            // Video Engine Selection
+            VStack(alignment: .leading, spacing: theme.Spacing.small) {
+                Text("Video Engine")
+                    .font(.headline)
+                    .foregroundColor(theme.Colors.primary)
+                
+                Picker("Video Engine", selection: Binding(
+                    get: { currentEngine },
+                    set: { 
+                        currentEngine = $0
+                        VideoGenerationClient.currentEngine = $0
+                    }
+                )) {
+                    Text("Kling AI").tag(VideoEngine.kling)
+                    Text("Runway").tag(VideoEngine.runway)
+                    Text("Custom").tag(VideoEngine.custom)
+                }
+                .pickerStyle(.segmented)
+                
+                // Runway API Key
+                if currentEngine == .runway {
+                    SecureField("Runway Bearer Token", text: Binding(
+                        get: { 
+                            runwayBearerToken = UserDefaults.standard.string(forKey: "runway_bearer_token") ?? ""
+                            return runwayBearerToken
+                        },
+                        set: { 
+                            runwayBearerToken = $0
+                            UserDefaults.standard.set($0, forKey: "runway_bearer_token")
+                        }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                }
+                
+                // Custom API Settings
+                if currentEngine == .custom {
+                    TextField("Custom API URL", text: Binding(
+                        get: {
+                            customAPIURL = UserDefaults.standard.string(forKey: "custom_api_url") ?? ""
+                            return customAPIURL
+                        },
+                        set: {
+                            customAPIURL = $0
+                            UserDefaults.standard.set($0, forKey: "custom_api_url")
+                        }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .keyboardType(.URL)
+                    
+                    SecureField("Authorization Header (e.g., 'Bearer token' or 'Key: Value')", text: Binding(
+                        get: {
+                            customAuthHeader = UserDefaults.standard.string(forKey: "custom_auth_header") ?? ""
+                            return customAuthHeader
+                        },
+                        set: {
+                            customAuthHeader = $0
+                            UserDefaults.standard.set($0, forKey: "custom_auth_header")
+                        }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    
+                    Text("Format: 'Bearer token' or 'X-Api-Key: value'")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                // Engine Info
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cost: \(currentEngine.costPerClip) credits/clip")
+                            .font(.caption)
+                        Text("Latency: \(String(format: "%.1f", currentEngine.expectedLatency))s")
+                            .font(.caption)
+                    }
+                    Spacer()
+                    if currentEngine.hasValidCredentials {
+                        Text("✓ Ready")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    } else {
+                        Text("⚠️ Setup Required")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.02))
+            )
+            
+            Divider()
+                .padding(.vertical, theme.Spacing.small)
             
             if hasRunwayKey {
                 VStack(alignment: .leading, spacing: 4) {

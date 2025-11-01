@@ -409,9 +409,9 @@ public actor KlingAPIClient {
                 duration: duration
             )
             
-            // Deduct credits (estimate cost based on version and duration)
-            let cost = estimateCost(version: version, duration: duration)
-            try? await SupabaseSyncService.shared.deductCredits(amount: cost, traceId: traceId)
+            // Deduct credits (handled by VideoGenerationClient with engine-specific costs)
+            // Cost already validated in validateRequestEligibility
+            try? await SupabaseSyncService.shared.deductCredits(traceId: traceId)
             
             return VideoTask(id: taskId, statusURL: statusURL)
         } catch {
