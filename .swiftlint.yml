@@ -1,0 +1,62 @@
+# SwiftLint Configuration
+# Rules for DirectorStudio codebase
+
+disabled_rules:
+  - trailing_whitespace  # Handled by SwiftFormat
+  - line_length  # Allow longer lines for readability
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - force_unwrapping
+  - discouraged_optional_boolean
+  - discouraged_optional_collection
+  - first_where
+  - last_where
+  - multiline_parameters
+  - trailing_closure
+  - no_fallthrough_only
+  - force_try
+  - force_cast
+
+excluded:
+  - DerivedData
+  - Pods
+  - .build
+
+line_length:
+  warning: 120
+  error: 150
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 500
+  error: 1000
+
+type_body_length:
+  warning: 300
+  error: 500
+
+function_body_length:
+  warning: 50
+  error: 100
+
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+
+type_name:
+  min_length: 3
+  max_length: 60
+
+identifier_name:
+  min_length: 1
+  max_length: 60
+  excluded:
+    - id
+    - x
+    - y
+    - z
+

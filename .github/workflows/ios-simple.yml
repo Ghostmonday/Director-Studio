@@ -1,0 +1,68 @@
+name: Build iOS (Simple - No Signing)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-unsigned:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Xcode
+      run: sudo xcode-select -s /Applications/Xcode.app
+    
+    - name: Create Secrets Configuration
+      env:
+        POLLO_API_KEY: ${{ secrets.POLLO_API_KEY }}
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      run: |
+        cat > DirectorStudio/Configuration/Secrets.local.xcconfig <<EOF
+        // Auto-generated secrets from GitHub Actions
+        POLLO_API_KEY = ${POLLO_API_KEY}
+        POLLO_API_ENDPOINT = https://api.pollo.ai/v1
+        DEEPSEEK_API_KEY = ${DEEPSEEK_API_KEY}
+        DEEPSEEK_API_ENDPOINT = https://api.deepseek.com/v1
+        EOF
+    
+    - name: Build Archive (Unsigned)
+      run: |
+        # Build without code signing for testing
+        xcodebuild -scheme "DirectorStudio" \
+          -archivePath $RUNNER_TEMP/DirectorStudio.xcarchive \
+          -sdk iphoneos \
+          -configuration Release \
+          -destination 'generic/platform=iOS' \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          clean archive
+    
+    - name: Create Unsigned IPA
+      run: |
+        # Create Payload directory
+        mkdir -p $RUNNER_TEMP/Payload
+        
+        # Copy app to Payload
+        cp -R $RUNNER_TEMP/DirectorStudio.xcarchive/Products/Applications/DirectorStudio.app \
+          $RUNNER_TEMP/Payload/
+        
+        # Create IPA
+        cd $RUNNER_TEMP
+        zip -r DirectorStudio-unsigned.ipa Payload
+    
+    - name: Upload Unsigned IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: DirectorStudio-unsigned
+        path: $RUNNER_TEMP/DirectorStudio-unsigned.ipa
+    
+    - name: Build Info
+      run: |
+        echo "🎉 Build Complete!"
+        echo "📦 IPA Size: $(du -h $RUNNER_TEMP/DirectorStudio-unsigned.ipa | cut -f1)"
+        echo "⚠️  Note: This IPA is unsigned - for testing only"
+        echo "📱 To install: Use AltStore, Sideloadly, or similar tools"

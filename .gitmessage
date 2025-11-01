@@ -1,0 +1,18 @@
+# Commit Message Guide
+# Use the format: type/scope: description
+#
+# Types:
+# - feature: New functionality
+# - fix: Bug fixes
+# - refactor: Code restructuring without changing behavior
+# - docs: Documentation changes
+# - style: Formatting, spacing, etc. (no code change)
+# - test: Adding or updating tests
+# - chore: Maintenance tasks
+#
+# Examples:
+# feature/prompt: Add multi-clip generation support
+# fix/storage: Resolve orphan clip cleanup issue
+# refactor/repository: Improve ClipRepository caching logic
+# docs/readme: Update setup instructions
+
