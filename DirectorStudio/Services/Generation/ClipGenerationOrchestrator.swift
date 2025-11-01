@@ -6,7 +6,7 @@
 import Foundation
 import Combine
 
-/// MainActor-isolated orchestrator for individual clip generation
+/// MainActor-isolated orchestrator for individual clip generation with retry logic
 /// Manages cache lookup, API calls, polling, and progress updates
 /// Uses @MainActor for UI thread safety and reactive updates
 @MainActor
@@ -33,72 +33,191 @@ public class ClipGenerationOrchestrator: ObservableObject {
         return ClipGenerationOrchestrator(accessKey: accessKey, secretKey: secretKey)
     }
     
-    /// Generate a single clip from a prompt
+    /// Generate a single clip from a prompt with retry logic
     /// - Parameters:
     ///   - prompt: The ProjectPrompt to generate
     ///   - projectId: The project identifier
-    public func generate(prompt: ProjectPrompt, projectId: UUID) async {
+    ///   - traceId: Trace ID for telemetry correlation
+    public func generate(prompt: ProjectPrompt, projectId: UUID, traceId: String) async {
         let id = prompt.id
+        let startTime = Date()
+        
+        // Log generation start
+        await TelemetryService.shared.logEvent(
+            .clipGenerationStart,
+            traceId: traceId,
+            payload: ["prompt_id": id.uuidString, "clip_index": prompt.index]
+        )
+        
         updateProgress(id, .checkingCache)
         
         // 1. CACHE HIT
         let version = prompt.klingVersion ?? .v1_6_standard
-        if let cached = await cacheManager.retrieve(for: prompt, version: version) {
+        if let cached = await cacheManager.retrieve(for: prompt, version: version, traceId: traceId) {
+            let duration = Date().timeIntervalSince(startTime)
+            await TelemetryService.shared.logEvent(
+                .clipGenerationSuccess,
+                traceId: traceId,
+                payload: [
+                    "prompt_id": id.uuidString,
+                    "cached": true,
+                    "duration_ms": Int(duration * 1000)
+                ]
+            )
             await finalize(prompt, clipURL: cached, projectId: projectId, cached: true)
             return
         }
         
-        // 2. CREATE TASK
-        updateProgress(id, .creatingTask)
-        do {
-            let task = try await klingClient.generateVideo(
-                prompt: prompt.prompt,
-                version: version,
-                negativePrompt: nil, // Can be enhanced later
-                duration: 5
-            )
-            updateProgress(id, .taskCreated, taskId: task.id)
+        // 2. GENERATE WITH RETRY (max 3 attempts)
+        var attempt = 0
+        let maxAttempts = 3
+        var lastError: Error?
+        
+        while attempt < maxAttempts {
+            attempt += 1
             
-            // 3. POLL STATUS (with granular updates)
-            let taskId = task.id  // Capture task ID for closure
-            updateProgress(id, .waiting, taskId: taskId, currentGenerationStatus: "waiting")
-            let remoteVideoURL = try await klingClient.pollStatus(
-                task: task,
-                onStatusUpdate: { [weak self] status in
-                    // Capture id and taskId for the closure
-                    let promptId = id
-                    let capturedTaskId = taskId
-                    Task { @MainActor in
-                        guard let self = self else { return }
-                        switch status {
-                        case "waiting":
-                            self.updateProgress(promptId, .waiting, taskId: capturedTaskId, currentGenerationStatus: status)
-                        case "processing":
-                            self.updateProgress(promptId, .processing, taskId: capturedTaskId, currentGenerationStatus: status)
-                        case "succeed":
-                            self.updateProgress(promptId, .videoReady, taskId: capturedTaskId, currentGenerationStatus: status)
-                        case "failed":
-                            // Will be handled by error throw
-                            break
-                        default:
-                            break
+            // Log retry if not first attempt
+            if attempt > 1 {
+                let delay = pow(2.0, Double(attempt - 1)) // 1s, 2s, 4s
+                await TelemetryService.shared.logEvent(
+                    .clipGenerationRetry,
+                    traceId: traceId,
+                    payload: [
+                        "attempt": attempt,
+                        "delay": Int(delay),
+                        "prompt_id": id.uuidString
+                    ]
+                )
+                
+                // Exponential backoff
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+            
+            updateProgress(id, .creatingTask)
+            
+            do {
+                let task = try await klingClient.generateVideo(
+                    prompt: prompt.prompt,
+                    version: version,
+                    traceId: traceId,
+                    negativePrompt: nil,
+                    duration: 5
+                )
+                updateProgress(id, .taskCreated, taskId: task.id)
+                
+                // 3. POLL STATUS
+                let taskId = task.id
+                updateProgress(id, .waiting, taskId: taskId, currentGenerationStatus: "waiting")
+                let remoteVideoURL = try await klingClient.pollStatus(
+                    task: task,
+                    onStatusUpdate: { [weak self] status in
+                        let promptId = id
+                        let capturedTaskId = taskId
+                        Task { @MainActor in
+                            guard let self = self else { return }
+                            switch status {
+                            case "waiting":
+                                self.updateProgress(promptId, .waiting, taskId: capturedTaskId, currentGenerationStatus: status)
+                            case "processing":
+                                self.updateProgress(promptId, .processing, taskId: capturedTaskId, currentGenerationStatus: status)
+                            case "succeed":
+                                self.updateProgress(promptId, .videoReady, taskId: capturedTaskId, currentGenerationStatus: status)
+                            case "failed":
+                                break
+                            default:
+                                break
+                            }
                         }
                     }
+                )
+                
+                // 4. DOWNLOAD
+                updateProgress(id, .downloading, taskId: taskId)
+                let localVideoURL = try await downloadVideo(from: remoteVideoURL, promptId: prompt.id)
+                
+                // 5. CACHE
+                try await cacheManager.store(localVideoURL, for: prompt, version: version, traceId: traceId)
+                
+                // Log success
+                let duration = Date().timeIntervalSince(startTime)
+                await TelemetryService.shared.logEvent(
+                    .clipGenerationSuccess,
+                    traceId: traceId,
+                    payload: [
+                        "prompt_id": id.uuidString,
+                        "duration_ms": Int(duration * 1000),
+                        "attempt": attempt
+                    ]
+                )
+                
+                // Log to Supabase
+                await SupabaseSyncService.shared.logClipJobStatus(
+                    clipId: id.uuidString,
+                    status: "completed",
+                    timestamp: Date(),
+                    traceId: traceId,
+                    durationMs: Int(duration * 1000)
+                )
+                
+                await finalize(prompt, clipURL: localVideoURL, projectId: projectId, cached: false)
+                return // Success, exit retry loop
+                
+            } catch {
+                lastError = error
+                
+                // Check if we should retry (not for auth errors)
+                if attempt >= maxAttempts {
+                    break // Max retries reached
                 }
-            )
-            
-            // 4. DOWNLOAD
-            updateProgress(id, .downloading, taskId: taskId)
-            let localVideoURL = try await downloadVideo(from: remoteVideoURL, promptId: prompt.id)
-            
-            // 5. CACHE
-            try await cacheManager.store(localVideoURL, for: prompt, version: version)
-            
-            await finalize(prompt, clipURL: localVideoURL, projectId: projectId, cached: false)
-            
-        } catch {
-            await markFailed(prompt, projectId: projectId, error: error)
+                
+                // Don't retry on certain errors
+                if let klingError = error as? KlingError {
+                    if case .resourcePackDepleted = klingError {
+                        break // Don't retry resource pack errors
+                    }
+                    if case .httpError(let code) = klingError, code == 401 || code == 403 {
+                        break // Don't retry auth errors
+                    }
+                }
+            }
         }
+        
+        // All retries failed - log failure and try fallback portrait
+        let duration = Date().timeIntervalSince(startTime)
+        await TelemetryService.shared.logEvent(
+            .clipGenerationFailure,
+            traceId: traceId,
+            payload: [
+                "prompt_id": id.uuidString,
+                "attempts": attempt,
+                "duration_ms": Int(duration * 1000),
+                "error": lastError?.localizedDescription ?? "Unknown error"
+            ]
+        )
+        
+        await SupabaseSyncService.shared.logClipJobStatus(
+            clipId: id.uuidString,
+            status: "failed",
+            timestamp: Date(),
+            traceId: traceId,
+            durationMs: Int(duration * 1000),
+            errorCode: "max_retries_exceeded"
+        )
+        
+        // Try fallback portrait generation
+        if let _ = try? await klingClient.fetchFallbackPortrait(prompt: prompt.prompt, traceId: traceId) {
+            // Portrait generated, but clip failed - log separately
+            await TelemetryService.shared.logEvent(
+                .clipGenerationFailure,
+                traceId: traceId,
+                payload: [
+                    "prompt_id": id.uuidString,
+                    "fallback_portrait": true
+                ]
+            )
+        }
+        
+        await markFailed(prompt, projectId: projectId, error: lastError ?? NSError(domain: "ClipGeneration", code: -1))
     }
     
     /// Finalize successful generation

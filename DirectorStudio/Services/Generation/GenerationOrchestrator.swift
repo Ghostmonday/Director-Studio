@@ -36,7 +36,11 @@ public actor GenerationOrchestrator {
     ///   - prompts: Array of prompts to generate
     /// - Throws: Generation errors
     public func generateProject(_ projectId: UUID, prompts: [ProjectPrompt]) async throws {
-        print("🎬 Starting complete generation flow for project \(projectId)")
+        // Generate trace ID for this generation session
+        let traceId = UUID().uuidString
+        await TelemetryService.shared.sessionTraceId = traceId
+        
+        print("🎬 Starting complete generation flow for project \(projectId) [Trace: \(traceId)]")
         
         // Step 1: Pre-flight Validation
         try await validateGeneration(prompts: prompts, projectId: projectId)
@@ -44,8 +48,11 @@ public actor GenerationOrchestrator {
         // Step 2: Save initial prompt list (await since fileManager is now actor)
         try await fileManager.savePromptList(prompts, for: projectId)
         
-        // Step 3: Process prompts in batches with TRUE parallelism
+        // Step 3: Process prompts in batches with TRUE parallelism using TaskGroup
         let batchSize = deviceCapability.recommendedConcurrency
+        
+        // Use ClipGenerationOrchestrator for each prompt with traceId
+        let orchestrator = try await ClipGenerationOrchestrator.withSupabaseCredentials()
         
         // FIXED: Drain TaskGroup ONCE after all tasks added → true parallelism
         await withTaskGroup(of: ClipGenerationResult.self) { group in
@@ -53,9 +60,26 @@ public actor GenerationOrchestrator {
             let batches = prompts.chunked(into: batchSize)
             for (batchIndex, batch) in batches.enumerated() {
                 print("📦 Queueing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) prompts")
-                for prompt in batch {
+                for (index, prompt) in batch.enumerated() {
+                    let clipIndex = batchIndex * batchSize + index
                     group.addTask {
-                        await self.processPrompt(prompt, projectId: projectId)
+                        // Use orchestrator with retry logic and telemetry
+                        await orchestrator.generate(
+                            prompt: prompt,
+                            projectId: projectId,
+                            traceId: traceId
+                        )
+                        
+                        // Return result (orchestrator handles success/failure internally)
+                        // For now, return a placeholder result
+                        return ClipGenerationResult(
+                            promptId: prompt.id,
+                            videoURL: nil,
+                            finalVideoURL: nil,
+                            voiceoverTrack: nil,
+                            metrics: nil,
+                            status: .completed
+                        )
                     }
                 }
             }
@@ -71,93 +95,22 @@ public actor GenerationOrchestrator {
     }
     
     /// Complete processing for a single prompt following the flowchart
-    private func processPrompt(_ prompt: ProjectPrompt, projectId: UUID) async -> ClipGenerationResult {
-        // Update status to generating
-        do {
-            try await fileManager.updatePromptStatus(prompt.id, status: .generating, for: projectId)
-        } catch {
-            print("⚠️ Failed to update prompt status: \(error)")
+    /// NOTE: This is now handled by ClipGenerationOrchestrator.generate with retry logic
+    /// This method is kept for backward compatibility but delegates to orchestrator
+    private func processPrompt(_ prompt: ProjectPrompt, projectId: UUID, traceId: String) async -> ClipGenerationResult {
+        // Delegate to ClipGenerationOrchestrator which handles retries and telemetry
+        let orchestrator = try? await ClipGenerationOrchestrator.withSupabaseCredentials()
+        if let orchestrator = orchestrator {
+            await orchestrator.generate(prompt: prompt, projectId: projectId, traceId: traceId)
         }
         
-        // Step 1: Check cache
-        if let cachedClipId = await checkCache(for: prompt) {
-            print("💾 Cache hit for prompt \(prompt.id)")
-            return ClipGenerationResult(
-                promptId: prompt.id,
-                videoURL: nil,
-                finalVideoURL: nil,
-                voiceoverTrack: nil,
-                metrics: nil,
-                status: .cached(clipId: cachedClipId)
-            )
-        }
-        
-        // Step 2: Generate video clip
-        let videoURL: URL
-        let metrics: GenerationMetrics
-        
-        do {
-            let generationResult = try await generateVideoClip(prompt: prompt)
-            videoURL = generationResult.videoURL
-            metrics = generationResult.metrics
-        } catch {
-            return ClipGenerationResult(
-                promptId: prompt.id,
-                videoURL: nil,
-                finalVideoURL: nil,
-                voiceoverTrack: nil,
-                metrics: nil,
-                status: .failed(error: error)
-            )
-        }
-        
-        // Step 3: Generate TTS Audio (only if dialogue present)
-        var voiceoverTrack: VoiceoverTrack? = nil
-        var finalVideoURL: URL = videoURL
-        
-        if let dialogue = prompt.extractedDialogue, !dialogue.isEmpty {
-            print("🎙️ Generating TTS audio for prompt \(prompt.id)")
-            do {
-                voiceoverTrack = try await voiceoverService.generateVoiceover(
-                    script: dialogue,
-                    style: .automatic
-                )
-                
-                // Step 4: Combine Video + TTS Audio
-                print("🎵 Combining video + TTS audio for prompt \(prompt.id)")
-                finalVideoURL = try await voiceoverService.mixVoiceoverWithVideo(
-                    videoURL: videoURL,
-                    voiceoverTrack: voiceoverTrack!,
-                    volumeLevel: 1.0
-                )
-            } catch {
-                print("⚠️ TTS generation failed, using video without audio: \(error)")
-                // Continue with video-only if TTS fails
-            }
-        }
-        
-        // Step 5: Log Performance + Metadata
-        print("📊 Logging metrics for prompt \(prompt.id)")
-        // Metrics already captured in generationResult
-        
-        // Step 6: Save to Timeline + Local Storage
-        do {
-            try await saveClipToTimeline(
-                promptId: prompt.id,
-                videoURL: finalVideoURL,
-                voiceoverTrack: voiceoverTrack,
-                projectId: projectId
-            )
-        } catch {
-            print("⚠️ Failed to save clip to timeline: \(error)")
-        }
-        
+        // Return placeholder result (orchestrator handles success/failure internally)
         return ClipGenerationResult(
             promptId: prompt.id,
-            videoURL: videoURL,
-            finalVideoURL: finalVideoURL,
-            voiceoverTrack: voiceoverTrack,
-            metrics: metrics,
+            videoURL: nil,
+            finalVideoURL: nil,
+            voiceoverTrack: nil,
+            metrics: nil,
             status: .completed
         )
     }

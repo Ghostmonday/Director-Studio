@@ -224,11 +224,25 @@ class PipelineServiceBridge {
         segmentationStrategy: SegmentationStrategy = .automatic,
         enabledStages: Set<PipelineStage> = Set(PipelineStage.allCases),
     ) async throws -> [GeneratedClip] {
-        print("🎬 Starting multi-clip sequence generation...")
+        // Generate trace ID for this generation session
+        let traceId = UUID().uuidString
         
-        // 1. Segment script into scenes
-        let segments = try await segmentScript(script, strategy: segmentationStrategy)
-        print("📝 Script segmented into \(segments.count) clips")
+        print("🎬 Starting multi-clip sequence generation... [Trace: \(traceId)]")
+        
+        // 1. Extract segments using PromptExtractor
+        let extractor = PromptExtractor.shared
+        let blocks = try await extractor.extractSegments(from: script, strategy: segmentationStrategy, traceId: traceId)
+        print("📝 Script segmented into \(blocks.count) clips")
+        
+        // Convert to ScriptSegment format for compatibility
+        let segments = blocks.map { block in
+            ScriptSegment(
+                text: block.dialogue,
+                name: "Segment \(block.index + 1)",
+                stages: enabledStages,
+                estimatedDuration: 5.0 // Default duration
+            )
+        }
         
         // 2. Generate clips with continuity
         var clips: [GeneratedClip] = []

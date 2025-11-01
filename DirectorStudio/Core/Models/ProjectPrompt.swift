@@ -81,6 +81,11 @@ public struct ProjectPrompt: Codable, Identifiable, Equatable, Sendable {
     public static func == (lhs: ProjectPrompt, rhs: ProjectPrompt) -> Bool {
         lhs.id == rhs.id
     }
+    
+    /// Tokenizer for deterministic token counting
+    public static var tokenizer: PromptTokenizer {
+        return PromptTokenizer()
+    }
 }
 
 /// Kling AI version tracking for API selection

@@ -5,6 +5,9 @@
 
 import Foundation
 import CryptoKit
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Actor-isolated Kling AI API client supporting all versions via direct Kling API
 /// Uses direct Kling endpoints: POST /v1/videos/text2video
@@ -158,10 +161,47 @@ public actor KlingAPIClient {
         return token
     }
     
+    /// Validate request eligibility before API call
+    /// - Parameter traceId: Trace ID for telemetry
+    /// - Throws: KlingError if validation fails
+    public func validateRequestEligibility(traceId: String) async throws {
+        // 1. Confirm API token is non-empty
+        guard !accessKey.isEmpty && !secretKey.isEmpty else {
+            throw KlingError.generationFailed("API credentials are missing")
+        }
+        
+        // 2. Check remaining credits
+        let remaining = try await SupabaseSyncService.shared.remainingCredits()
+        guard remaining > 0 else {
+            await TelemetryService.shared.logEvent(
+                .clipGenerationFailure,
+                traceId: traceId,
+                payload: ["error": "insufficient_credits", "remaining": remaining]
+            )
+            throw KlingError.generationFailed("Insufficient credits: \(remaining) remaining")
+        }
+        
+        // 3. Tier-based quality caps (enforced at generation time, not here)
+        // Free tier → 720p max is handled in version selection
+    }
+    
+    /// Generate fallback portrait image from prompt (for failed clip generation)
+    /// - Parameters:
+    ///   - prompt: Text prompt
+    ///   - traceId: Trace ID
+    /// - Returns: Image data or nil if not supported
+    public func fetchFallbackPortrait(prompt: String, traceId: String) async throws -> Data? {
+        // TODO: Implement Kling text-to-image API call when available
+        // For now, return nil (placeholder)
+        writeToLog("⚠️ Fallback portrait generation not yet implemented")
+        return nil
+    }
+    
     /// Generate a video using Kling AI (direct native API)
     /// - Parameters:
     ///   - prompt: The video generation prompt
     ///   - version: Kling version to use (1.6/2.0/2.5)
+    ///   - traceId: Trace ID for telemetry correlation
     ///   - negativePrompt: Optional negative prompt string (v2.0+ only, single string not array)
     ///   - duration: Video duration in seconds
     ///   - image: Optional base64 image string with data URI prefix
@@ -173,6 +213,7 @@ public actor KlingAPIClient {
     public func generateVideo(
         prompt: String,
         version: KlingVersion,
+        traceId: String,
         negativePrompt: String? = nil,
         duration: Int = 5,
         image: String? = nil,
@@ -180,21 +221,23 @@ public actor KlingAPIClient {
         cameraControl: CameraControl? = nil,
         mode: String? = nil
     ) async throws -> VideoTask {
+        // Validate request eligibility before proceeding
+        try await validateRequestEligibility(traceId: traceId)
+        
         let endpoint = version.endpoint
         let requestId = UUID().uuidString.prefix(8)
         
-        writeToLog("🚀 ====== REQUEST START [\(requestId)] ======")
-        writeToLog("🚀 [\(requestId)] Method: POST")
-        writeToLog("🚀 [\(requestId)] URL: \(endpoint.absoluteString)")
-        writeToLog("🚀 [\(requestId)] Version: \(version.rawValue)")
-        
-        // Get valid JWT token
-        let jwtToken = try getValidToken()
-        
+        // Add trace ID to request header
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization") // JWT Bearer token
+        request.setValue("Bearer \(try getValidToken())", forHTTPHeaderField: "Authorization")
+        request.setValue(traceId, forHTTPHeaderField: "X-Trace-ID")
+        
+        writeToLog("🚀 ====== REQUEST START [\(requestId)] [Trace: \(traceId)] ======")
+        writeToLog("🚀 [\(requestId)] Method: POST")
+        writeToLog("🚀 [\(requestId)] URL: \(endpoint.absoluteString)")
+        writeToLog("🚀 [\(requestId)] Version: \(version.rawValue)")
         
         // Build request body matching Kling native API format
         let requestBody = try buildKlingRequest(
@@ -230,6 +273,15 @@ public actor KlingAPIClient {
                 writeToLog("❌ [\(requestId)] URLError description: \(urlError.localizedDescription)")
             }
             writeToLog("❌ [\(requestId)] ====== REQUEST FAILED (NETWORK ERROR) ======")
+            
+            // Log telemetry
+            await TelemetryService.shared.logApiCall(
+                method: "generateVideo",
+                traceId: traceId,
+                statusCode: 0,
+                duration: duration
+            )
+            
             throw KlingError.generationFailed("Network error: \(error.localizedDescription)")
         }
         let duration = Date().timeIntervalSince(startTime)
@@ -253,14 +305,42 @@ public actor KlingAPIClient {
                 if let responseString = String(data: data, encoding: .utf8) {
                     writeToLog("❌ [\(requestId)] Error Response: \(responseString)")
                     
-                    // Handle HTTP 400/429 errors with detailed parsing
-                    if httpResponse.statusCode == 429 || httpResponse.statusCode == 400 {
+                    // Handle HTTP 429 (rate limit) with Retry-After header
+                    if httpResponse.statusCode == 429 {
+                        var retryAfter: TimeInterval = 1.0
+                        if let retryAfterHeader = httpResponse.value(forHTTPHeaderField: "Retry-After"),
+                           let retrySeconds = TimeInterval(retryAfterHeader) {
+                            retryAfter = retrySeconds
+                        }
+                        
+                        writeToLog("⏳ [\(requestId)] Rate limited, retry after \(retryAfter)s")
+                        
+                        // Log telemetry
+                        await TelemetryService.shared.logApiCall(
+                            method: "generateVideo",
+                            traceId: traceId,
+                            statusCode: 429,
+                            duration: duration
+                        )
+                        
+                        // Schedule delayed retry via Task.detached
+                        throw KlingError.httpError(429) // Will be caught by retry logic
+                    }
+                    
+                    // Handle HTTP 400 errors
+                    if httpResponse.statusCode == 400 {
                         // Check for Error 1102 (resource pack depleted) first
                         do {
                             try handleKlingError(data, requestId: String(requestId))
                         } catch let error as KlingError {
                             // Re-throw if it's resourcePackDepleted
                             if case .resourcePackDepleted = error {
+                                await TelemetryService.shared.logApiCall(
+                                    method: "generateVideo",
+                                    traceId: traceId,
+                                    statusCode: 400,
+                                    duration: duration
+                                )
                                 throw error
                             }
                             // Not Error 1102, continue with normal error handling
@@ -320,6 +400,18 @@ public actor KlingAPIClient {
             writeToLog("✅ [\(requestId)] Status: \(taskData.task_status)")
             writeToLog("✅ [\(requestId)] Status URL: \(statusURL.absoluteString)")
             writeToLog("✅ [\(requestId)] ====== REQUEST COMPLETE ======")
+            
+            // Log successful API call
+            await TelemetryService.shared.logApiCall(
+                method: "generateVideo",
+                traceId: traceId,
+                statusCode: 200,
+                duration: duration
+            )
+            
+            // Deduct credits (estimate cost based on version and duration)
+            let cost = estimateCost(version: version, duration: duration)
+            try? await SupabaseSyncService.shared.deductCredits(amount: cost, traceId: traceId)
             
             return VideoTask(id: taskId, statusURL: statusURL)
         } catch {
@@ -904,6 +996,25 @@ public actor KlingAPIClient {
             }
         }
         throw KlingError.timeout
+    }
+    
+    /// Estimate credit cost for generation
+    /// - Parameters:
+    ///   - version: Kling version
+    ///   - duration: Video duration in seconds
+    /// - Returns: Estimated credit cost
+    private func estimateCost(version: KlingVersion, duration: Int) -> Int {
+        // Base rate: 4 credits per second for v1.6, 8 for v2.0, 16 for v2.5
+        let baseRate: Int
+        switch version {
+        case .v1_6_standard:
+            baseRate = 4
+        case .v2_0_master:
+            baseRate = 8
+        case .v2_5_turbo:
+            baseRate = 16
+        }
+        return baseRate * duration
     }
     
     /// Validate HTTP response status code

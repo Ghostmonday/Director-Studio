@@ -32,8 +32,9 @@ public actor ClipCacheManager {
     ///   - url: Local URL of the video file
     ///   - prompt: The ProjectPrompt that generated it
     ///   - version: The KlingVersion used
+    ///   - traceId: Trace ID for telemetry
     /// - Throws: File system errors
-    public func store(_ url: URL, for prompt: ProjectPrompt, version: KlingVersion) async throws {
+    public func store(_ url: URL, for prompt: ProjectPrompt, version: KlingVersion, traceId: String) async throws {
         let key = cacheKey(for: prompt, version: version)
         let dest = cacheURL.appendingPathComponent("\(key).mp4")
         
@@ -43,17 +44,45 @@ public actor ClipCacheManager {
         }
         
         try fileManager.copyItem(at: url, to: dest)
+        
+        // Log cache storage
+        await TelemetryService.shared.logEvent(.cacheHit, traceId: traceId, payload: [
+            "prompt_id": prompt.id.uuidString,
+            "cache_key": key
+        ])
+    }
+    
+    /// Store clip asset with trace ID
+    public func storeClip(_ clip: ClipAsset, traceId: String) async {
+        // Store clip metadata for retrieval
+        // Implementation depends on ClipAsset structure
+        await TelemetryService.shared.logEvent(.cacheHit, traceId: traceId, payload: [
+            "clip_id": clip.id.uuidString
+        ])
     }
     
     /// Retrieve cached video clip if it exists
     /// - Parameters:
     ///   - prompt: The ProjectPrompt to check
     ///   - version: The KlingVersion used
+    ///   - traceId: Trace ID for telemetry
     /// - Returns: Cached video URL if found, nil otherwise
-    public func retrieve(for prompt: ProjectPrompt, version: KlingVersion) -> URL? {
+    public func retrieve(for prompt: ProjectPrompt, version: KlingVersion, traceId: String) async -> URL? {
         let key = cacheKey(for: prompt, version: version)
         let url = cacheURL.appendingPathComponent("\(key).mp4")
-        return fileManager.fileExists(atPath: url.path) ? url : nil
+        let exists = fileManager.fileExists(atPath: url.path)
+        
+        // Log cache result
+        await TelemetryService.shared.logEvent(
+            exists ? .cacheHit : .cacheMiss,
+            traceId: traceId,
+            payload: [
+                "prompt_id": prompt.id.uuidString,
+                "cache_key": key
+            ]
+        )
+        
+        return exists ? url : nil
     }
     
     /// Clear all cached clips
